@@ -1,0 +1,9 @@
+{
+    "id": 8,
+    "video_url": "\\var\\www\\html\\rpa_files\\videos\\video_8_1775793537.mp4",
+    "title": "爱维修",
+    "description": "维修",
+    "tags": "维修,摄像头",
+    "local_path": "\\var\\www\\html\\rpa_files\\videos\\video_8_1775793537.mp4",
+    "callback_url": "http://localhost/api/marketing/xiaohongshu/publish/callback"
+}

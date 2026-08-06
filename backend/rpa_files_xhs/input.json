@@ -1,0 +1,8 @@
+{
+    "id": 7,
+    "video_url": "D:\\maintain\\docker\\rpa_files\\videos\\video_7_1776068918.mp4",
+    "title": "维修",
+    "tags": "维修无人机",
+    "local_path": "D:\\maintain\\docker\\rpa_files\\videos\\video_7_1776068918.mp4",
+    "callback_url": "http://localhost/api/marketing/xiaohongshu/publish/callback"
+}

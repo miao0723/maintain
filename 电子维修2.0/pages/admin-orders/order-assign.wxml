@@ -1,0 +1,214 @@
+<!--pages/admin-orders/order-assign.wxml-->
+<view class="container">
+  <!-- 顶部统计卡片 -->
+  <view class="stats-container">
+    <view class="stat-card" bindtap="filterByStatus" data-status="all">
+      <view class="stat-value">{{stats.total}}</view>
+      <view class="stat-label">全部订单</view>
+    </view>
+    <view class="stat-card" bindtap="filterByStatus" data-status="pending">
+      <view class="stat-value">{{stats.pending}}</view>
+      <view class="stat-label">待分配</view>
+    </view>
+    <view class="stat-card" bindtap="filterByStatus" data-status="processing">
+      <view class="stat-value">{{stats.processing}}</view>
+      <view class="stat-label">处理中</view>
+    </view>
+    <view class="stat-card" bindtap="filterByStatus" data-status="completed">
+      <view class="stat-value">{{stats.completed}}</view>
+      <view class="stat-label">已完成</view>
+    </view>
+  </view>
+
+  <!-- 筛选器 -->
+  <view class="filter-container">
+    <view class="search-box">
+      <input
+        class="search-input"
+        placeholder="搜索订单号、客户信息"
+        bindinput="onSearchInput"
+        value="{{searchKeyword}}"
+      />
+      <text class="search-icon" bindtap="onSearch">🔍</text>
+    </view>
+    <view class="filter-tabs">
+      <view
+        class="filter-tab {{statusFilter === 'all' ? 'active' : ''}}"
+        bindtap="filterByStatus"
+        data-status="all"
+      >
+        全部
+      </view>
+      <view
+        class="filter-tab {{statusFilter === 'pending' ? 'active' : ''}}"
+        bindtap="filterByStatus"
+        data-status="pending"
+      >
+        待分配
+      </view>
+      <view
+        class="filter-tab {{statusFilter === 'processing' ? 'active' : ''}}"
+        bindtap="filterByStatus"
+        data-status="processing"
+      >
+        处理中
+      </view>
+      <view
+        class="filter-tab {{statusFilter === 'completed' ? 'active' : ''}}"
+        bindtap="filterByStatus"
+        data-status="completed"
+      >
+        已完成
+      </view>
+    </view>
+  </view>
+
+  <!-- 订单列表 -->
+  <view class="orders-list">
+    <block wx:if="{{orders.length > 0}}">
+      <view
+        class="order-card"
+        wx:for="{{orders}}"
+        wx:key="id"
+        bindtap="viewOrderDetail"
+        data-id="{{item.id}}"
+      >
+        <!-- 订单头部 -->
+        <view class="order-header">
+          <view class="order-info">
+            <text class="order-no">{{item.orderNo}}</text>
+            <text class="order-time">{{item.createdAt}}</text>
+          </view>
+          <view class="order-status status-{{item.status}}">
+            {{item.statusText}}
+          </view>
+        </view>
+
+        <!-- 订单内容 -->
+        <view class="order-content">
+          <view class="device-info">
+            <text class="device-model">{{item.deviceModel}}</text>
+            <text class="device-type">{{item.deviceTypeName || item.deviceType}}</text>
+          </view>
+          <text class="problem-desc">{{item.problem}}</text>
+          <view class="customer-info">
+            <text class="customer-name">👤 {{item.userName}}</text>
+            <text class="customer-phone">📞 {{item.userPhone}}</text>
+          </view>
+        </view>
+
+        <!-- 价格信息 -->
+        <view class="price-info">
+          <text class="price-label">预估价格：</text>
+          <text class="price-value">¥{{item.estimatedPrice || 0}}</text>
+          <text class="priority-tag priority-{{item.priority}}">
+            {{item.priority === 'high' ? '紧急' : item.priority === 'medium' ? '普通' : '低'}}
+          </text>
+        </view>
+
+        <!-- 分配信息 -->
+        <view class="assign-info" wx:if="{{item.assignedToName}}">
+          <text class="assign-label">👷 已分配给：</text>
+          <text class="assign-name">{{item.assignedToName}}</text>
+        </view>
+
+        <!-- 操作按钮 -->
+        <view class="order-actions" catchtap="stopPropagation">
+          <!-- 处理中的订单显示进度反馈按钮 -->
+          <block wx:if="{{item.status === 'processing'}}">
+            <view
+              class="action-btn btn-progress"
+              catchtap="navigateToProgressFeedback"
+              data-id="{{item.id}}"
+            >
+              📹 进度反馈
+            </view>
+            <button
+              class="action-btn btn-detail"
+              bindtap="viewOrderDetail"
+              data-id="{{item.id}}"
+            >
+              查看详情
+            </button>
+          </block>
+          <!-- 非处理中的订单显示分配按钮 -->
+          <block wx:else>
+            <button
+              class="action-btn btn-assign"
+              wx:if="{{!item.assignedTo}}"
+              bindtap="showAssignModal"
+              data-id="{{item.id}}"
+            >
+              分配订单
+            </button>
+            <button
+              class="action-btn btn-reassign"
+              wx:if="{{item.assignedTo}}"
+              bindtap="showAssignModal"
+              data-id="{{item.id}}"
+            >
+              重新分配
+            </button>
+            <button
+              class="action-btn btn-detail"
+              bindtap="viewOrderDetail"
+              data-id="{{item.id}}"
+            >
+              查看详情
+            </button>
+          </block>
+        </view>
+      </view>
+    </block>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:else>
+      <text class="empty-icon">📋</text>
+      <text class="empty-text">暂无订单</text>
+    </view>
+  </view>
+
+  <!-- 加载更多 -->
+  <view class="load-more" wx:if="{{hasMore}}">
+    <button class="load-btn" bindtap="loadMore" loading="{{loading}}">
+      {{loading ? '加载中...' : '加载更多'}}
+    </button>
+  </view>
+
+  <!-- 分配订单弹窗 -->
+  <view class="modal-overlay" wx:if="{{showAssignModal}}" bindtap="closeAssignModal">
+    <view class="modal-content" catchtap="stopPropagation">
+      <view class="modal-header">
+        <text class="modal-title">分配订单</text>
+        <text class="modal-close" bindtap="closeAssignModal">✕</text>
+      </view>
+
+      <view class="modal-body">
+        <view class="form-group">
+          <text class="form-label">选择管理员</text>
+          <picker
+            mode="selector"
+            range="{{adminList}}"
+            range-key="displayName"
+            bindchange="onAdminSelect"
+          >
+            <view class="picker">
+              {{selectedAdmin ? selectedAdmin.displayName : '请选择管理员'}}
+            </view>
+          </picker>
+        </view>
+
+        <view class="admin-info" wx:if="{{selectedAdmin}}">
+          <text class="info-label">姓名：{{selectedAdmin.real_name || selectedAdmin.nickname}}</text>
+          <text class="info-label">电话：{{selectedAdmin.phone}}</text>
+          <text class="info-label">当前订单：{{selectedAdmin.orderCount || 0}}</text>
+        </view>
+      </view>
+
+      <view class="modal-footer">
+        <button class="modal-btn btn-cancel" bindtap="closeAssignModal">取消</button>
+        <button class="modal-btn btn-confirm" bindtap="confirmAssign">确认分配</button>
+      </view>
+    </view>
+  </view>
+</view>

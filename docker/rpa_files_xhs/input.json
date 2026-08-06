@@ -1,0 +1,9 @@
+{
+  "id": 1,
+  "video_url": "D:\\maintain\\docker\\rpa_files_xhs\\videos\\xhs_video_1_1234567890.mp4",
+  "title": "笔记标题",
+  "description": "正文描述内容",
+  "tags": "话题1,话题2,话题3",
+  "local_path": "D:\\maintain\\docker\\rpa_files_xhs\\videos\\xhs_video_1_1234567890.mp4",
+  "callback_url": "http://localhost/api/marketing/xiaohongshu/publish/callback"
+}

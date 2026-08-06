@@ -1,0 +1,207 @@
+<!-- pages/scan/scan.wxml - 拍照识别设备 -->
+<view class="page-container">
+  <!-- ========== Phase 1: 选择图片 ========== -->
+  <view class="phase-select" wx:if="{{phase === 'select'}}">
+    <view class="select-header">
+      <text class="select-title">📷 拍照识别设备</text>
+      <text class="select-subtitle">对准设备拍照或从相册选择，AI 将自动识别设备型号</text>
+    </view>
+
+    <view class="select-cards">
+      <view class="select-card" bindtap="takePhoto">
+        <view class="card-icon-wrap">
+          <text class="card-emoji">📸</text>
+        </view>
+        <text class="card-title">拍照识别</text>
+        <text class="card-desc">使用相机直接拍摄</text>
+      </view>
+
+      <view class="select-card" bindtap="chooseFromAlbum">
+        <view class="card-icon-wrap">
+          <text class="card-emoji">🖼️</text>
+        </view>
+        <text class="card-title">从相册选择</text>
+        <text class="card-desc">选择已有设备照片</text>
+      </view>
+    </view>
+
+    <!-- 预览已选图片 -->
+    <view class="preview-section" wx:if="{{selectedImage}}">
+      <image class="preview-image" src="{{selectedImage}}" mode="aspectFit"></image>
+      <view class="preview-actions">
+        <button class="btn btn-outline" bindtap="reselect">重新选择</button>
+        <button class="btn btn-primary" bindtap="startIdentify">开始识别</button>
+      </view>
+    </view>
+
+    <!-- 使用提示 -->
+    <view class="tips-section">
+      <view class="tips-title">💡 拍摄建议</view>
+      <view class="tips-item">• 确保设备完整出现在画面中</view>
+      <view class="tips-item">• 光线充足，避免反光</view>
+      <view class="tips-item">• 尽量拍设备正面，包含品牌logo</view>
+      <view class="tips-item">• 支持：手机、电脑、平板、手表等常见电子设备</view>
+    </view>
+  </view>
+
+  <!-- ========== Phase 2: 识别中 ========== -->
+  <view class="phase-identifying" wx:if="{{phase === 'identifying'}}">
+    <view class="identifying-card">
+      <image class="identifying-image" src="{{selectedImage}}" mode="aspectFit"></image>
+      
+      <view class="identifying-overlay">
+        <!-- 扫描动画 -->
+        <view class="scan-line"></view>
+        
+        <view class="identifying-content">
+          <view class="loading-spinner">
+            <view class="spinner-ring"></view>
+          </view>
+          <text class="identifying-title">AI 正在识别您的设备...</text>
+          <text class="identifying-desc">正在分析设备外观、品牌特征</text>
+          
+          <view class="identifying-steps">
+            <view class="step {{stepActive >= 1 ? 'done' : ''}}">
+              <text class="step-dot">{{stepActive >= 1 ? '✓' : '1'}}</text>
+              <text class="step-label">上传图片</text>
+            </view>
+            <view class="step-line {{stepActive >= 2 ? 'active' : ''}}"></view>
+            <view class="step {{stepActive >= 2 ? 'done' : ''}}">
+              <text class="step-dot">{{stepActive >= 2 ? '✓' : '2'}}</text>
+              <text class="step-label">AI分析</text>
+            </view>
+            <view class="step-line {{stepActive >= 3 ? 'active' : ''}}"></view>
+            <view class="step {{stepActive >= 3 ? 'done' : ''}}">
+              <text class="step-dot">{{stepActive >= 3 ? '✓' : '3'}}</text>
+              <text class="step-label">匹配型号</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <button class="btn btn-outline cancel-btn" bindtap="cancelIdentify">取消</button>
+  </view>
+
+  <!-- ========== Phase 3: 识别结果 ========== -->
+  <view class="phase-result" wx:if="{{phase === 'result'}}">
+    <!-- 结果头部 -->
+    <view class="result-header">
+      <text class="result-badge">✓ 识别完成</text>
+    </view>
+
+    <!-- 设备信息卡片 -->
+    <view class="result-device-card">
+      <view class="device-img-section" wx:if="{{resultImage}}">
+        <image class="device-img" src="{{resultImage}}" mode="aspectFit"></image>
+      </view>
+      
+      <view class="device-main-info">
+        <text class="device-icon-large">{{deviceInfo.icon || '📱'}}</text>
+        <view class="device-name-row">
+          <text class="device-name">{{deviceInfo.name || '未知设备'}}</text>
+          <view class="series-tag" wx:if="{{deviceInfo.matchedSeries}}">
+            <text class="series-tag-text">{{deviceInfo.matchedSeries}}</text>
+          </view>
+        </view>
+        <text class="device-model" wx:if="{{deviceInfo.brand || deviceInfo.model}}">
+          {{deviceInfo.brand || ''}}{{deviceInfo.brand && deviceInfo.model ? ' ' : ''}}{{deviceInfo.model || ''}}
+        </text>
+      </view>
+
+      <!-- 置信度 -->
+      <view class="confidence-bar" wx:if="{{deviceInfo.confidence}}">
+        <text class="confidence-label">匹配度</text>
+        <view class="confidence-track">
+          <view class="confidence-fill" style="width: {{deviceInfo.confidence * 100}}%;"></view>
+        </view>
+        <text class="confidence-value">{{deviceInfo.confidence * 100}}%</text>
+      </view>
+
+      <!-- 详细信息 -->
+      <view class="device-detail-list" wx:if="{{deviceInfo.details}}">
+        <view class="detail-row {{item.highlight ? 'detail-highlight' : ''}} {{item.secondary ? 'detail-secondary' : ''}}" wx:for="{{deviceInfo.details}}" wx:key="label">
+          <text class="detail-label">{{item.label}}</text>
+          <text class="detail-value">{{item.value}}</text>
+        </view>
+      </view>
+
+      <!-- 候选设备型号：点击展开抽屉选择 -->
+      <view class="model-select-trigger" wx:if="{{deviceInfo.candidates.length}}" bindtap="openModelDrawer">
+        <view class="trigger-left">
+          <text class="trigger-icon">📱</text>
+          <view class="trigger-texts">
+            <text class="trigger-title">请选择您的设备型号</text>
+            <text class="trigger-current" wx:if="{{selectedModel}}">{{selectedModel}}</text>
+          </view>
+        </view>
+        <view class="trigger-action {{selectedModel ? 'done' : ''}}">
+          <text>{{selectedModel ? '更换' : '选择'}}</text>
+          <text class="trigger-arrow">›</text>
+        </view>
+      </view>
+
+      <!-- 匹配的设备类型映射 -->
+      <view class="type-match" wx:if="{{deviceInfo.matchedType}}">
+        <text class="match-icon">🔗</text>
+        <text class="match-text">已为您匹配到：{{deviceInfo.matchedType.name}}</text>
+      </view>
+      <view class="type-match type-custom" wx:if="{{deviceInfo.isCustom}}">
+        <text class="match-icon">⚙️</text>
+        <text class="match-text">自定义设备类型（未在预设列表中）</text>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="result-actions">
+      <button class="act-btn act-device" bindtap="addToDevices" loading="{{submitting}}" disabled="{{submitting}}">
+        <text class="act-icon">📋</text>
+        <text class="act-text">{{submitting ? '添加中...' : '添加到设备管理'}}</text>
+      </button>
+      <button class="act-btn act-repair" bindtap="gotoRepair">
+        <text class="act-icon">🔧</text>
+        <text class="act-text">发起维修</text>
+      </button>
+      <button class="act-btn act-recycle" bindtap="gotoRecycle">
+        <text class="act-icon">♻️</text>
+        <text class="act-text">发起回收</text>
+      </button>
+    </view>
+
+    <!-- 识别不准？重新识别 -->
+    <view class="re-identify" bindtap="reselect">
+      <text>识别不准？重新拍照识别 →</text>
+    </view>
+  </view>
+
+  <!-- ========== 设备型号选择抽屉 ========== -->
+  <view class="model-drawer-mask {{showModelDrawer ? 'show' : ''}}" bindtap="closeModelDrawer">
+    <view class="model-drawer {{showModelDrawer ? 'show' : ''}}" catchtap="noop">
+      <view class="drawer-handle"></view>
+      <view class="drawer-header">
+        <text class="drawer-title">选择设备型号</text>
+        <text class="drawer-close" bindtap="closeModelDrawer">✕</text>
+      </view>
+      <text class="drawer-tip" wx:if="{{deviceInfo.rawData.color}}">已识别颜色：{{deviceInfo.rawData.color}}</text>
+      <scroll-view class="drawer-list" scroll-y>
+        <view class="drawer-item {{selectedModel === item ? 'active' : ''}}"
+              wx:for="{{deviceInfo.candidates}}" wx:key="*this"
+              data-model="{{item}}" bindtap="selectModel">
+          <text class="drawer-item-text">{{item}}</text>
+          <text class="drawer-item-check" wx:if="{{selectedModel === item}}">✓</text>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+
+  <!-- ========== Phase: 错误 ========== -->
+  <view class="phase-error" wx:if="{{phase === 'error'}}">
+    <text class="error-emoji">😔</text>
+    <text class="error-title">识别失败</text>
+    <text class="error-msg">{{errorMessage}}</text>
+    <view class="error-actions">
+      <button class="btn btn-primary" bindtap="reselect">重新拍照</button>
+      <button class="btn btn-outline" bindtap="manualAdd">手动添加设备</button>
+    </view>
+  </view>
+</view>

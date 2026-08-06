@@ -1,0 +1,118 @@
+开始初始化数据库连接池...
+数据库配置: localhost:3306/repair
+Server is running on http://0.0.0.0:3001
+数据库连接池初始化成功
+数据库查询 - SQL: SELECT cc.id, cc.status, cc.summary, cc.created_at, cc.last_activity, cc.end_reason, (SELECT COUNT(*) FROM chat_messages WHERE conversation_id = cc.id) as message_count FROM chat_conversations cc WHERE cc.user_id = ? ORDER BY cc.last_activity DESC LIMIT ?
+数据库查询 - 参数: [ '4', 10 ]
+数据库查询 - 参数类型: [ 'string', 'number' ]
+数据库查询 - SQL: SELECT COUNT(*) as count FROM chat_messages cm JOIN chat_conversations cc ON cm.conversation_id = cc.id WHERE cc.user_id = ? AND cm.sender_type != 'user' AND cm.is_read = FALSE
+数据库查询 - 参数: [ '4' ]
+数据库查询 - 参数类型: [ 'string' ]
+[ChatPersistence] 删除会话: 1781487352796 affectedRows: 1
+数据库查询 - SQL: SELECT cc.id, cc.status, cc.summary, cc.created_at, cc.last_activity, cc.end_reason, (SELECT COUNT(*) FROM chat_messages WHERE conversation_id = cc.id) as message_count FROM chat_conversations cc WHERE cc.user_id = ? ORDER BY cc.last_activity DESC LIMIT ?
+数据库查询 - 参数: [ '4', 10 ]
+数据库查询 - 参数类型: [ 'string', 'number' ]
+数据库查询 - SQL: SELECT COUNT(*) as count FROM chat_messages cm JOIN chat_conversations cc ON cm.conversation_id = cc.id WHERE cc.user_id = ? AND cm.sender_type != 'user' AND cm.is_read = FALSE
+数据库查询 - 参数: [ '4' ]
+数据库查询 - 参数类型: [ 'string' ]
+数据库查询 - SQL: SELECT id, sender_type, content, intent, confidence, suggested_actions, created_at FROM chat_messages WHERE conversation_id = ? ORDER BY created_at DESC LIMIT ?
+数据库查询 - 参数: [ '1781487352796', 50 ]
+数据库查询 - 参数类型: [ 'string', 'number' ]
+数据库查询 - SQL: UPDATE chat_messages SET is_read = TRUE WHERE conversation_id = ? AND sender_type = ? AND is_read = FALSE
+数据库查询 - 参数: [ '1781487352796', 'ai' ]
+数据库查询 - 参数类型: [ 'string', 'string' ]
+执行产品查询: SELECT * FROM products WHERE 1=1 ORDER BY id ASC []
+数据库查询 - SQL: SELECT id, openid, nickname, real_name, phone, email, avatar_url, role, status FROM users WHERE id = ?
+数据库查询 - 参数: [ 4 ]
+数据库查询 - 参数类型: [ 'number' ]
+数据库查询 - SQL: SELECT * FROM products WHERE 1=1 ORDER BY id ASC
+数据库查询 - 参数: []
+数据库查询 - 参数类型: []
+查询到产品数量: 96
+数据库查询 - SQL: SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND status = 'quoted'
+数据库查询 - 参数: [ 4 ]
+数据库查询 - 参数类型: [ 'number' ]
+数据库查询 - SQL: SELECT id, openid, nickname, real_name, phone, email, avatar_url, role, status FROM users WHERE id = ?
+数据库查询 - 参数: [ 4 ]
+数据库查询 - 参数类型: [ 'number' ]
+数据库查询 - SQL: SELECT o.id, o.order_id as order_no, o.device_model, o.progress, o.progress_updated_at, o.status, o.problem_description, o.progress_unread, o.quote_unread, d.name as device_type_name FROM orders o LEFT JOIN device_types d ON o.device_type = d.id WHERE o.user_id = ? AND o.progress_unread = 1 AND o.status IN ('processing', 'completed') ORDER BY o.progress_updated_at DESC
+数据库查询 - 参数: [ 4 ]
+数据库查询 - 参数类型: [ 'number' ]
+数据库查询 - SQL: SELECT cc.id, cc.status, cc.summary, cc.created_at, cc.last_activity, cc.end_reason, (SELECT COUNT(*) FROM chat_messages WHERE conversation_id = cc.id) as message_count FROM chat_conversations cc WHERE cc.user_id = ? ORDER BY cc.last_activity DESC LIMIT ?
+数据库查询 - 参数: [ '4', 10 ]
+数据库查询 - 参数类型: [ 'string', 'number' ]
+数据库查询 - SQL: SELECT COUNT(*) as count FROM chat_messages cm JOIN chat_conversations cc ON cm.conversation_id = cc.id WHERE cc.user_id = ? AND cm.sender_type != 'user' AND cm.is_read = FALSE
+数据库查询 - 参数: [ '4' ]
+数据库查询 - 参数类型: [ 'string' ]
+数据库查询 - SQL: SELECT cc.id, cc.status, cc.summary, cc.created_at, cc.last_activity, cc.end_reason, (SELECT COUNT(*) FROM chat_messages WHERE conversation_id = cc.id) as message_count FROM chat_conversations cc WHERE cc.user_id = ? ORDER BY cc.last_activity DESC LIMIT ?
+数据库查询 - 参数: [ '4', 10 ]
+数据库查询 - 参数类型: [ 'string', 'number' ]
+数据库查询 - SQL: SELECT COUNT(*) as count FROM chat_messages cm JOIN chat_conversations cc ON cm.conversation_id = cc.id WHERE cc.user_id = ? AND cm.sender_type != 'user' AND cm.is_read = FALSE
+数据库查询 - 参数: [ '4' ]
+数据库查询 - 参数类型: [ 'string' ]
+数据库查询 - SQL: SELECT cc.id, cc.status, cc.summary, cc.created_at, cc.last_activity, cc.end_reason, (SELECT COUNT(*) FROM chat_messages WHERE conversation_id = cc.id) as message_count FROM chat_conversations cc WHERE cc.user_id = ? ORDER BY cc.last_activity DESC LIMIT ?
+数据库查询 - 参数: [ '4', 10 ]
+数据库查询 - 参数类型: [ 'string', 'number' ]
+数据库查询 - SQL: SELECT COUNT(*) as count FROM chat_messages cm JOIN chat_conversations cc ON cm.conversation_id = cc.id WHERE cc.user_id = ? AND cm.sender_type != 'user' AND cm.is_read = FALSE
+数据库查询 - 参数: [ '4' ]
+数据库查询 - 参数类型: [ 'string' ]
+数据库查询 - SQL: SELECT cc.id, cc.status, cc.summary, cc.created_at, cc.last_activity, cc.end_reason, (SELECT COUNT(*) FROM chat_messages WHERE conversation_id = cc.id) as message_count FROM chat_conversations cc WHERE cc.user_id = ? ORDER BY cc.last_activity DESC LIMIT ?
+数据库查询 - 参数: [ '4', 10 ]
+数据库查询 - 参数类型: [ 'string', 'number' ]
+数据库查询 - SQL: SELECT COUNT(*) as count FROM chat_messages cm JOIN chat_conversations cc ON cm.conversation_id = cc.id WHERE cc.user_id = ? AND cm.sender_type != 'user' AND cm.is_read = FALSE
+数据库查询 - 参数: [ '4' ]
+数据库查询 - 参数类型: [ 'string' ]
+数据库查询 - SQL: SELECT id, openid, nickname, real_name, phone, email, avatar_url, role, status FROM users WHERE id = ?
+数据库查询 - 参数: [ 4 ]
+数据库查询 - 参数类型: [ 'number' ]
+数据库查询 - SQL: SELECT id, openid, nickname, real_name, phone, email, avatar_url, role, status FROM users WHERE id = ?
+数据库查询 - 参数: [ 4 ]
+数据库查询 - 参数类型: [ 'number' ]
+数据库查询 - SQL: SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND status = 'quoted'
+数据库查询 - 参数: [ 4 ]
+数据库查询 - 参数类型: [ 'number' ]
+数据库查询 - SQL: SELECT o.id, o.order_id as order_no, o.device_model, o.progress, o.progress_updated_at, o.status, o.problem_description, o.progress_unread, o.quote_unread, d.name as device_type_name FROM orders o LEFT JOIN device_types d ON o.device_type = d.id WHERE o.user_id = ? AND o.progress_unread = 1 AND o.status IN ('processing', 'completed') ORDER BY o.progress_updated_at DESC
+数据库查询 - 参数: [ 4 ]
+数据库查询 - 参数类型: [ 'number' ]
+执行产品查询: SELECT * FROM products WHERE 1=1 ORDER BY id ASC []
+数据库查询 - SQL: SELECT * FROM products WHERE 1=1 ORDER BY id ASC
+数据库查询 - 参数: []
+数据库查询 - 参数类型: []
+数据库查询 - SQL: SELECT id, openid, nickname, real_name, phone, email, avatar_url, role, status FROM users WHERE id = ?
+数据库查询 - 参数: [ 4 ]
+数据库查询 - 参数类型: [ 'number' ]
+数据库查询 - SQL: SELECT id, openid, nickname, real_name, phone, email, avatar_url, role, status FROM users WHERE id = ?
+数据库查询 - 参数: [ 4 ]
+数据库查询 - 参数类型: [ 'number' ]
+查询到产品数量: 96
+数据库查询 - SQL: SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND status = 'quoted'
+数据库查询 - 参数: [ 4 ]
+数据库查询 - 参数类型: [ 'number' ]
+数据库查询 - SQL: SELECT o.id, o.order_id as order_no, o.device_model, o.progress, o.progress_updated_at, o.status, o.problem_description, o.progress_unread, o.quote_unread, d.name as device_type_name FROM orders o LEFT JOIN device_types d ON o.device_type = d.id WHERE o.user_id = ? AND o.progress_unread = 1 AND o.status IN ('processing', 'completed') ORDER BY o.progress_updated_at DESC
+数据库查询 - 参数: [ 4 ]
+数据库查询 - 参数类型: [ 'number' ]
+数据库查询 - SQL: SELECT cc.id, cc.status, cc.summary, cc.created_at, cc.last_activity, cc.end_reason, (SELECT COUNT(*) FROM chat_messages WHERE conversation_id = cc.id) as message_count FROM chat_conversations cc WHERE cc.user_id = ? ORDER BY cc.last_activity DESC LIMIT ?
+数据库查询 - 参数: [ '4', 10 ]
+数据库查询 - 参数类型: [ 'string', 'number' ]
+数据库查询 - SQL: SELECT COUNT(*) as count FROM chat_messages cm JOIN chat_conversations cc ON cm.conversation_id = cc.id WHERE cc.user_id = ? AND cm.sender_type != 'user' AND cm.is_read = FALSE
+数据库查询 - 参数: [ '4' ]
+数据库查询 - 参数类型: [ 'string' ]
+数据库查询 - SQL: SELECT cc.id, cc.status, cc.summary, cc.created_at, cc.last_activity, cc.end_reason, (SELECT COUNT(*) FROM chat_messages WHERE conversation_id = cc.id) as message_count FROM chat_conversations cc WHERE cc.user_id = ? ORDER BY cc.last_activity DESC LIMIT ?
+数据库查询 - 参数: [ '4', 10 ]
+数据库查询 - 参数类型: [ 'string', 'number' ]
+数据库查询 - SQL: SELECT COUNT(*) as count FROM chat_messages cm JOIN chat_conversations cc ON cm.conversation_id = cc.id WHERE cc.user_id = ? AND cm.sender_type != 'user' AND cm.is_read = FALSE
+数据库查询 - 参数: [ '4' ]
+数据库查询 - 参数类型: [ 'string' ]
+数据库查询 - SQL: SELECT cc.id, cc.status, cc.summary, cc.created_at, cc.last_activity, cc.end_reason, (SELECT COUNT(*) FROM chat_messages WHERE conversation_id = cc.id) as message_count FROM chat_conversations cc WHERE cc.user_id = ? ORDER BY cc.last_activity DESC LIMIT ?
+数据库查询 - 参数: [ '4', 10 ]
+数据库查询 - 参数类型: [ 'string', 'number' ]
+数据库查询 - SQL: SELECT COUNT(*) as count FROM chat_messages cm JOIN chat_conversations cc ON cm.conversation_id = cc.id WHERE cc.user_id = ? AND cm.sender_type != 'user' AND cm.is_read = FALSE
+数据库查询 - 参数: [ '4' ]
+数据库查询 - 参数类型: [ 'string' ]
+数据库查询 - SQL: SELECT cc.id, cc.status, cc.summary, cc.created_at, cc.last_activity, cc.end_reason, (SELECT COUNT(*) FROM chat_messages WHERE conversation_id = cc.id) as message_count FROM chat_conversations cc WHERE cc.user_id = ? ORDER BY cc.last_activity DESC LIMIT ?
+数据库查询 - 参数: [ '4', 10 ]
+数据库查询 - 参数类型: [ 'string', 'number' ]
+数据库查询 - SQL: SELECT COUNT(*) as count FROM chat_messages cm JOIN chat_conversations cc ON cm.conversation_id = cc.id WHERE cc.user_id = ? AND cm.sender_type != 'user' AND cm.is_read = FALSE
+数据库查询 - 参数: [ '4' ]
+数据库查询 - 参数类型: [ 'string' ]
+[ChatPersistence] 删除会话: 1780970178643 affectedRows: 1

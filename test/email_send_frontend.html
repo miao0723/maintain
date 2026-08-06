@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>邮件发送示例（维修提醒）</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; padding: 20px; }
+    .box { max-width: 720px; margin: 0 auto; }
+    label { display:block; margin-top:12px; }
+    textarea { width:100%; height:140px; }
+    input, select, button { padding:8px; font-size:14px; }
+    .status { margin-top:12px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>发送维修提醒邮件（示例）</h2>
+
+    <label>收件人（多个用逗号分隔）
+      <input id="recipientEmail" type="email" placeholder="recipient@example.com" style="width:100%" />
+    </label>
+
+    <label>邮件主题
+      <input id="emailSubject" type="text" value="维修提醒" style="width:100%" />
+    </label>
+
+    <label>邮件格式
+      <select id="emailFormat">
+        <option value="text">纯文本 (text/plain)</option>
+        <option value="html">HTML (text/html)</option>
+      </select>
+    </label>
+
+    <label>提醒内容（页面上已有提醒项时也可使用“从页面获取”按钮）
+      <textarea id="reminderContent">示例：您的设备需要在明日进行例行维护，请及时安排技术人员检查。</textarea>
+    </label>
+
+    <div style="margin-top:8px">
+      <button id="loadFromPageBtn">从页面获取提醒内容</button>
+      <button id="sendEmailBtn">发送邮件</button>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    // 如果你的真实页面上有提醒内容元素，修改 selector 以适配
+    const PAGE_REMINDER_SELECTOR = '#reminderContent';
+
+    const recipientInput = document.getElementById('recipientEmail');
+    const subjectInput = document.getElementById('emailSubject');
+    const formatSelect = document.getElementById('emailFormat');
+    const contentInput = document.getElementById('reminderContent');
+    const statusEl = document.getElementById('status');
+
+    document.getElementById('loadFromPageBtn').addEventListener('click', () => {
+      // 示例：尝试从页面上其它位置抓取提醒文本（演示用途）
+      const el = document.querySelector(PAGE_REMINDER_SELECTOR);
+      if (el) {
+        contentInput.value = el.innerText || el.value || contentInput.value;
+        showStatus('已从页面获取提醒内容', 'info');
+      } else {
+        showStatus('未找到页面提醒元素，使用文本框内容。', 'warn');
+      }
+    });
+
+    document.getElementById('sendEmailBtn').addEventListener('click', async () => {
+      const to = recipientInput.value.trim();
+      const subject = subjectInput.value.trim() || '维修提醒';
+      const format = formatSelect.value; // text | html
+      const message = contentInput.value.trim();
+
+      if (!to) { showStatus('请填写收件人邮箱', 'error'); return; }
+      if (!message) { showStatus('提醒内容不能为空', 'error'); return; }
+
+      showStatus('正在发送...', 'info');
+
+      try {
+        // 使用表单编码提交，兼容 PHP 接收
+        const form = new URLSearchParams()
+        form.append('to', to)
+        form.append('subject', subject)
+        form.append('message', message)
+        form.append('format', format)
+
+        const resp = await fetch('/api/mail/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: form.toString()
+        });
+
+        const data = await resp.json().catch(() => null);
+        if (resp.ok && data && data.success) {
+          showStatus('邮件发送请求已提交（后端已接收）', 'success');
+        } else {
+          const err = data && (data.error || JSON.stringify(data)) || (await resp.text());
+          showStatus('发送失败：' + err, 'error');
+        }
+      } catch (e) {
+        showStatus('网络错误：' + e.message, 'error');
+      }
+    });
+
+    function showStatus(text, type) {
+      statusEl.textContent = text;
+      statusEl.style.color = type === 'error' ? 'crimson' : (type === 'success' ? 'green' : '#333');
+    }
+  </script>
+</body>
+</html>

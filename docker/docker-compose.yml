@@ -1,0 +1,239 @@
+services:
+  # ==================== 基础设施 ====================
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: cmms_db
+      MYSQL_USER: cmms_user
+      MYSQL_PASSWORD: cmms_pass
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-time-zone=+08:00
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - cmms-network
+
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - cmms-network
+
+  # ==================== 后台管理系统 - 后端 (ThinkPHP) ====================
+  php:
+    build:
+      context: ..
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - ../backend:/var/www/html
+      - ../电子维修2.0/uploads:/var/www/html/miniprogram-uploads
+      - ./rpa_files:/var/www/html/rpa_files
+      - ../backend/rpa_files_xhs:/var/www/html/rpa_files_xhs
+      - ./php/zz-custom.conf:/usr/local/etc/php-fpm.d/zz-custom.conf
+      - ./php/custom.ini:/usr/local/etc/php/conf.d/custom.ini
+    env_file:
+      - .env.docker
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      agent-service:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - cmms-network
+
+  # ==================== 后台管理系统 - 前端 (Vue3 + Vite) ====================
+  frontend-web:
+    build:
+      context: ..
+      dockerfile: docker/frontend-web/Dockerfile
+    expose:
+      - "80"
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+    networks:
+      - cmms-network
+
+  # ==================== 小程序 - 后端 (Node.js + Express) ====================
+  miniprogram-backend:
+    build:
+      context: ..
+      dockerfile: docker/miniprogram-backend/Dockerfile
+    env_file:
+      - .env.miniprogram
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      SERVER_HOST: 0.0.0.0
+    volumes:
+      # 与 PHP 后台、Nginx 共享同一份上传目录
+      - ../电子维修2.0/uploads:/uploads
+    ports:
+      - "3001:3001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - cmms-network
+
+  # ==================== AI Agent 服务 ====================
+  agent-service:
+    build:
+      context: ..
+      dockerfile: agent-service/Dockerfile
+    env_file:
+      - .env.docker
+    environment:
+      AGENT_SERVICE_PORT: 8001
+    ports:
+      - "8001:8001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=5)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - cmms-network
+
+  # ==================== 向量检索相关 ====================
+  # Milvus 依赖 - etcd
+  etcd:
+    profiles: ["vector"]
+    image: quay.io/coreos/etcd:v3.5.5
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - etcd-data:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    networks:
+      - cmms-network
+
+  # Milvus 依赖 - MinIO
+  minio:
+    profiles: ["vector"]
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      - minio-data:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    ports:
+      - "9001:9001"
+      - "9000:9000"
+    networks:
+      - cmms-network
+
+  # Milvus 向量数据库 - Standalone
+  milvus:
+    profiles: ["vector"]
+    image: milvusdb/milvus:v2.4.4
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+    volumes:
+      - milvus-data:/var/lib/milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      - etcd
+      - minio
+    networks:
+      - cmms-network
+
+  # 本地文本嵌入服务 (使用 sentence-transformers)
+  embedding-service:
+    profiles: ["vector"]
+    build:
+      context: ./embedding-service
+      dockerfile: Dockerfile
+    environment:
+      - EMBEDDING_MODEL=BAAI/bge-large-zh-v1.5
+      - HOST=0.0.0.0
+      - PORT=8080
+    ports:
+      - "8088:8080"
+    volumes:
+      - embedding-models:/root/.cache
+    networks:
+      - cmms-network
+
+  # Milvus REST API 包装器
+  milvus-rest:
+    profiles: ["vector"]
+    build:
+      context: ./milvus-rest
+      dockerfile: Dockerfile
+    environment:
+      - MILVUS_HOST=milvus
+      - MILVUS_PORT=19530
+      - HOST=0.0.0.0
+      - PORT=8080
+    ports:
+      - "8089:8080"
+    depends_on:
+      - milvus
+    networks:
+      - cmms-network
+
+  # ==================== 统一入口网关 ====================
+  nginx:
+    image: nginx:1.24-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ../backend:/var/www/html
+      - ../电子维修2.0/uploads:/var/www/html/miniprogram-uploads
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+      - frontend-web
+      - miniprogram-backend
+    restart: unless-stopped
+    networks:
+      - cmms-network
+
+volumes:
+  mysql-data:
+  redis-data:
+  etcd-data:
+  minio-data:
+  milvus-data:
+  embedding-models:
+
+networks:
+  cmms-network:
+    driver: bridge

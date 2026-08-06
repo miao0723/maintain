@@ -1,0 +1,1 @@
+import{J as s}from"./index-CwIWMC62.js";function i(e){return s({url:"/permissions",method:"get",params:e})}function n(e){return s({url:"/permissions",method:"post",data:e})}function o(e,r){return s({url:`/permissions/${e}`,method:"put",data:r})}function u(e){return s({url:`/permissions/${e}`,method:"delete"})}export{n as c,u as d,i as g,o as u};

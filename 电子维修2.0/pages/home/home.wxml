@@ -1,0 +1,187 @@
+<!-- pages/index/index.wxml -->
+<view class="page-container">
+  <view class="hero-section">
+    <view class="hero-orb hero-orb-left"></view>
+    <view class="hero-orb hero-orb-right"></view>
+
+    <view class="hero-topbar">
+      <view class="hero-brand">
+        <view class="hero-logo">🔧</view>
+        <view class="hero-brand-copy">
+          <text class="hero-brand-title">电子维修服务</text>
+          <text class="hero-brand-subtitle">维修、回收、报价、进度同步</text>
+        </view>
+      </view>
+      <view class="hero-profile" bindtap="goToMine">
+        <image class="hero-avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
+      </view>
+    </view>
+
+    <view class="hero-main">
+      <view class="hero-copy">
+        <text class="hero-greeting">{{greetingText}}</text>
+        <text class="hero-title">你的电子设备问题，这里可以直接开始处理</text>
+        <text class="hero-desc">先做故障初判，再接入客服、报价和下单，流程更清楚，页面也更聚焦。</text>
+      </view>
+
+      <view class="hero-summary-card">
+        <view class="hero-summary-head">
+          <text class="hero-summary-label">当前账号</text>
+          <text class="hero-summary-role">{{roleText}}</text>
+        </view>
+        <view class="hero-summary-user">
+          <image class="summary-avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
+          <view class="summary-meta">
+            <text class="summary-name">{{userInfo.nickName}}</text>
+            <text class="summary-tip">{{summaryTipText}}</text>
+          </view>
+        </view>
+        <view class="hero-summary-actions">
+          <view class="summary-chip">头像昵称自动同步</view>
+          <view class="summary-chip">登录状态自动保持</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="hero-highlights">
+      <view class="hero-highlight" wx:for="{{trustHighlights}}" wx:key="id">
+        <text class="hero-highlight-label">{{item.label}}</text>
+        <text class="hero-highlight-value">{{item.value}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="content-shell">
+    <view class="action-grid">
+      <view class="action-card action-card-diagnose" bindtap="goToDiagnose">
+        <view class="action-card-main">
+          <view class="action-card-copy">
+            <view class="action-badge">故障检测</view>
+            <text class="action-title">AI 故障自检</text>
+            <text class="action-desc">30 秒内给出初步判断，适合手机、电脑、相机等设备。</text>
+          </view>
+          <view class="action-icon">🤖</view>
+        </view>
+        <view class="action-foot">
+          <text class="action-metric">快速开始</text>
+          <text class="action-arrow">→</text>
+        </view>
+      </view>
+
+      <view class="action-card action-card-recycle" bindtap="goToRecycle">
+        <view class="action-card-main">
+          <view class="action-card-copy">
+            <view class="action-badge recycle-badge">回收估价</view>
+            <text class="action-title">闲置设备回收</text>
+            <text class="action-desc">支持手机在线估价和闲置电子设备回收处理。</text>
+          </view>
+          <view class="action-icon">♻️</view>
+        </view>
+        <view class="action-foot">
+          <text class="action-metric">免费估价</text>
+          <text class="action-arrow">→</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-card">
+      <view class="section-head">
+        <view>
+          <text class="section-eyebrow">SCOPE</text>
+          <text class="section-title">可处理设备范围</text>
+        </view>
+      </view>
+      <view class="business-scope">
+        <view class="scope-item" wx:for="{{businessScope}}" wx:key="id">
+          <view class="scope-icon">{{item.icon}}</view>
+          <text class="scope-name">{{item.name}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-card">
+      <view class="section-head">
+        <view>
+          <text class="section-eyebrow">FLOW</text>
+          <text class="section-title">报修路径</text>
+        </view>
+      </view>
+      <view class="flow-list">
+        <view class="flow-item" wx:for="{{serviceFlow}}" wx:key="id">
+          <view class="flow-step">{{item.step}}</view>
+          <view class="flow-content">
+            <text class="flow-title">{{item.title}}</text>
+            <text class="flow-desc">{{item.desc}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-card">
+      <view class="section-head">
+        <view>
+          <text class="section-eyebrow">CASES</text>
+          <text class="section-title">近期典型维修案例</text>
+        </view>
+      </view>
+      <scroll-view class="cases-scroll" scroll-x>
+        <view class="case-item" wx:for="{{successCases}}" wx:key="id">
+          <text class="case-icon">{{item.icon}}</text>
+          <text class="case-title">{{item.title}}</text>
+          <text class="case-desc">{{item.desc}}</text>
+          <text class="case-tag">{{item.tag}}</text>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view class="section-card company-card-shell">
+      <view class="section-head">
+        <view>
+          <text class="section-eyebrow">ABOUT</text>
+          <text class="section-title">公司与服务</text>
+        </view>
+      </view>
+      <view class="company-card">
+        <text class="company-name">{{companyProfile.name}}</text>
+        <text class="company-intro">{{companyProfile.intro}}</text>
+        <text class="company-desc">{{companyProfile.description}}</text>
+      </view>
+      <view class="company-highlight-list">
+        <view class="company-highlight-item" wx:for="{{companyHighlights}}" wx:key="id">
+          <text class="company-highlight-title">{{item.title}}</text>
+          <text class="company-highlight-value">{{item.value}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-card contact-section">
+      <view class="section-head section-head-light">
+        <view>
+          <text class="section-eyebrow light">CONTACT</text>
+          <text class="section-title light">联系我们</text>
+        </view>
+      </view>
+      <view class="contact-info">
+        <view class="contact-item contact-item-wide">
+          <text class="contact-label">公司</text>
+          <text class="contact-text">{{contactInfo.company}}</text>
+        </view>
+        <view class="contact-item">
+          <text class="contact-label">电话</text>
+          <text class="contact-text">{{contactInfo.phone}}</text>
+        </view>
+        <view class="contact-item contact-item-wide">
+          <text class="contact-label">地址</text>
+          <text class="contact-text">{{contactInfo.address}}</text>
+        </view>
+        <view class="contact-item">
+          <text class="contact-label">邮箱</text>
+          <text class="contact-text">{{contactInfo.email}}</text>
+        </view>
+      </view>
+      <button class="contact-btn" open-type="contact" session-from="home">
+        直接咨询客服
+      </button>
+    </view>
+  </view>
+</view>

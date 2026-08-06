@@ -1,0 +1,1 @@
+import{J as l}from"./index-CwIWMC62.js";function n(e,a){const o=new FormData;return o.append("file",e),l({url:"/upload",method:"post",data:o,headers:{"Content-Type":"multipart/form-data"},onUploadProgress:t=>{if(a&&t.total){const d=Math.round(t.loaded*100/t.total);a(d)}}})}export{n as u};

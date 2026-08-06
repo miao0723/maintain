@@ -1,0 +1,38 @@
+# Docker 构建上下文排除项（构建上下文为项目根目录 d:/maintain）
+# 目的：避免把本地依赖、构建产物、日志、归档文件送进 Docker daemon，显著加快构建
+
+# 依赖与构建产物
+**/node_modules
+frontend-web/dist
+frontend-web-web
+backend;D
+
+# 版本控制与 IDE
+.git
+.gitignore
+.idea
+.vscode
+.codebuddy
+
+# 日志与临时文件
+**/*.log
+**/*.tmp
+**/npm-debug.log*
+**/yarn-error.log*
+
+# 归档与大文件
+*.7z
+*.zip
+*.pdf
+
+# 测试与文档产物
+tests/output
+test/output
+
+# 本地敏感文件（容器内一律通过 env_file 注入）
+# 特别注意：小程序后端 server.js 使用 dotenv override:true 加载 .env，
+# 若把 .env 打进镜像会覆盖 compose 注入的容器变量（导致连 localhost 数据库失败）
+**/.env
+**/.env.bak
+**/.env.host
+**/.env.local

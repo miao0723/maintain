@@ -1,0 +1,45 @@
+<view class="tab-bar">
+  <!-- 滑动指示器 -->
+  <view class="slider" style="transform: translateX({{sliderOffset}}px); width: {{sliderWidth}}px;"></view>
+
+  <!-- 首页 -->
+  <view class="tab-item {{selected === 0 ? 'active' : ''}} {{bounce_0 ? 'bounce' : ''}}" bindtap="switchTab" data-index="0" data-path="/pages/home/home">
+    <view class="icon-wrap">
+      <image class="tab-icon" src="{{selected === 0 ? '/images/tabbar-home-active.svg' : '/images/tabbar-home.svg'}}" mode="aspectFit" />
+    </view>
+    <text class="tab-label">首页</text>
+  </view>
+
+  <!-- 维修 -->
+  <view class="tab-item {{selected === 1 ? 'active' : ''}} {{bounce_1 ? 'bounce' : ''}}" bindtap="switchTab" data-index="1" data-path="/pages/repair/repair">
+    <view class="icon-wrap">
+      <image class="tab-icon" src="{{selected === 1 ? '/images/tabbar-repair-active.svg' : '/images/tabbar-repair.svg'}}" mode="aspectFit" />
+    </view>
+    <text class="tab-label">维修</text>
+  </view>
+
+  <!-- 中间拍照按钮（凸起） -->
+  <view class="center-btn-wrap" bindtap="openScan">
+    <view class="center-btn">
+      <image class="center-btn-icon" src="/images/tabbar-camera.svg" mode="aspectFit" />
+    </view>
+    <text class="center-btn-label">拍照</text>
+  </view>
+
+  <!-- 客服 -->
+  <view class="tab-item {{selected === 2 ? 'active' : ''}} {{bounce_2 ? 'bounce' : ''}}" bindtap="switchTab" data-index="2" data-path="/pages/service/service">
+    <view class="icon-wrap">
+      <image class="tab-icon" src="{{selected === 2 ? '/images/tabbar-service-active.svg' : '/images/tabbar-service.svg'}}" mode="aspectFit" />
+    </view>
+    <text class="tab-label">客服</text>
+  </view>
+
+  <!-- 我的 -->
+  <view class="tab-item {{selected === 3 ? 'active' : ''}} {{bounce_3 ? 'bounce' : ''}}" bindtap="switchTab" data-index="3" data-path="/pages/mine/mine">
+    <view class="icon-wrap">
+      <image class="tab-icon" src="{{selected === 3 ? '/images/tabbar-mine-active.svg' : '/images/tabbar-mine.svg'}}" mode="aspectFit" />
+      <view class="tab-badge" wx:if="{{badgeTotal > 0}}">{{badgeTotal > 99 ? '99+' : badgeTotal}}</view>
+    </view>
+    <text class="tab-label">我的</text>
+  </view>
+</view>

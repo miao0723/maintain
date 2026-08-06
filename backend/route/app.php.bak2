@@ -1,0 +1,483 @@
+<?php
+
+// +----------------------------------------------------------------------
+// | 路由设置
+// +----------------------------------------------------------------------
+
+use think\facade\Route;
+
+// 诊断测试路由
+Route::get('diagnose-api', function() {
+    $data = [
+        'status' => 'ok',
+        'message' => 'API路由正常',
+        'php_version' => PHP_VERSION,
+        'time' => date('Y-m-d H:i:s'),
+    ];
+    return json($data);
+});
+
+// 测试路由
+Route::get('test', 'TestController/index');
+Route::post('test', 'TestController/index');
+
+// API路由
+Route::group('api', function () {
+    // 认证路由（无需 Token）
+    Route::group('auth', function () {
+        Route::post('login', 'AuthController/login');
+        Route::post('refresh', 'AuthController/refresh');
+    })->allowCrossDomain();
+
+    // 简化登录路由（测试用）
+    Route::post('simple-login', 'SimpleAuth/login')->allowCrossDomain();
+
+    // 需要认证的路由
+    Route::group(function () {
+        // 认证相关
+        Route::group('auth', function () {
+            Route::post('logout', 'AuthController/logout');
+            Route::get('profile', 'AuthController/profile');
+        });
+
+        // 用户管理
+        Route::group('users', function () {
+            Route::get('/', 'UserController/index');
+            Route::get('/:id', 'UserController/read');
+            Route::post('/', 'UserController/save');
+            Route::put('/:id', 'UserController/update');
+            Route::delete('/:id', 'UserController/delete');
+            Route::post('/:id/reset-password', 'UserController/resetPassword');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 角色管理
+        Route::group('roles', function () {
+            Route::get('/', 'RoleController/index');
+            Route::get('/:id', 'RoleController/read');
+            Route::post('/', 'RoleController/save');
+            Route::put('/:id', 'RoleController/update');
+            Route::delete('/:id', 'RoleController/delete');
+            Route::get('/:id/permissions', 'RoleController/getPermissions');
+            Route::post('/:id/permissions', 'RoleController/setPermissions');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 权限管理
+        Route::group('permissions', function () {
+            Route::get('/', 'PermissionController/index');
+            Route::get('/:id', 'PermissionController/read');
+            Route::post('/', 'PermissionController/save');
+            Route::put('/:id', 'PermissionController/update');
+            Route::delete('/:id', 'PermissionController/delete');
+            Route::post('/save-all', 'PermissionController/saveAll');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 人员管理
+        Route::group('personnel', function () {
+            Route::get('/', 'PersonnelController/index');
+            Route::get('/:id', 'PersonnelController/read');
+            Route::post('/', 'PersonnelController/save');
+            Route::put('/:id', 'PersonnelController/update');
+            Route::delete('/:id', 'PersonnelController/delete');
+            Route::post('/batch', 'PersonnelController/batchSave');
+            Route::post('/import', 'PersonnelController/import');
+            Route::get('/export', 'PersonnelController/export');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 单位管理
+        Route::group('organizations', function () {
+            Route::get('/', 'OrganizationController/index');
+            Route::get('/:id', 'OrganizationController/read');
+            Route::post('/', 'OrganizationController/save');
+            Route::put('/:id', 'OrganizationController/update');
+            Route::delete('/:id', 'OrganizationController/delete');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 免责协议管理
+        Route::group('agreement', function () {
+            Route::get('/', 'AgreementController/index');
+            Route::get('/:id', 'AgreementController/read');
+            Route::post('/', 'AgreementController/save');
+            Route::put('/:id', 'AgreementController/update');
+            Route::get('/:id/preview', 'AgreementController/preview');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 系统参数管理
+        Route::group('system-params', function () {
+            Route::get('/', 'SystemParamController/index');
+            Route::get('/:id', 'SystemParamController/read');
+            Route::post('/', 'SystemParamController/save');
+            Route::put('/:id', 'SystemParamController/update');
+            Route::delete('/:id', 'SystemParamController/delete');
+            Route::post('/refresh-cache', 'SystemParamController/refreshCache');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 系统日志管理
+        Route::group('system-logs', function () {
+            Route::get('/', 'SystemLogController/index');
+            Route::get('/:id', 'SystemLogController/read');
+            Route::post('/clear', 'SystemLogController/clear');
+            Route::get('/export', 'SystemLogController/export');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 部门管理
+        Route::group('departments', function () {
+            Route::get('/', 'DepartmentController/index');
+            Route::get('/:id', 'DepartmentController/read');
+            Route::post('/', 'DepartmentController/save');
+            Route::put('/:id', 'DepartmentController/update');
+            Route::delete('/:id', 'DepartmentController/delete');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 维修业务 - 机械分类管理
+        Route::group('repair-categories', function () {
+            Route::get('/', 'RepairCategoryController/index');
+            Route::get('active-list', 'RepairCategoryController/activeList');
+            Route::get('/:id', 'RepairCategoryController/read');
+            Route::post('/', 'RepairCategoryController/save');
+            Route::put('/:id', 'RepairCategoryController/update');
+            Route::delete('/:id', 'RepairCategoryController/delete');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 维修业务 - 机械名称管理
+        Route::group('repair-machines', function () {
+            Route::get('/', 'RepairMachineController/index');
+            Route::get('category/:categoryId', 'RepairMachineController/byCategory');
+            Route::get('/:id', 'RepairMachineController/read');
+            Route::post('/', 'RepairMachineController/save');
+            Route::put('/:id', 'RepairMachineController/update');
+            Route::delete('/:id', 'RepairMachineController/delete');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 首页看板统计
+        Route::get('statistics/dashboard', 'StatisticsController/dashboard');
+
+        // 设备分类管理
+        Route::get('devices/categories', 'DeviceCategoryController/index');
+        Route::post('devices/categories', 'DeviceCategoryController/save');
+        Route::put('devices/categories/:id', 'DeviceCategoryController/update');
+        Route::delete('devices/categories/:id', 'DeviceCategoryController/delete');
+
+        // 设备管理
+        Route::group('devices', function () {
+            Route::get('/', 'DeviceController/index');
+            Route::get('/:id', 'DeviceController/read');
+            Route::post('/', 'DeviceController/save');
+            Route::put('/:id', 'DeviceController/update');
+            Route::delete('/:id', 'DeviceController/delete');
+            Route::get('/:id/history', 'DeviceController/history');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 小程序订单管理
+        Route::group('repair-orders', function () {
+            Route::get('/', 'RepairOrderController/index');
+            Route::get('/:id', 'RepairOrderController/read');
+            Route::get('/pending', 'RepairOrderController/pending');
+            Route::get('/processing', 'RepairOrderController/processing');
+            Route::get('/statistics', 'RepairOrderController/statistics');
+            Route::post('/:id/accept', 'RepairOrderController/accept');
+            Route::post('/:id/status', 'RepairOrderController/updateStatus');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 工单管理
+        Route::group('workorders', function () {
+            Route::get('/', 'WorkOrderController/index');
+            Route::get('/:id', 'WorkOrderController/read');
+            Route::post('/', 'WorkOrderController/save');
+            Route::put('/:id', 'WorkOrderController/update');
+            Route::delete('/:id', 'WorkOrderController/delete');
+            Route::post('/:id/assign', 'WorkOrderController/assign');
+            Route::post('/:id/accept', 'WorkOrderController/accept');
+            Route::post('/:id/start', 'WorkOrderController/start');
+            Route::post('/:id/complete', 'WorkOrderController/complete');
+            Route::post('/:id/verify', 'WorkOrderController/verify');
+            Route::post('/:id/close', 'WorkOrderController/close');
+            Route::get('my', 'WorkOrderController/my');
+            Route::get('statistics', 'WorkOrderController/statistics');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 维修人员管理
+        Route::group('engineers', function () {
+            Route::get('/', 'EngineerController/index');
+            Route::get('/:id', 'EngineerController/read');
+            Route::post('/', 'EngineerController/save');
+            Route::put('/:id', 'EngineerController/update');
+            Route::delete('/:id', 'EngineerController/delete');
+            Route::get('available', 'EngineerController/available');
+            Route::get('recommend', 'EngineerController/recommend');
+            Route::get(':id/performance', 'EngineerController/performance');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 排班管理
+        Route::group('schedules', function () {
+            Route::get('/', 'ScheduleController/index');
+            Route::get('/:id', 'ScheduleController/read');
+            Route::post('/', 'ScheduleController/save');
+            Route::put('/:id', 'ScheduleController/update');
+            Route::delete('/:id', 'ScheduleController/delete');
+            Route::get('overview', 'ScheduleController/overview');
+            Route::post('batch', 'ScheduleController/batchCreate');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 巡检管理
+        Route::group('inspections', function () {
+            Route::get('/', 'InspectionTaskController/index');
+            Route::get('/:id', 'InspectionTaskController/read');
+            Route::post('/', 'InspectionTaskController/save');
+            Route::put('/:id', 'InspectionTaskController/update');
+            Route::delete('/:id', 'InspectionTaskController/delete');
+            Route::post('/:id/execute', 'InspectionTaskController/execute');
+            Route::get('my', 'InspectionTaskController/my');
+            Route::get('overdue', 'InspectionTaskController/overdue');
+            Route::get('statistics', 'InspectionTaskController/statistics');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 维修内容管理
+        Route::group('maintenance-items', function () {
+            Route::get('/categories', 'MaintenanceItemController/categories');
+            Route::get('/', 'MaintenanceItemController/index');
+            Route::get('/:id', 'MaintenanceItemController/read');
+            Route::post('/', 'MaintenanceItemController/save');
+            Route::put('/:id', 'MaintenanceItemController/update');
+            Route::delete('/:id', 'MaintenanceItemController/delete');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 维修报价单管理
+        Route::group('quotation-orders', function () {
+            Route::get('/', 'QuotationOrderController/index');
+            Route::get('/:id', 'QuotationOrderController/read');
+            Route::get('/order/:orderNo', 'QuotationOrderController/getByOrderNo');
+            Route::post('/', 'QuotationOrderController/save');
+            Route::put('/:id', 'QuotationOrderController/update');
+            Route::delete('/:id', 'QuotationOrderController/delete');
+            Route::post('/:id/submit', 'QuotationOrderController/submit');
+            Route::post('/:id/accept', 'QuotationOrderController/accept');
+            Route::post('/:id/reject', 'QuotationOrderController/reject');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 保养管理
+        Route::group('maintenance', function () {
+            Route::group('plans', function () {
+                Route::get('/', 'MaintenancePlanController/index');
+                Route::get('/:id', 'MaintenancePlanController/read');
+                Route::post('/', 'MaintenancePlanController/save');
+                Route::put('/:id', 'MaintenancePlanController/update');
+                Route::delete('/:id', 'MaintenancePlanController/delete');
+                Route::post('/:id/execute', 'MaintenancePlanController/execute');
+            });
+            Route::get('history', 'MaintenancePlanController/history');
+            Route::get('due', 'MaintenancePlanController/due');
+            Route::get('statistics', 'MaintenancePlanController/statistics');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 配件管理
+        Route::group('parts', function () {
+            Route::get('/', 'SparePartController/index');
+            Route::get('/:id', 'SparePartController/read');
+            Route::post('/', 'SparePartController/save');
+            Route::put('/:id', 'SparePartController/update');
+            Route::delete('/:id', 'SparePartController/delete');
+            Route::post('/:id/in', 'SparePartController/stockIn');
+            Route::post('/:id/out', 'SparePartController/stockOut');
+            Route::get('alerts', 'SparePartController/alerts');
+            Route::get('records', 'SparePartController/records');
+            Route::get('statistics', 'SparePartController/statistics');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 供应商管理
+        Route::group('suppliers', function () {
+            Route::get('/', 'SupplierController/index');
+            Route::get('/:id', 'SupplierController/read');
+            Route::post('/', 'SupplierController/save');
+            Route::put('/:id', 'SupplierController/update');
+            Route::delete('/:id', 'SupplierController/delete');
+            Route::get('statistics', 'SupplierController/statistics');
+            Route::get(':id/parts', 'SupplierController/parts');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 知识库管理
+        Route::group('knowledge', function () {
+            Route::get('/', 'KnowledgeBaseController/index');
+            Route::get('/:id', 'KnowledgeBaseController/read');
+            Route::post('/', 'KnowledgeBaseController/save');
+            Route::put('/:id', 'KnowledgeBaseController/update');
+            Route::delete('/:id', 'KnowledgeBaseController/delete');
+            Route::get('search', 'KnowledgeBaseController/search');
+            Route::get('hot', 'KnowledgeBaseController/hot');
+            Route::get('statistics', 'KnowledgeBaseController/statistics');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 成本分析
+        Route::group('costs', function () {
+            Route::get('overview', 'CostAnalysisController/overview');
+            Route::get('trend', 'CostAnalysisController/trend');
+            Route::get('top-devices', 'CostAnalysisController/topDevices');
+            Route::get('department-stats', 'CostAnalysisController/departmentStats');
+            Route::get('cost-type-analysis', 'CostAnalysisController/costTypeAnalysis');
+            Route::get('top-parts', 'CostAnalysisController/topParts');
+            Route::get('comprehensive', 'CostAnalysisController/comprehensive');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 报表中心
+        Route::group('reports', function () {
+            Route::get('types', 'ReportController/types');
+            Route::get('device', 'ReportController/device');
+            Route::get('maintenance', 'ReportController/maintenance');
+            Route::get('inventory', 'ReportController/inventory');
+            Route::get('cost', 'ReportController/cost');
+            Route::get(':type', 'ReportController/generate');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 通知中心
+        Route::group('notifications', function () {
+            Route::get('/', 'NotificationController/index');
+            Route::get('unread-count', 'NotificationController/unreadCount');
+            Route::get('statistics', 'NotificationController/statistics');
+            Route::post('mark-all-read', 'NotificationController/markAllAsRead');
+            Route::delete('clear-read', 'NotificationController/clearRead');
+            Route::post('create', 'NotificationController/create');
+            Route::post('create-batch', 'NotificationController/createBatch');
+            Route::post('check-stock-alerts', 'NotificationController/checkStockAlerts');
+            Route::post('check-maintenance', 'NotificationController/checkMaintenanceDue');
+            Route::post('mark-read/:id', 'NotificationController/markAsRead');
+            Route::delete(':id', 'NotificationController/delete');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 检测报告管理
+        Route::group('test-reports', function () {
+            Route::get('/', 'TestReportController/index');
+            Route::get('/:id', 'TestReportController/read');
+            Route::post('/', 'TestReportController/save');
+            Route::put('/:id', 'TestReportController/update');
+            Route::delete('/:id', 'TestReportController/delete');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 维修报告管理
+        Route::group('repair-reports', function () {
+            Route::post('/import', 'RepairReportController/importFromRepair');
+            Route::get('/import-preview', 'RepairReportController/importPreview');
+            Route::post('/import-single', 'RepairReportController/importSingle');
+            Route::get('/', 'RepairReportController/index');
+            Route::get('/:id', 'RepairReportController/read');
+            Route::post('/', 'RepairReportController/save');
+            Route::put('/:id', 'RepairReportController/update');
+            Route::delete('/:id', 'RepairReportController/delete');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 维修合同管理
+        Route::group('repair-contracts', function () {
+            Route::get('/', 'RepairContractController/index');
+            Route::get('/:id', 'RepairContractController/read');
+            Route::post('/', 'RepairContractController/save');
+            Route::put('/:id', 'RepairContractController/update');
+            Route::delete('/:id', 'RepairContractController/delete');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 维修提醒管理
+        Route::group('repair-reminders', function () {
+            Route::get('/', 'RepairReminderController/index');
+            Route::get('/:id', 'RepairReminderController/read');
+            Route::post('/', 'RepairReminderController/save');
+            Route::put('/:id', 'RepairReminderController/update');
+            Route::delete('/:id', 'RepairReminderController/delete');
+            Route::post('/:id/send-email', 'RepairReminderController/sendEmail');
+            Route::post('/send-due-email', 'RepairReminderController/sendDueEmail');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+// 维修进度管理
+Route::group('repair-progress', function () {
+    Route::get('/', 'RepairProgressController/index');
+    Route::get('/:id', 'RepairProgressController/read');
+    Route::post('/', 'RepairProgressController/save');
+    Route::put('/:id', 'RepairProgressController/update');
+    Route::delete('/:id', 'RepairProgressController/delete');
+    Route::get('/order/:orderId', 'RepairProgressController/orderProgress');
+})->middleware([ppmiddlewarePermissionCheck::class]);
+
+// 联动维修管理
+Route::group('external-repairs', function () {
+    Route::get('/', 'ExternalRepairController/index');
+    Route::get('/:id', 'ExternalRepairController/read');
+    Route::post('/', 'ExternalRepairController/save');
+    Route::put('/:id', 'ExternalRepairController/update');
+    Route::delete('/:id', 'ExternalRepairController/delete');
+})->middleware([ppmiddlewarePermissionCheck::class]);
+
+        // 引流模块 - 案例管理
+        Route::group('marketing/cases', function () {
+            Route::get('/', 'MarketingCaseController/index');
+            Route::get('/:id', 'MarketingCaseController/read');
+            Route::post('/', 'MarketingCaseController/save');
+            Route::put('/:id', 'MarketingCaseController/update');
+            Route::delete('/:id', 'MarketingCaseController/delete');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 引流模块 - 客服配置
+        Route::group('marketing/service-config', function () {
+            Route::get('/', 'MarketingServiceConfigController/index');
+            Route::put('/', 'MarketingServiceConfigController/update');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 引流模块 - 抖音内容
+        Route::group('marketing/douyin', function () {
+            Route::get('/', 'MarketingDouyinController/index');
+            Route::get('/:id', 'MarketingDouyinController/read');
+            Route::post('/', 'MarketingDouyinController/save');
+            Route::put('/:id', 'MarketingDouyinController/update');
+            Route::delete('/:id', 'MarketingDouyinController/delete');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 引流模块 - 合作伙伴
+        Route::group('marketing/partners', function () {
+            Route::get('/', 'MarketingPartnerController/index');
+            Route::get('/:id', 'MarketingPartnerController/read');
+            Route::post('/', 'MarketingPartnerController/save');
+            Route::put('/:id', 'MarketingPartnerController/update');
+            Route::delete('/:id', 'MarketingPartnerController/delete');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+    })->middleware([\app\middleware\JwtAuth::class])->allowCrossDomain();
+});
+
+// 小程序专用API路由
+Route::group('miniprogram', function () {
+    Route::post('login', 'MiniprogramController/login');
+    Route::post('chat/message', 'MiniprogramController/chatMessage');
+    Route::post('chat/transfer-to-human', 'MiniprogramController/transferToHuman');
+})->allowCrossDomain();
+
+Route::group('miniprogram', function () {
+    Route::get('user/info', 'MiniprogramController/getUserInfo');
+    Route::post('user/avatar', 'MiniprogramController/uploadAvatar');
+    Route::get('addresses', 'MiniprogramController/getAddresses');
+    Route::post('addresses', 'MiniprogramController/createAddress');
+    Route::put('addresses/:id', 'MiniprogramController/updateAddress');
+    Route::delete('addresses/:id', 'MiniprogramController/deleteAddress');
+    Route::post('addresses/:id/default', 'MiniprogramController/setDefaultAddress');
+    Route::post('orders/create', 'MiniprogramController/createOrder');
+    Route::get('orders/user/:userId', 'MiniprogramController/getUserOrders');
+    Route::get('orders/:id/detail', 'MiniprogramController/getOrderDetail');
+    Route::post('orders/:id/cancel', 'MiniprogramController/cancelOrder');
+    Route::put('orders/:id/edit', 'MiniprogramController/editOrder');
+    Route::post('orders/:id/refund', 'MiniprogramController/refundOrder');
+    Route::post('orders/submit-review', 'MiniprogramController/submitReview');
+    Route::get('chat/human-status', 'MiniprogramController/getHumanStatus');
+    Route::post('chat/clear-history', 'MiniprogramController/clearHistory');
+})->middleware([\app\middleware\JwtAuth::class])->allowCrossDomain();
+
+Route::get('products', 'MiniprogramController/getProducts')->allowCrossDomain();
+Route::get('products/:id', 'MiniprogramController/getProductDetail')->allowCrossDomain();
+Route::get('products/search/:keyword', 'MiniprogramController/searchProducts')->allowCrossDomain();
+
+Route::group('user', function () {
+    Route::get('companies', 'MiniprogramController/getCompanies');
+    Route::post('companies', 'MiniprogramController/createCompany');
+    Route::put('companies/:id', 'MiniprogramController/updateCompany');
+    Route::delete('companies/:id', 'MiniprogramController/deleteCompany');
+    Route::post('companies/:id/default', 'MiniprogramController/setDefaultCompany');
+})->middleware([\app\middleware\JwtAuth::class])->allowCrossDomain();
+
+Route::post('auth/profile', 'MiniprogramController/updateProfile')
+    ->middleware([\app\middleware\JwtAuth::class])
+    ->allowCrossDomain();
+
+Route::post('upload', 'UploadController/upload');

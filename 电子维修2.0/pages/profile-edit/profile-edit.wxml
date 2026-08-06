@@ -1,0 +1,112 @@
+<!--pages/profile-edit/profile-edit.wxml-->
+<view class="page-container">
+  <!-- 头像编辑 -->
+  <view class="avatar-section">
+    <view class="avatar-wrapper">
+      <view class="avatar-container" bindtap="handleChooseAvatar">
+        <image class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
+        <view class="avatar-overlay">
+          <text class="overlay-icon">📷</text>
+          <text class="overlay-text">点击更换</text>
+        </view>
+        <view class="edit-badge">
+          <text class="badge-text">✎</text>
+        </view>
+      </view>
+      <view class="avatar-tip">
+        <text class="tip-text">支持相册选择或拍照</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 信息表单 -->
+  <view class="form-section">
+    <view class="form-item">
+      <text class="form-label">昵称</text>
+      <input
+        class="form-input"
+        type="nickname"
+        placeholder="请输入昵称"
+        value="{{userInfo.nickName}}"
+        bindinput="onNicknameInput"
+        maxlength="20"/>
+      <text class="char-count">{{userInfo.nickName.length}}/20</text>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">真实姓名</text>
+      <input
+        class="form-input"
+        type="text"
+        placeholder="请输入真实姓名"
+        value="{{realName}}"
+        bindinput="onRealNameInput"
+        maxlength="10"/>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">联系电话</text>
+      <input
+        class="form-input"
+        type="number"
+        placeholder="请输入联系电话"
+        value="{{phoneNumber}}"
+        bindinput="onPhoneInput"
+        maxlength="11"/>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">电子邮箱</text>
+      <input
+        class="form-input"
+        type="text"
+        placeholder="请输入电子邮箱"
+        value="{{email}}"
+        bindinput="onEmailInput"/>
+    </view>
+  </view>
+
+  <!-- 默认地址 -->
+  <view class="form-section">
+    <view class="section-header">
+      <text class="section-title">默认地址</text>
+    </view>
+    <view class="address-display" bindtap="goToAddress" wx:if="{{defaultAddress}}">
+      <view class="address-info">
+        <text class="address-name">{{defaultAddress.contactName}} {{defaultAddress.contactPhone}}</text>
+        <text class="address-detail">{{defaultAddress.province}} {{defaultAddress.city}} {{defaultAddress.district}} {{defaultAddress.detail}}</text>
+      </view>
+      <text class="address-arrow">></text>
+    </view>
+    <view class="no-address" bindtap="goToAddress" wx:else>
+      <text class="no-address-text">暂无默认地址，点击添加</text>
+      <text class="no-address-arrow">></text>
+    </view>
+  </view>
+
+  <!-- 默认单位 -->
+  <view class="form-section">
+    <view class="section-header">
+      <text class="section-title">默认单位</text>
+    </view>
+    <view class="unit-display" bindtap="goToUnits" wx:if="{{defaultUnit}}">
+      <view class="unit-info">
+        <text class="unit-name">{{defaultUnit.name}}</text>
+        <text class="unit-detail">{{defaultUnit.address}}</text>
+      </view>
+      <text class="unit-arrow">></text>
+    </view>
+    <view class="no-unit" bindtap="goToUnits" wx:else>
+      <text class="no-unit-text">暂无默认单位，点击添加</text>
+      <text class="no-unit-arrow">></text>
+    </view>
+  </view>
+
+  <!-- 保存按钮 -->
+  <view class="bottom-action">
+    <button class="save-btn" bindtap="saveProfile">保存修改</button>
+  </view>
+
+  <!-- 底部间距 -->
+  <view class="bottom-space"></view>
+</view>

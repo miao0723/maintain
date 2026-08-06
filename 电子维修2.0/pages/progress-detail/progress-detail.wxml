@@ -1,0 +1,69 @@
+<view class="container" wx:if="{{!loading && feedback}}">
+  <!-- 反馈头部信息 -->
+  <view class="feedback-header">
+    <view class="feedback-meta">
+      <view class="meta-row">
+        <text class="meta-icon">👷</text>
+        <text class="meta-name">{{feedback.uploaded_by_name || '维修人员'}}</text>
+      </view>
+      <view class="meta-row">
+        <text class="meta-icon">🕐</text>
+        <text class="meta-time">{{feedback.formatted_time}}</text>
+      </view>
+    </view>
+    <view class="feedback-tags">
+      <text class="tag photo-tag" wx:if="{{feedback.photo_count > 0}}">📷 {{feedback.photo_count}}张照片</text>
+      <text class="tag video-tag" wx:if="{{feedback.has_video}}">🎥 包含视频</text>
+    </view>
+  </view>
+
+  <!-- 描述 -->
+  <view class="section-card" wx:if="{{feedback.description}}">
+    <text class="section-label">维修描述</text>
+    <text class="description-text">{{feedback.description}}</text>
+  </view>
+
+  <!-- 照片合集 -->
+  <view class="section-card" wx:if="{{feedback.photos && feedback.photos.length > 0}}">
+    <view class="section-header">
+      <text class="section-label">现场照片 ({{feedback.photos.length}})</text>
+    </view>
+    <view class="photos-grid">
+      <view class="photo-item" wx:for="{{feedback.displayPhotos || feedback.photos}}" wx:key="*this" bindtap="previewPhoto" data-url="{{feedback.photos[index] || item}}">
+        <image class="photo-img" src="{{item}}" mode="aspectFill"></image>
+      </view>
+    </view>
+    <view class="photo-tip">
+      <text class="tip-text">点击照片可放大查看</text>
+    </view>
+  </view>
+
+  <!-- 视频 -->
+  <view class="section-card" wx:if="{{feedback.video}}">
+    <view class="section-header">
+      <text class="section-label">维修视频</text>
+    </view>
+    <view class="video-card" bindtap="playVideo" data-url="{{feedback.video.video_url}}">
+      <image wx:if="{{feedback.video.cover_url}}" class="video-cover" src="{{feedback.video.cover_url}}" mode="aspectFill"></image>
+      <view wx:else class="video-cover-placeholder">
+        <text class="placeholder-icon">🎬</text>
+      </view>
+      <view class="video-play-btn">
+        <text class="play-icon">▶</text>
+      </view>
+      <view class="video-title-bar" wx:if="{{feedback.video.video_title}}">
+        <text class="video-title-text">{{feedback.video.video_title}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 无内容提示 -->
+  <view class="empty-hint" wx:if="{{!feedback.description && (!feedback.photos || feedback.photos.length === 0) && !feedback.video}}">
+    <text class="empty-text">该反馈暂无详细内容</text>
+  </view>
+</view>
+
+<!-- 加载中 -->
+<view class="loading-container" wx:if="{{loading}}">
+  <text class="loading-text">加载中...</text>
+</view>

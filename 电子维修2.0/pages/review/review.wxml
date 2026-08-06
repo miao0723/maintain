@@ -1,0 +1,168 @@
+<!--pages/review/review.wxml-->
+<view class="page-container">
+  <!-- 头部导航 -->
+  <view class="header">
+    <view class="back-btn" bindtap="goBack">
+      <text class="back-icon">←</text>
+      <text class="back-text">返回</text>
+    </view>
+    <text class="header-title">订单评价</text>
+    <view class="header-right"></view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{isLoading}}" class="loading-container">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 评价表单 -->
+  <view wx:else class="review-form">
+    <!-- 订单信息 -->
+    <view class="order-info-card">
+      <view class="order-header">
+        <text class="order-id">{{order.orderNo || order.orderId}}</text>
+        <text class="order-type">{{order.orderType}}</text>
+      </view>
+      <view class="order-body">
+        <view class="info-row">
+          <text class="info-icon">📱</text>
+          <text class="device-info">
+            {{order.deviceType}}
+            <text wx:if="{{order.brandName}}"> - {{order.brandName}}</text>
+            <text wx:if="{{order.deviceModel && order.deviceModel !== '未知型号'}}"> {{order.deviceModel}}</text>
+          </text>
+        </view>
+        <view class="info-row" wx:if="{{order.problemDescription}}">
+          <text class="info-icon">🔧</text>
+          <text class="problem-info">{{order.problemDescription}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-icon">💰</text>
+          <text class="price-info" wx:if="{{order.hasPrice}}">¥{{order.price}}</text>
+          <text class="price-info" wx:else>价格待确定</text>
+        </view>
+        <view class="info-row" wx:if="{{order.serviceTypeText}}">
+          <text class="info-icon">🏪</text>
+          <text class="service-info">{{order.serviceTypeText}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-icon">🕐</text>
+          <text class="time-info">{{order.createdAt}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- ====== 评分区域（重新设计） ====== -->
+    <view class="rating-section">
+      <!-- 情绪表情 -->
+      <view class="mood-area">
+        <text class="mood-emoji">{{ratingEmoji}}</text>
+      </view>
+
+      <view class="section-title">整体满意度</view>
+
+      <!-- 星星评分 -->
+      <view class="stars-wrapper">
+        <view
+          wx:for="{{[1,2,3,4,5]}}"
+          wx:key="index"
+          class="star {{index < rating ? 'active' : ''}}"
+          bindtap="selectRating"
+          data-rating="{{index + 1}}"
+        >
+          <text class="star-icon">{{index < rating ? '★' : '☆'}}</text>
+        </view>
+        </view>
+
+      <!-- 评分标签 -->
+      <view class="rating-badge">
+        <text class="badge-score">{{rating}}分</text>
+        <text class="badge-divider">·</text>
+        <text class="badge-desc">{{ratingDesc}}</text>
+      </view>
+
+      <!-- 评分进度条 -->
+      <view class="rating-bar-wrapper">
+        <view class="rating-bar-bg">
+          <view class="rating-bar-fill" style="width: {{rating * 20}}%"></view>
+        </view>
+      </view>
+
+      <!-- 快捷标签 -->
+      <view class="quick-tags" wx:if="{{quickTags.length > 0}}">
+        <view
+          wx:for="{{quickTags}}"
+          wx:key="index"
+          class="tag {{item.selected ? 'active' : ''}}"
+          bindtap="toggleTag"
+          data-tag="{{item.text}}"
+        >
+          <text>{{item.text}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 评价内容 -->
+    <view class="comment-section">
+      <view class="section-title">评价内容</view>
+      <textarea
+        class="comment-input"
+        placeholder="{{commentPlaceholder}}"
+        maxlength="500"
+        value="{{comment}}"
+        bindinput="onCommentInput"
+        auto-height
+      ></textarea>
+      <view class="comment-counter">
+        <text>{{comment.length}}/500</text>
+      </view>
+    </view>
+
+    <!-- 上传图片 -->
+    <view class="image-section">
+      <view class="section-title-with-count">
+        <text class="section-title">现场照片</text>
+        <text class="image-count">{{images.length}}/3</text>
+      </view>
+      <view class="image-uploader">
+        <view class="image-list">
+          <view
+            wx:for="{{images}}"
+            wx:key="index"
+            class="image-item"
+          >
+            <image src="{{item}}" mode="aspectFill" class="preview-image"></image>
+            <view class="image-remove" bindtap="removeImage" data-index="{{index}}">
+              <text class="remove-icon">×</text>
+            </view>
+          </view>
+          <view
+            class="image-item add-image"
+            bindtap="chooseImage"
+            wx:if="{{images.length < 3}}"
+          >
+            <text class="add-icon">+</text>
+            <text class="add-text">拍照上传</text>
+          </view>
+        </view>
+        <view class="image-tips">
+          <text>📷 上传维修成果照片，帮助其他用户参考</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 提交按钮 -->
+    <view class="submit-wrapper">
+      <button
+        class="submit-btn {{isSubmitting ? 'loading' : ''}}"
+        bindtap="submitReview"
+        disabled="{{isSubmitting}}"
+      >
+        <text wx:if="{{isSubmitting}}">⏳ 提交中...</text>
+        <text wx:else>✏️ 提交评价</text>
+      </button>
+      <text class="submit-hint">您的评价对其他用户很有帮助</text>
+    </view>
+  </view>
+</view>

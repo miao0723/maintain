@@ -1,0 +1,238 @@
+<!--pages/recycle/recycle.wxml-->
+<view class="recycle-page">
+  <!-- 顶部标题 -->
+  <view class="recycle-header">
+    <view class="header-copy">
+      <text class="recycle-header-kicker">AI 智能估价</text>
+      <text class="recycle-header-title">选择回收产品</text>
+      <text class="recycle-header-sub">左侧选品类，右侧找具体机型，再进入状态评估</text>
+    </view>
+    <view class="header-stat-card" wx:if="{{currentCategory}}">
+      <image class="header-stat-icon" src="{{currentCategory.visual.imageUrl}}" mode="aspectFit"></image>
+      <view class="header-stat-info">
+        <text class="header-stat-title">{{currentCategory.name}}</text>
+        <text class="header-stat-desc">{{currentCategory.brands.length}} 个品牌 · {{currentCategory.visual.scene}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 搜索栏 -->
+  <view class="search-bar" bindtap="onSearchBarTap">
+    <view class="search-bar-inner">
+      <text class="search-icon">🔍</text>
+      <text class="search-placeholder">搜索品牌、型号，如 iPhone 17、华为 Mate</text>
+    </view>
+  </view>
+
+  <!-- 主体容器 -->
+  <view class="recycle-body">
+    <!-- 左侧分类边栏 -->
+    <scroll-view class="category-sidebar" scroll-y enhanced show-scrollbar="{{false}}">
+      <view
+        class="category-item {{currentCategoryIndex === index ? 'active' : ''}}"
+        wx:for="{{categories}}"
+        wx:key="id"
+        bindtap="onCategoryTap"
+        data-index="{{index}}">
+        <view class="category-item-inner">
+          <image wx:if="{{item.visual.imageUrl}}" class="category-icon" src="{{item.visual.imageUrl}}" mode="aspectFit" binderror="onCategoryImgError" data-index="{{index}}"></image>
+          <view wx:else class="category-icon-emoji">{{item.visual.icon || item.icon}}</view>
+          <text class="category-name">{{item.name}}</text>
+        </view>
+        <view wx:if="{{currentCategoryIndex === index}}" class="category-indicator"></view>
+      </view>
+    </scroll-view>
+
+    <!-- 右侧产品区 -->
+    <scroll-view
+      class="product-area"
+      scroll-y
+      enhanced
+      show-scrollbar="{{false}}"
+      scroll-into-view="{{scrollToBrand}}"
+      scroll-with-animation>
+      <view class="product-content" wx:if="{{currentCategory}}">
+        <view class="category-spotlight">
+          <image class="spotlight-icon" src="{{currentCategory.visual.imageUrl}}" mode="aspectFit"></image>
+          <view class="spotlight-copy">
+            <text class="spotlight-title">{{currentCategory.name}}</text>
+            <text class="spotlight-desc">已整理 {{currentCategory.brands.length}} 个品牌，优先展示热门型号和估价基准</text>
+          </view>
+        </view>
+
+        <!-- 快捷品牌导航 -->
+        <scroll-view class="brand-nav" scroll-x enhanced show-scrollbar="{{false}}">
+          <view
+            class="brand-nav-item {{selectedBrandIndex === index ? 'active' : ''}}"
+            wx:for="{{currentCategory.brands}}"
+            wx:key="id"
+            bindtap="onBrandTap"
+            data-brand-id="{{item.id}}"
+            data-index="{{index}}">
+            <view class="brand-icon-sm" style="background:{{item.logoColor}};">{{item.logoText}}</view>
+            <text class="brand-nav-name">{{item.name}}</text>
+          </view>
+        </scroll-view>
+
+        <!-- 品牌和型号列表 -->
+        <view class="brands-list">
+          <view
+            class="brand-section"
+            wx:for="{{currentCategory.brands}}"
+            wx:key="id"
+            id="brand-{{item.id}}">
+            <view class="brand-header">
+              <view class="brand-icon" style="background:{{item.logoColor}};">{{item.logoText}}</view>
+              <text class="brand-name">{{item.name}}</text>
+              <text class="brand-count">{{item.models.length}}款</text>
+            </view>
+            <view class="model-grid">
+              <view
+                class="model-card"
+                wx:for="{{item.models}}"
+                wx:for-item="model"
+                wx:key="id"
+                bindtap="onModelTap"
+                data-model="{{model}}"
+                data-brand="{{item}}">
+                <!-- 产品图片（纯色渐变背景） -->
+                <view class="model-image-wrap" style="background: linear-gradient(145deg, {{model.heroTone || '#5b9e8a'}}, {{model.color ? (model.color + 'cc') : '#80c8b2'}});">
+                  <view class="model-visual-shape model-visual-shape-a"></view>
+                  <view class="model-visual-shape model-visual-shape-b"></view>
+                  <view class="model-visual-top">
+                    <image class="model-visual-icon" src="{{model.visualImageUrl}}" mode="aspectFit"></image>
+                    <text class="model-visual-badge">{{model.visualBadge}}</text>
+                  </view>
+                  <view class="model-device-frame {{currentCategory.id}}"></view>
+                  <view class="model-visual-bottom">
+                    <text class="model-family-label">{{model.familyLabel}}</text>
+                    <text class="model-scene">{{model.visualScene}}</text>
+                  </view>
+                </view>
+                <view class="model-info">
+                  <text class="model-name">{{model.name}}</text>
+                  <view class="model-spec-tags">
+                    <text class="model-spec-tag" wx:for="{{model.specs}}" wx:key="*this">{{item}}</text>
+                  </view>
+                  <view class="model-price-row">
+                    <text class="model-price-label">最高回收价</text>
+                    <text class="model-price-value">¥{{model.price}}</text>
+                  </view>
+                </view>
+                <view class="model-arrow">→</view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 底部留白 -->
+        <view class="product-bottom-space"></view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- ============ 搜索面板（全屏覆盖层） ============ -->
+  <view class="search-panel {{showSearchPanel ? 'show' : ''}}" catchtap="onSearchCancel">
+    <!-- 搜索头部（阻止冒泡） -->
+    <view class="search-panel-header" catchtap="noop">
+      <view class="search-input-wrap">
+        <text class="search-input-icon">🔍</text>
+        <input
+          class="search-input"
+          type="text"
+          placeholder="搜索品牌、型号..."
+          placeholder-class="search-input-placeholder"
+          value="{{searchKeyword}}"
+          bindinput="onSearchInput"
+          bindconfirm="onSearchConfirm"
+          confirm-type="search"
+          focus="{{showSearchPanel}}" />
+        <view wx:if="{{searchKeyword}}" class="search-clear-btn" catchtap="onClearInput">✕</view>
+      </view>
+      <text class="search-cancel-text" catchtap="onSearchCancel">取消</text>
+    </view>
+
+    <!-- 搜索内容区域 -->
+    <view class="search-panel-body" catchtap="noop">
+      <scroll-view class="search-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+
+        <!-- 无搜索词时：展示搜索历史 -->
+        <block wx:if="{{!searchKeyword}}">
+          <view wx:if="{{searchHistory.length > 0}}" class="search-history">
+            <view class="history-header">
+              <text class="history-title">搜索历史</text>
+              <text class="history-clear" catchtap="onClearHistory">🗑 清空</text>
+            </view>
+            <view class="history-tags">
+              <view
+                class="history-tag"
+                wx:for="{{searchHistory}}"
+                wx:key="*this"
+                bindtap="onHistoryTap"
+                data-word="{{item}}">
+                {{item}}
+              </view>
+            </view>
+          </view>
+
+          <!-- 无历史时的引导 -->
+          <view wx:else class="search-empty-guide">
+            <text class="empty-guide-icon">🔍</text>
+            <text class="empty-guide-text">输入品牌名或型号快速找到你的设备</text>
+            <view class="hot-search-hint">
+              <text class="hot-hint-label">热门搜索</text>
+              <view class="hot-hint-tags">
+                <view class="history-tag" bindtap="onHistoryTap" data-word="iPhone 17">iPhone 17</view>
+                <view class="history-tag" bindtap="onHistoryTap" data-word="华为 Mate">华为 Mate</view>
+                <view class="history-tag" bindtap="onHistoryTap" data-word="小米 15">小米 15</view>
+                <view class="history-tag" bindtap="onHistoryTap" data-word="MacBook">MacBook</view>
+                <view class="history-tag" bindtap="onHistoryTap" data-word="iPad Pro">iPad Pro</view>
+              </view>
+            </view>
+          </view>
+        </block>
+
+        <!-- 有搜索词时：展示搜索结果 -->
+        <block wx:else>
+          <!-- 有结果 -->
+          <view wx:if="{{searchResults.length > 0}}" class="search-results">
+            <view class="search-results-count">找到 {{searchResults.length}} 个相关产品</view>
+            <view
+              class="search-result-card"
+              wx:for="{{searchResults}}"
+              wx:key="modelId"
+              bindtap="onSearchResultTap"
+              data-item="{{item}}">
+              <view class="search-result-image" style="background: linear-gradient(145deg, {{item.modelColor || '#5b9e8a'}}, {{item.modelColor ? (item.modelColor + 'cc') : '#80c8b2'}});">
+                <view class="search-result-shape search-result-shape-a"></view>
+                <view class="search-result-shape search-result-shape-b"></view>
+                <image class="search-result-icon" src="{{item.modelVisualImageUrl}}" mode="aspectFit"></image>
+                <text class="search-result-scene">{{item.modelVisualScene}}</text>
+              </view>
+              <view class="search-result-info">
+                <view class="search-result-name-row">
+                  <text class="search-result-brand">{{item.brandName}}</text>
+                  <text class="search-result-name">{{item.modelName}}</text>
+                </view>
+                <text class="search-result-specs">{{item.modelSpecs}}</text>
+                <view class="search-result-price-row">
+                  <text class="search-result-price-label">最高回收价</text>
+                  <text class="search-result-price">¥{{item.modelPrice}}</text>
+                </view>
+              </view>
+              <view class="search-result-tag">{{item.categoryName}}</view>
+            </view>
+          </view>
+
+          <!-- 无结果 -->
+          <view wx:else class="search-no-result">
+            <text class="no-result-icon">😕</text>
+            <text class="no-result-text">没有找到 "{{searchKeyword}}" 相关的产品</text>
+            <text class="no-result-hint">试试输入品牌名或更简短的关键词</text>
+          </view>
+        </block>
+
+      </scroll-view>
+    </view>
+  </view>
+</view>

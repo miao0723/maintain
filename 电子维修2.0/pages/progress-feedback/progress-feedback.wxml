@@ -1,0 +1,217 @@
+<view class="container">
+  <!-- 订单信息 -->
+  <view wx:if="{{orderInfo}}" class="order-info">
+    <text class="order-title">订单号：{{orderInfo.orderNo || orderInfo.order_id}}</text>
+    <text class="order-device">{{orderInfo.device_model || '未知设备'}}</text>
+  </view>
+
+  <!-- 只读模式：进度展示 -->
+  <view wx:if="{{readonly}}" class="progress-section">
+    <text class="section-title">维修进度</text>
+    <view class="progress-display-bar">
+      <view class="progress-bar-bg">
+        <view class="progress-bar-fill-display" style="width: {{progress}}%; background: linear-gradient(90deg, #667eea, #764ba2)"></view>
+      </view>
+      <text class="progress-display-text">{{progress}}%</text>
+    </view>
+  </view>
+
+  <!-- 编辑模式：进度选择区域 -->
+  <block wx:else>
+    <view class="progress-section">
+      <text class="section-title">维修进度</text>
+      <view class="progress-slider">
+        <view class="slider-wrapper">
+          <view class="progress-value">{{progress}}%</view>
+          <slider class="progress-slider-bar"
+            min="0" max="100"
+            value="{{progress}}"
+            activeColor="#667eea"
+            backgroundColor="#e5e7eb"
+            blockSize="20"
+            bindchange="onProgressChange"
+          />
+        </view>
+      </view>
+      <view class="quick-progress">
+        <view class="quick-btn {{progress === 0 ? 'active' : ''}}" bindtap="selectQuickProgress" data-progress="0">0%</view>
+        <view class="quick-btn {{progress === 25 ? 'active' : ''}}" bindtap="selectQuickProgress" data-progress="25">25%</view>
+        <view class="quick-btn {{progress === 50 ? 'active' : ''}}" bindtap="selectQuickProgress" data-progress="50">50%</view>
+        <view class="quick-btn {{progress === 75 ? 'active' : ''}}" bindtap="selectQuickProgress" data-progress="75">75%</view>
+        <view class="quick-btn {{progress === 100 ? 'active' : ''}}" bindtap="selectQuickProgress" data-progress="100">100%</view>
+      </view>
+    </view>
+
+    <!-- 描述输入区域 -->
+    <view class="description-section">
+      <text class="section-title">进度描述</text>
+      <textarea
+        class="description-input"
+        placeholder="请描述当前维修情况（选填）"
+        value="{{description}}"
+        bindinput="onDescriptionInput"
+        maxlength="500"
+      />
+      <text class="desc-count">{{description.length}}/500</text>
+    </view>
+
+    <!-- 图片上传区域 -->
+    <view class="photos-section">
+      <view class="photos-header">
+        <text class="section-title">上传照片</text>
+        <text class="photos-count">{{localImages.length + uploadedImages.length}}/{{maxImages}}</text>
+      </view>
+      <view class="photos-grid">
+        <!-- 待上传的本地图片 -->
+        <view class="photo-item" wx:for="{{localImages}}" wx:key="*this">
+          <image class="photo-image" src="{{item}}" mode="aspectFill" bindtap="previewLocalImage" data-url="{{item}}"></image>
+          <view class="photo-badge">待上传</view>
+          <view class="photo-delete" catchtap="deleteLocalImage" data-index="{{index}}">
+            <text class="photo-delete-icon">✕</text>
+          </view>
+        </view>
+        <!-- 已上传的图片 -->
+        <view class="photo-item" wx:for="{{uploadedImages}}" wx:key="*this">
+          <image class="photo-image" src="{{item}}" mode="aspectFill" bindtap="previewUploadedImage" data-url="{{item}}"></image>
+          <view class="photo-delete" catchtap="deleteUploadedImage" data-index="{{index}}">
+            <text class="photo-delete-icon">✕</text>
+          </view>
+        </view>
+      </view>
+      <!-- 拍照/相册选择按钮 -->
+      <view wx:if="{{localImages.length + uploadedImages.length < maxImages}}" class="photos-actions">
+        <view class="upload-btn camera" bindtap="chooseImageCamera">📷 拍照</view>
+        <view class="upload-btn" bindtap="chooseImageAlbum">🖼️ 相册选择</view>
+      </view>
+    </view>
+
+    <!-- 视频上传区域 -->
+    <view class="video-section">
+      <text class="section-title">上传视频</text>
+
+      <!-- 视频标题输入 -->
+      <input
+        class="video-title-input"
+        placeholder="视频标题（选填）"
+        value="{{videoTitle}}"
+        bindinput="onVideoTitleInput"
+      />
+
+      <!-- 本地视频预览 -->
+      <view wx:if="{{localVideo}}" class="video-card">
+        <video class="video-preview" src="{{localVideo}}" controls="{{false}}" autoplay="{{false}}" show-play-btn="{{false}}"></video>
+        <view class="photo-badge">待上传</view>
+        <view class="video-play-btn" bindtap="playVideo" data-url="{{localVideo}}">
+          <text class="video-play-icon">▶</text>
+        </view>
+        <view class="video-delete-btn-inline" catchtap="deleteVideo">
+          <text>✕</text>
+        </view>
+      </view>
+
+      <!-- 已上传的视频 -->
+      <view wx:elif="{{uploadedVideo}}" class="video-card">
+        <image class="video-cover" src="{{uploadedVideo}}" mode="aspectFill"></image>
+        <view class="video-play-btn" bindtap="playHistoryVideo" data-url="{{uploadedVideo}}">
+          <text class="video-play-icon">▶</text>
+        </view>
+        <view class="video-delete-btn-inline" catchtap="deleteVideo">
+          <text>✕</text>
+        </view>
+      </view>
+
+      <!-- 上传按钮 -->
+      <view class="video-actions">
+        <button class="video-upload-btn camera" bindtap="chooseVideoCamera">🎥 拍摄</button>
+        <button class="video-upload-btn" bindtap="chooseVideoAlbum">📁 相册选择</button>
+      </view>
+      <view wx:if="{{localVideo || uploadedVideo}}" class="video-actions" style="margin-top:12rpx;">
+        <button class="video-delete-btn" catchtap="deleteVideo">🗑️ 删除视频</button>
+      </view>
+    </view>
+  </block>
+
+  <!-- 历史记录（只读和编辑模式都显示） -->
+  <view class="history-section" wx:if="{{historyLoaded}}">
+    <text class="section-title">{{readonly ? '维修进度记录' : '历史记录'}}</text>
+
+    <view wx:if="{{history.length > 0}}" class="history-list">
+      <view class="feedback-card" wx:for="{{history}}" wx:key="id" bindtap="viewFeedbackDetail" data-index="{{index}}">
+        <!-- 时间轴 -->
+        <view class="history-timeline">
+          <view class="timeline-dot"></view>
+          <view class="timeline-line" wx:if="{{index < history.length - 1}}"></view>
+        </view>
+
+        <view class="feedback-content">
+          <!-- 头部：维修人员 + 时间 -->
+          <view class="feedback-meta">
+            <text class="feedback-name">{{item.uploaded_by_name || '维修人员'}}</text>
+            <text class="feedback-time">{{item.formatted_time}}</text>
+          </view>
+
+          <!-- 描述预览 -->
+          <text wx:if="{{item.description}}" class="feedback-desc">{{item.description}}</text>
+
+          <!-- 媒体预览 -->
+          <view class="feedback-media-preview">
+            <!-- 照片缩略图 -->
+            <view class="preview-photos" wx:if="{{item.photos && item.photos.length > 0}}">
+              <view
+                wx:for="{{item.displayPhotos || item.photos}}"
+                wx:for-item="img"
+                wx:for-index="idx"
+                wx:key="*this"
+                wx:if="{{idx < 4}}"
+                class="preview-photo-item"
+              >
+                <image class="preview-photo-img" src="{{img}}" mode="aspectFill"></image>
+              </view>
+              <view wx:if="{{item.photos.length > 4}}" class="preview-photo-more">
+                +{{item.photos.length - 4}}
+              </view>
+            </view>
+
+            <!-- 视频缩略图 -->
+            <view class="preview-video" wx:if="{{item.video}}">
+              <image wx:if="{{item.video.cover_url}}" class="preview-video-cover" src="{{item.video.cover_url}}" mode="aspectFill"></image>
+              <view wx:else class="preview-video-placeholder">
+                <text class="placeholder-icon">🎬</text>
+              </view>
+              <view class="preview-video-play">▶</view>
+            </view>
+          </view>
+
+          <!-- 底部标签 -->
+          <view class="feedback-tags">
+            <text class="fb-tag" wx:if="{{item.photo_count > 0}}">📷 {{item.photo_count}}张照片</text>
+            <text class="fb-tag" wx:if="{{item.has_video}}">🎥 视频</text>
+            <text class="fb-tag detail-tag">查看详情 ›</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:else class="empty-state">
+      <block wx:if="{{readonly}}">
+        <text class="empty-icon">📝</text>
+        <text class="empty-text">维修师傅还没有上传进度</text>
+        <text class="empty-subtext">想了解维修情况？可以主动发起一条进度申请，师傅收到后会尽快为你反馈～</text>
+        <button class="empty-action-btn" bindtap="goToApplyProgress">发起进度申请</button>
+      </block>
+      <block wx:else>
+        <text class="empty-icon">📭</text>
+        <text class="empty-text">暂无历史记录</text>
+      </block>
+    </view>
+  </view>
+</view>
+
+<!-- 提交按钮（仅编辑模式显示） -->
+<view wx:if="{{!readonly}}" class="submit-section">
+  <button class="submit-btn {{uploading ? 'loading' : ''}}" disabled="{{uploading}}" bindtap="submitProgress">
+    <text wx:if="{{uploading}}">提交中...</text>
+    <text wx:else>提交进度</text>
+  </button>
+</view>

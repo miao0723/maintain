@@ -1,0 +1,10 @@
+<view class="video-container">
+  <video
+    class="video-player"
+    src="{{videoUrl}}"
+    autoplay="{{true}}"
+    show-center-play-btn="{{true}}"
+    controls="{{true}}"
+    object-fit="contain"
+  ></video>
+</view>

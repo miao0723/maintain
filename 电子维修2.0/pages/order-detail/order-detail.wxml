@@ -1,0 +1,441 @@
+<!--pages/order-detail/order-detail.wxml-->
+<view class="container">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-state">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 加载失败 -->
+  <view wx:elif="{{error}}" class="error-state">
+    <text class="error-icon">:(</text>
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="loadOrderDetail">重新加载</view>
+  </view>
+
+  <block wx:else>
+  <!-- ====== 头部：订单号 + 状态 ====== -->
+  <view class="header">
+    <view class="header-top">
+      <view class="order-no-row" bindtap="copyOrderNo">
+        <text class="order-no-label">订单号</text>
+        <text class="order-no-value">{{orderNo}}</text>
+        <text class="copy-icon">复制</text>
+      </view>
+      <view class="status-badge" style="background: {{statusColor}}">
+        <text>{{statusIcon}} {{statusText}}</text>
+      </view>
+    </view>
+    <view class="header-bottom">
+      <text class="header-tag">{{orderTypeText}}</text>
+      <text wx:if="{{priority !== 'medium'}}" class="priority-tag {{priority}}">{{priorityText}}</text>
+      <text class="header-time">{{createdAt}}</text>
+    </view>
+  </view>
+
+  <!-- ====== 设备信息 ====== -->
+  <view class="card">
+    <view class="card-title">📱 设备信息</view>
+    <view class="device-card">
+      <view class="device-icon">{{deviceTypeIcon}}</view>
+      <view class="device-info">
+        <text class="device-name">{{deviceTypeName}}</text>
+        <text wx:if="{{deviceModel}}" class="device-model">{{deviceModel}}</text>
+        <text wx:if="{{brandName}}" class="device-brand">品牌：{{brandName}}</text>
+      </view>
+      <view wx:if="{{deviceCondition}}" class="device-condition-tag">{{deviceCondition}}</view>
+    </view>
+  </view>
+
+  <!-- ====== 质保信息 ====== -->
+  <view wx:if="{{warrantyStatus}}" class="card">
+    <view class="card-title">🛡️ 质保信息</view>
+    <view style="display:flex;align-items:center;flex-wrap:wrap;gap:12rpx;">
+      <text style="font-size:28rpx;font-weight:600;color:{{warrantyStatus === 'in' ? '#2f9e6f' : '#9aa4b0'}};">{{warrantyStatus === 'in' ? '质保中' : '已过保'}}</text>
+      <text style="font-size:24rpx;color:#6b7785;">{{warrantyStatus === 'in' ? '剩余 ' + warrantyRemainingDays + ' 天 · 到期 ' + warrantyEndDate : '已于 ' + warrantyEndDate + ' 到期'}}</text>
+      <text wx:if="{{isWarrantyOrder}}" style="font-size:22rpx;color:#e6a23c;background:#fef3c7;padding:2rpx 12rpx;border-radius:8rpx;">质保单</text>
+    </view>
+  </view>
+
+  <!-- ====== 问题描述 ====== -->
+  <view class="card">
+    <view class="card-title">📝 问题描述</view>
+    <view class="desc-box">{{problemDesc}}</view>
+  </view>
+
+  <!-- ====== 订单图片 ====== -->
+  <view wx:if="{{images.length > 0}}" class="card">
+    <view class="card-title">📷 现场图片（{{images.length}}）</view>
+    <view class="img-grid">
+      <image
+        wx:for="{{images}}" wx:key="index"
+        class="img-item"
+        src="{{item}}" mode="aspectFill"
+        bindtap="previewImage"
+        data-current="{{item}}" data-urls="{{images}}"
+      />
+    </view>
+  </view>
+
+  <!-- ====== 服务方式 + 价格 ====== -->
+  <view class="card">
+    <view class="card-title">💰 费用与服务</view>
+    <view class="price-row">
+      <view class="price-item">
+        <text class="price-label">预估价格</text>
+        <text class="price-num estimate">{{estimatedPrice || '未估价'}}</text>
+      </view>
+      <view class="price-divider"></view>
+      <view class="price-item">
+        <text class="price-label">实际价格</text>
+        <text class="price-num actual">{{actualPrice}}</text>
+      </view>
+    </view>
+    <view wx:if="{{serviceTypeText}}" class="service-row">
+      <text class="service-icon">{{serviceTypeIcon}}</text>
+      <text class="service-text">{{serviceTypeText}}</text>
+    </view>
+  </view>
+
+  <!-- ====== 订单进度 ====== -->
+  <view wx:if="{{status !== 'cancelled'}}" class="card">
+    <view class="card-title">{{isRecycle ? '📊 回收进度' : '📊 维修进度'}}</view>
+    <view class="progress-row">
+      <view class="progress-bar-bg">
+        <view class="progress-bar-fill" style="width: {{progress}}%"></view>
+      </view>
+      <text class="progress-num">{{progress}}%</text>
+    </view>
+    <view class="steps">
+      <view class="step-item {{progress >= 10 ? 'done' : ''}}">
+        <view class="step-dot">1</view>
+        <text class="step-label">{{isRecycle ? '估价' : '报价'}}</text>
+      </view>
+      <view class="step-line {{progress >= 20 ? 'done' : ''}}"></view>
+      <view class="step-item {{progress >= 20 ? 'done' : ''}}">
+        <view class="step-dot">2</view>
+        <text class="step-label">确认</text>
+      </view>
+      <view class="step-line {{progress >= 50 ? 'done' : ''}}"></view>
+      <view class="step-item {{progress >= 50 ? 'done' : ''}}">
+        <view class="step-dot">3</view>
+        <text class="step-label">{{isRecycle ? '回收' : '维修'}}</text>
+      </view>
+      <view class="step-line {{progress >= 100 ? 'done' : ''}}"></view>
+      <view class="step-item {{progress >= 100 ? 'done' : ''}}">
+        <view class="step-dot">4</view>
+        <text class="step-label">完成</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ====== 进度照片 ====== -->
+  <view wx:if="{{progressPhotos.length > 0}}" class="card progress-photos-card">
+    <view class="card-title">📷 进度照片（{{progressPhotos.length}}组）</view>
+    <view class="progress-photos-list">
+      <view wx:for="{{progressPhotos}}" wx:key="id" wx:for-index="groupIndex" class="progress-photo-item">
+        <view class="progress-photo-header">
+          <text class="progress-photo-time">{{item.created_at}}</text>
+          <text class="progress-photo-uploader">{{item.uploaded_by_name}}</text>
+        </view>
+        <view wx:if="{{item.description}}" class="progress-photo-desc">{{item.description}}</view>
+        <view class="img-grid">
+          <view
+            wx:for="{{item.images}}" wx:key="index" wx:for-item="img" wx:for-index="imgIndex"
+            class="progress-media-thumb"
+            bindtap="previewImage"
+            data-current="{{img}}"
+            data-urls="{{item.images}}">
+            <image
+              wx:if="{{img}}"
+              class="img-item"
+              src="{{img}}"
+              mode="aspectFill"
+              binderror="onMediaImageError"
+              data-type="progress-photo"
+              data-group-index="{{groupIndex}}"
+              data-item-index="{{imgIndex}}"
+            />
+            <view wx:else class="img-item media-fallback">
+              <text class="media-fallback-icon">🖼</text>
+              <text class="media-fallback-text">图片加载失败</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ====== 进度视频 ====== -->
+  <view wx:if="{{progressVideos.length > 0}}" class="card progress-videos-card">
+    <view class="card-title">🎥 进度视频（{{progressVideos.length}}个）</view>
+    <view class="progress-videos-list">
+      <view wx:for="{{progressVideos}}" wx:key="id" class="progress-video-item" bindtap="playVideo" data-url="{{item.video_url}}">
+        <image wx:if="{{item.cover_url}}" class="video-cover" src="{{item.cover_url}}" mode="aspectFill" binderror="onMediaImageError" data-type="progress-video" data-item-index="{{index}}"></image>
+        <video
+          wx:elif="{{item.video_url}}"
+          class="video-cover video-cover-preview"
+          src="{{item.video_url}}"
+          objectFit="cover"
+          controls="{{false}}"
+          autoplay="{{false}}"
+          loop="{{false}}"
+          muted="{{true}}"
+          show-center-play-btn="{{false}}"
+          enable-progress-gesture="{{false}}"
+          bindtap="playVideo"
+          data-url="{{item.video_url}}"
+        ></video>
+        <view wx:else class="video-cover-placeholder">
+          <text class="placeholder-icon">🎬</text>
+        </view>
+        <view class="video-play-icon">
+          <text class="play-icon">▶</text>
+        </view>
+        <view class="video-info">
+          <text class="video-title">{{item.video_title}}</text>
+          <text wx:if="{{item.description}}" class="video-desc">{{item.description}}</text>
+          <view class="video-meta">
+            <text class="video-duration">{{item.duration_text}}</text>
+            <text class="video-uploader">{{item.uploaded_by_name}}</text>
+            <text class="video-time">{{item.created_at}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ====== 客户信息 ====== -->
+  <view class="card">
+    <view class="card-title">👤 客户信息</view>
+    <view class="customer-row">
+      <text class="customer-name">{{customerName}}</text>
+      <view wx:if="{{customerPhone}}" class="call-btn" bindtap="callCustomer">
+        <text>📞 {{customerPhone}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ====== 单位信息 ====== -->
+  <view wx:if="{{unitName}}" class="card">
+    <view class="card-title">🏢 单位信息</view>
+    <view class="unit-row">
+      <view class="unit-header">
+        <text class="unit-name">{{unitName}}</text>
+        <view class="unit-tag">企业订单</view>
+      </view>
+      <view wx:if="{{unitContact}}" class="unit-contact">
+        <text class="unit-contact-label">联系人：</text>
+        <text class="unit-contact-value">{{unitContact}}</text>
+      </view>
+      <view wx:if="{{unitPhone}}" class="unit-phone">
+        <text class="unit-phone-label">联系电话：</text>
+        <text class="unit-phone-value">{{unitPhone}}</text>
+      </view>
+      <view wx:if="{{unitAddress}}" class="unit-address">
+        <text class="unit-address-label">单位地址：</text>
+        <text class="unit-address-value">{{unitAddress}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ====== 配送信息 ====== -->
+  <view wx:if="{{deliveryStatus}}" class="card delivery-card">
+    <view class="card-title">🚚 配送信息</view>
+    <view class="delivery-status-row">
+      <text class="delivery-status-label">配送状态</text>
+      <text class="delivery-status-value delivery-{{deliveryStatus}}">{{deliveryStatusText}}</text>
+    </view>
+    <view wx:if="{{deliveryPersonName}}" class="delivery-person-row">
+      <text class="delivery-person-label">配送员</text>
+      <text class="delivery-person-value">{{deliveryPersonName}}</text>
+    </view>
+    <view wx:if="{{deliveryPersonPhone}}" class="delivery-phone-row">
+      <text class="delivery-phone-label">联系电话</text>
+      <text class="delivery-phone-value">{{deliveryPersonPhone}}</text>
+    </view>
+    <view wx:if="{{deliveryFee}}" class="delivery-fee-row">
+      <text class="delivery-fee-label">配送费用</text>
+      <text class="delivery-fee-value">{{deliveryFee}}</text>
+    </view>
+    <view wx:if="{{deliveryAddress}}" class="delivery-address-row">
+      <text class="delivery-address-label">配送地址</text>
+      <text class="delivery-address-value">{{deliveryAddress}}</text>
+    </view>
+    <view wx:if="{{deliveryAssignedAt}}" class="delivery-time-row">
+      <text class="delivery-time-label">分配时间</text>
+      <text class="delivery-time-value">{{deliveryAssignedAt}}</text>
+    </view>
+    <view wx:if="{{deliveryPickedAt}}" class="delivery-time-row">
+      <text class="delivery-time-label">取件时间</text>
+      <text class="delivery-time-value">{{deliveryPickedAt}}</text>
+    </view>
+    <view wx:if="{{deliveryDeliveredAt}}" class="delivery-time-row">
+      <text class="delivery-time-label">送达时间</text>
+      <text class="delivery-time-value">{{deliveryDeliveredAt}}</text>
+    </view>
+  </view>
+
+  <!-- ====== 订单时间线 ====== -->
+  <view class="card">
+    <view class="card-title">⏰ 时间线</view>
+    <view class="timeline">
+      <view class="tl-item" wx:for="{{timeline}}" wx:key="event">
+        <view class="tl-dot {{item.dot}}"></view>
+        <view class="tl-body">
+          <text class="tl-time">{{item.time}}</text>
+          <text class="tl-event">{{item.event}}</text>
+        </view>
+      </view>
+      <view wx:if="{{timeline.length === 0}}" class="tl-empty">暂无时间线信息</view>
+    </view>
+  </view>
+
+  <!-- ====== 订单评价 ====== -->
+  <view wx:if="{{hasReview}}" class="card">
+    <view class="card-title">⭐ 客户评价</view>
+    <view class="review-box">
+      <view class="review-header">
+        <text class="review-stars">{{reviewStars}}</text>
+        <text class="review-score">{{reviewRating}} 分</text>
+        <text wx:if="{{reviewTime}}" class="review-time">{{reviewTime}}</text>
+      </view>
+      <text wx:if="{{reviewComment}}" class="review-content">{{reviewComment}}</text>
+      <view wx:if="{{reviewImages.length > 0}}" class="img-grid">
+        <image
+          wx:for="{{reviewImages}}" wx:key="index"
+          class="img-item" src="{{item}}" mode="aspectFill"
+          bindtap="previewImage"
+          data-current="{{item}}" data-urls="{{reviewImages}}"
+        />
+      </view>
+    </view>
+  </view>
+
+  <!-- ====== 备注 ====== -->
+  <view wx:if="{{notes}}" class="card">
+    <view class="card-title">📋 备注</view>
+    <view class="desc-box">{{notes}}</view>
+  </view>
+
+  <!-- ====== 报价信息 ====== -->
+  <view wx:if="{{quoteStatus}}" class="card quote-card quote-{{quoteStatus}}">
+    <view class="card-title">💰 {{isRecycle ? '回收报价' : '维修报价'}}</view>
+    <block wx:if="{{quoteStatus === 'pending'}}">
+      <view class="quote-pending">
+        <view class="quote-price-row">
+          <text class="quote-label">报价金额</text>
+          <text class="quote-value">{{quotePrice}}</text>
+        </view>
+        <view wx:if="{{quoteDescription}}" class="quote-desc">{{quoteDescription}}</view>
+        <view wx:if="{{quoteFiles.length > 0}}" class="quote-files">
+          <text class="quote-files-label">报告文件（{{quoteFiles.length}}）</text>
+          <view class="quote-files-grid">
+            <view wx:for="{{quoteFiles}}" wx:key="index" class="quote-file-item">
+              <image wx:if="{{item.type === 'image'}}" class="quote-file-img" src="{{item.url}}" mode="aspectFill" bindtap="previewImage" data-current="{{item.url}}" data-urls="{{quoteImageUrls}}"></image>
+              <view wx:else class="quote-file-doc" bindtap="openFile" data-url="{{item.url}}">
+                <text class="doc-icon">📄</text>
+                <text class="doc-name">{{item.originalName}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="quote-time">{{quoteCreatedAt}}</view>
+      </view>
+      <view class="quote-actions">
+      <view class="quote-btn accept" bindtap="acceptQuote">{{quoteSubmitting ? '处理中...' : '接受报价'}}</view>
+      <view class="quote-btn reject" bindtap="openRejectModal">{{quoteSubmitting ? '处理中...' : '拒绝'}}</view>
+      </view>
+    </block>
+    <block wx:elif="{{quoteStatus === 'accepted'}}">
+      <view class="quote-accepted">
+        <view class="quote-price-row">
+          <text class="quote-label">报价金额</text>
+          <text class="quote-value">{{quotePrice}}</text>
+        </view>
+        <view class="quote-status-text">✅ 已接受</view>
+      </view>
+    </block>
+    <block wx:elif="{{quoteStatus === 'rejected'}}">
+      <view class="quote-rejected">
+        <view class="quote-price-row">
+          <text class="quote-label">报价金额</text>
+          <text class="quote-value">{{quotePrice}}</text>
+        </view>
+        <view class="quote-status-text">❌ 已拒绝</view>
+        <view wx:if="{{quoteRejectedReason}}" class="quote-reason">
+          <text class="quote-reason-label">拒绝原因</text>
+          <text class="quote-reason-text">{{quoteRejectedReason}}</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- ====== 支付信息 ====== -->
+  <view wx:if="{{orderStatus === 'confirmed' || paymentStatus === 'paid' || paymentStatus === 'paying' || paymentStatus === 'refunding' || paymentStatus === 'refunded'}}" class="card">
+    <view class="card-title">💳 支付信息</view>
+    <view class="quote-price-row">
+      <text class="quote-label">支付状态</text>
+      <text class="quote-value">{{paymentStatusText}}</text>
+    </view>
+    <view wx:if="{{payAmount}}" class="quote-price-row">
+      <text class="quote-label">应付金额</text>
+      <text class="quote-value">{{payAmount}}</text>
+    </view>
+    <view wx:if="{{paidAt}}" class="quote-time">支付时间：{{paidAt}}</view>
+    <view wx:if="{{outTradeNo}}" class="quote-time">支付单号：{{outTradeNo}}</view>
+    <view wx:if="{{orderStatus === 'confirmed' && paymentStatus !== 'paid'}}" class="quote-actions">
+      <view class="quote-btn accept" bindtap="startWechatPay">{{paymentSubmitting ? '支付处理中...' : '立即支付'}}</view>
+    </view>
+  </view>
+
+  <!-- ====== 维修报告 ====== -->
+  <view wx:if="{{repairReportFiles.length > 0}}" class="card">
+    <view class="card-title">🧾 {{isRecycle ? '回收报告' : '维修报告'}}</view>
+    <view class="quote-files">
+      <text class="quote-files-label">报告文件（{{repairReportFiles.length}}）</text>
+      <view class="quote-files-grid">
+        <view wx:for="{{repairReportFiles}}" wx:key="index" class="quote-file-item">
+          <image wx:if="{{item.type === 'image'}}" class="quote-file-img" src="{{item.url}}" mode="aspectFill" bindtap="previewImage" data-current="{{item.url}}" data-urls="{{repairReportImageUrls}}"></image>
+          <view wx:else class="quote-file-doc" bindtap="openFile" data-url="{{item.url}}">
+            <text class="doc-icon">📄</text>
+            <text class="doc-name">{{item.originalName}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ====== 底部操作 ====== -->
+  <view class="footer">
+    <view wx:if="{{orderType === 'repair' && (orderStatus === 'processing' || (orderStatus === 'confirmed' && paymentStatus === 'paid'))}}" class="footer-btn primary" bindtap="goToProgressApply">📝 申请进度</view>
+    <view class="footer-btn default" bindtap="backToList">返回列表</view>
+  </view>
+
+  </block>
+</view>
+
+<!-- 拒绝报价弹窗 -->
+<view wx:if="{{showRejectModal}}" class="reject-modal-overlay" bindtap="closeRejectModal">
+  <view class="reject-modal-content" catchtap="">
+    <view class="reject-modal-header">
+      <text class="reject-modal-title">拒绝报价</text>
+      <view class="reject-modal-close" bindtap="closeRejectModal">×</view>
+    </view>
+    <view class="reject-modal-body">
+      <text class="reject-modal-label">请输入拒绝原因 <text class="required">*</text></text>
+      <textarea
+        class="reject-modal-input"
+        placeholder="请描述为什么拒绝这个报价"
+        maxlength="200"
+        value="{{rejectFormData.reason}}"
+        bindinput="onRejectReasonInput"
+      />
+      <text class="reject-modal-count">{{rejectFormData.reason.length}}/200</text>
+    </view>
+    <view class="reject-modal-footer">
+      <view class="reject-modal-btn cancel" bindtap="closeRejectModal">取消</view>
+      <view class="reject-modal-btn confirm" bindtap="submitReject">{{rejectSubmitting ? '提交中...' : '确认拒绝'}}</view>
+    </view>
+  </view>
+</view>

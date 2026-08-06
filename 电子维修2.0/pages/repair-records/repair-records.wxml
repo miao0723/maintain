@@ -1,0 +1,244 @@
+<view class="container">
+  <!-- 订单信息 -->
+  <view class="order-info" wx:if="{{orderDetail}}">
+    <view class="order-header">
+      <view class="order-no">订单号：{{orderDetail.orderNo || orderDetail.order_id}}</view>
+      <view class="order-status status-{{orderDetail.status}}">{{orderDetail.status}}</view>
+    </view>
+    <view class="order-details">
+      <view class="detail-item">
+        <text class="label">设备：</text>
+        <text class="value">{{orderDetail.deviceTypeName || '未知设备'}} {{orderDetail.deviceModel || ''}}</text>
+      </view>
+      <view class="detail-item">
+        <text class="label">故障：</text>
+        <text class="value">{{orderDetail.problemDesc || '暂无'}}</text>
+      </view>
+      <view class="detail-item">
+        <text class="label">预估价：</text>
+        <text class="value">¥{{orderDetail.estimatedPrice || '0.0'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 维修记录列表 -->
+  <view class="records-section">
+    <view class="section-header">
+      <text class="title">维修记录</text>
+      <button class="add-btn" bindtap="openAddModal" wx:if="{{orderDetail.status === 'processing'}}">
+        + 添加记录
+      </button>
+    </view>
+
+    <view class="records-list" wx:if="{{records.length > 0}}">
+      <view class="record-item" wx:for="{{records}}" wx:key="id">
+        <view class="record-header">
+          <view class="record-stage stage-{{item.stageClass}}">{{item.stage}}</view>
+          <view class="record-time">{{item.created_at}}</view>
+        </view>
+        <view class="record-title">{{item.title}}</view>
+        <view class="record-desc" wx:if="{{item.description}}">{{item.description}}</view>
+
+        <!-- 维修图片 -->
+        <view class="record-images" wx:if="{{item.images && item.images.length > 0}}">
+          <image
+            class="record-image"
+            src="{{baseUrl + image.url}}"
+            mode="aspectFill"
+            wx:for="{{item.images}}"
+            wx:for-item="image"
+            wx:for-index="imgIdx"
+            wx:key="imgIdx"
+            bindtap="previewRecordImage"
+            data-url="{{image.url}}"
+            data-index="{{imgIdx}}"
+            data-urls="{{item.images}}"
+          />
+        </view>
+
+        <!-- 维修视频 -->
+        <view class="record-videos" wx:if="{{item.videos && item.videos.length > 0}}">
+          <view
+            class="record-video"
+            wx:for="{{item.videos}}"
+            wx:for-item="video"
+            wx:for-index="videoIdx"
+            wx:key="videoIdx"
+            bindtap="previewRecordVideo"
+            data-url="{{video.url}}"
+          >
+            <video class="video-thumb" src="{{baseUrl + video.url}}"></video>
+            <view class="video-icon">▶</view>
+          </view>
+        </view>
+
+        <!-- 使用配件 -->
+        <view class="record-parts" wx:if="{{item.parts_used && item.parts_used.length > 0}}">
+          <view class="parts-title">使用配件：</view>
+          <view class="parts-list">
+            <view class="part-item" wx:for="{{item.parts_used}}" wx:for-item="part" wx:for-index="partIdx" wx:key="partIdx">
+              <text class="part-name">{{part.name || '未知配件'}}</text>
+              <text class="part-qty">x{{part.quantity || 0}}</text>
+              <text class="part-price">¥{{part.subtotal || '0.00'}}</text>
+            </view>
+          </view>
+          <view class="parts-total">
+            <text>配件总计：¥{{item.partsTotal || '0.00'}}</text>
+          </view>
+        </view>
+
+        <view class="record-actions" wx:if="{{orderDetail.status === 'processing'}}">
+          <button class="delete-btn" bindtap="deleteRecord" data-id="{{item.id}}">删除</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:if="{{records.length === 0}}">
+      <text class="empty-icon">📝</text>
+      <text class="empty-text">暂无维修记录</text>
+      <button class="empty-btn" bindtap="openAddModal" wx:if="{{orderDetail.status === 'processing'}}">
+        添加第一条记录
+      </button>
+    </view>
+  </view>
+
+  <!-- 返回按钮 -->
+  <view class="footer-actions">
+    <button class="back-btn" bindtap="goToOrderDetail">返回订单详情</button>
+  </view>
+</view>
+
+<!-- 添加维修记录弹窗 -->
+<view class="modal-mask" wx:if="{{showAddModal}}" bindtap="closeAddModal">
+  <view class="modal-content" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">添加维修记录</text>
+      <text class="modal-close" bindtap="closeAddModal">×</text>
+    </view>
+
+    <scroll-view class="modal-body" scroll-y>
+      <!-- 阶段选择 -->
+      <view class="form-section">
+        <view class="form-label">维修阶段 *</view>
+        <view class="stage-options">
+          <view
+            class="stage-item {{addFormData.stage === item.value ? 'active' : ''}}"
+            wx:for="{{stageOptions}}"
+            wx:for-item="item"
+            wx:for-index="stageIdx"
+            wx:key="value"
+            bindtap="selectStage"
+            data-stage="{{item.value}}"
+          >
+            {{item.label}}
+          </view>
+        </view>
+      </view>
+
+      <!-- 标题 -->
+      <view class="form-section">
+        <view class="form-label">记录标题 *</view>
+        <input
+          class="form-input"
+          placeholder="请输入记录标题"
+          value="{{addFormData.title}}"
+          bindinput="onTitleInput"
+        />
+      </view>
+
+      <!-- 描述 -->
+      <view class="form-section">
+        <view class="form-label">详细描述</view>
+        <textarea
+          class="form-textarea"
+          placeholder="请输入详细描述"
+          value="{{addFormData.description}}"
+          bindinput="onDescInput"
+          maxlength="500"
+        />
+      </view>
+
+      <!-- 图片上传 -->
+      <view class="form-section">
+        <view class="form-label">维修图片</view>
+        <view class="image-list" wx:if="{{addFormData.images.length > 0}}">
+          <view class="image-item" wx:for="{{addFormData.images}}" wx:for-item="img" wx:for-index="imgIdx" wx:key="imgIdx">
+            <image class="image-thumb" src="{{baseUrl + img.url}}" mode="aspectFill" />
+            <text class="image-remove" bindtap="removeImage" data-index="{{imgIdx}}">×</text>
+          </view>
+        </view>
+        <button class="upload-btn" bindtap="chooseImages" wx:if="{{addFormData.images.length < 5}}">
+          + 选择图片
+        </button>
+      </view>
+
+      <!-- 视频上传 -->
+      <view class="form-section">
+        <view class="form-label">维修视频</view>
+        <view class="video-list" wx:if="{{addFormData.videos.length > 0}}">
+          <view class="video-item" wx:for="{{addFormData.videos}}" wx:for-item="video" wx:for-index="videoIdx" wx:key="videoIdx">
+            <video class="video-thumb" src="{{baseUrl + video.url}}"></video>
+            <text class="video-remove" bindtap="removeVideo" data-index="{{videoIdx}}">×</text>
+          </view>
+        </view>
+        <button class="upload-btn" bindtap="chooseVideo" wx:if="{{addFormData.videos.length < 5}}">
+          + 选择视频
+        </button>
+      </view>
+
+      <!-- 使用配件 -->
+      <view class="form-section">
+        <view class="form-label">使用配件</view>
+        <view class="parts-list" wx:if="{{addFormData.parts.length > 0}}">
+          <view class="parts-item" wx:for="{{addFormData.parts}}" wx:for-item="part" wx:for-index="partIdx" wx:key="id">
+            <view class="part-header">
+              <input
+                class="part-name-input"
+                placeholder="配件名称"
+                value="{{part.name}}"
+                bindinput="onPartInput"
+                data-index="{{partIdx}}"
+                data-field="name"
+              />
+              <text class="part-remove" bindtap="removePart" data-index="{{partIdx}}">×</text>
+            </view>
+            <view class="part-details">
+              <view class="part-detail">
+                <text class="detail-label">数量：</text>
+                <input
+                  class="part-input"
+                  type="number"
+                  value="{{part.quantity}}"
+                  bindinput="onPartInput"
+                  data-index="{{partIdx}}"
+                  data-field="quantity"
+                />
+              </view>
+              <view class="part-detail">
+                <text class="detail-label">单价：</text>
+                <input
+                  class="part-input"
+                  type="digit"
+                  placeholder="0.00"
+                  value="{{part.price}}"
+                  bindinput="onPartInput"
+                  data-index="{{partIdx}}"
+                  data-field="price"
+                />
+              </view>
+            </view>
+          </view>
+        </view>
+        <button class="upload-btn" bindtap="addPart">+ 添加配件</button>
+        <view class="parts-total" wx:if="{{addFormData.parts.length > 0}}">
+          配件总计：¥{{addFormDataPartsTotal}}
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="modal-footer">
+      <button class="cancel-btn" bindtap="closeAddModal">取消</button>
+      <button class="submit-btn" bindtap="submitRecord" disabled="{{submitting}}" loading="{{submitting}}">提交记录</button>
+    </view>
+  </view>
+</view>

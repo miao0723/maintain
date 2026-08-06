@@ -1,0 +1,9 @@
+{
+    "id": 8,
+    "video_url": "D:\\maintain\\docker\\rpa_files\\videos\\video_8_1776069212.mp4",
+    "title": "爱维修",
+    "description": "维修电子产品上爱维修",
+    "tags": "维修",
+    "local_path": "D:\\maintain\\docker\\rpa_files\\videos\\video_8_1776069212.mp4",
+    "callback_url": "http://localhost/api/marketing/bilibili/publish/callback"
+}
