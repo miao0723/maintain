@@ -39,10 +39,32 @@ App({
       const storedBaseUrl = wx.getStorageSync('apiBaseUrl')
       if (storedBaseUrl && typeof storedBaseUrl === 'string') {
         const normalized = normalizeBaseUrl(storedBaseUrl)
+        // 安全保护：真机上不允许使用非 HTTPS 或 localhost 地址
+        // 如果存储的是开发环境地址（HTTP 或 localhost），清除它并使用默认地址
+        if (normalized.startsWith('http://127.0.0.1') ||
+            normalized.startsWith('http://localhost') ||
+            normalized.startsWith('http://192.168') ||
+            (normalized.startsWith('http://') && !normalized.includes('localhost'))) {
+          // 非开发工具环境下的 HTTP 地址在真机上不可用，清除并使用默认值
+          if (!this._isDevtools()) {
+            console.warn('检测到存储的 API 地址为非 HTTPS（' + normalized + '），真机不可用，已清除')
+            wx.removeStorageSync('apiBaseUrl')
+            return
+          }
+        }
         this.globalData.baseUrl = normalized
         this.globalData.apiUrl = normalized
       }
     } catch (e) {}
+  },
+
+  _isDevtools() {
+    try {
+      const info = wx.getSystemInfoSync()
+      return info && info.platform === 'devtools'
+    } catch (e) {
+      return false
+    }
   },
 
   /**

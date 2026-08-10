@@ -273,11 +273,27 @@ Page({
     if (this.data.authLoading) return
 
     this.setData({ authLoading: true })
+
+    // 诊断：打印当前使用的 API 地址
+    const app = getApp()
+    const diagBaseUrl = app?.globalData?.baseUrl || '未设置'
+    const diagApiUrl = app?.globalData?.apiUrl || '未设置'
+    const diagStored = wx.getStorageSync('apiBaseUrl') || '无'
+    console.log('========== 登录诊断 ==========')
+    console.log('globalData.baseUrl:', diagBaseUrl)
+    console.log('globalData.apiUrl:', diagApiUrl)
+    console.log('stored apiBaseUrl:', diagStored)
+    console.log('===============================')
+
     wx.login({
       success: async (loginRes) => {
         if (!loginRes.code) {
           this.setData({ authLoading: false })
-          wx.showToast({ title: '登录失败，请重试', icon: 'none' })
+          wx.showModal({
+            title: '登录诊断',
+            content: 'wx.login 未返回 code\n\n可能原因：微信授权失败\n当前 API: ' + diagBaseUrl,
+            showCancel: false
+          })
           return
         }
         try {
@@ -315,17 +331,37 @@ Page({
               this.hydrateUserInfo()
             }
           } else {
-            throw new Error('登录响应无效')
+            wx.showModal({
+              title: '登录诊断',
+              content: '服务器返回异常\n\nsuccess: ' + JSON.stringify(response.success) +
+                '\nerror: ' + (response.error || response.message || '无') +
+                '\n当前 API: ' + diagBaseUrl,
+              showCancel: false
+            })
+            this.setData({ authLoading: false })
           }
         } catch (err) {
           console.error('首页授权登录失败:', err)
           this.setData({ authLoading: false })
-          wx.showToast({ title: '登录失败，请重试', icon: 'none' })
+          const errMsg = (err && (err.message || err.errMsg)) || '未知错误'
+          wx.showModal({
+            title: '登录诊断',
+            content: '网络请求失败\n\n错误: ' + errMsg +
+              '\n当前 API: ' + diagBaseUrl +
+              '\nstored: ' + diagStored,
+            showCancel: false
+          })
         }
       },
-      fail: () => {
+      fail: (err) => {
         this.setData({ authLoading: false })
-        wx.showToast({ title: '登录失败，请重试', icon: 'none' })
+        const errMsg = (err && (err.errMsg || err.message)) || '未知'
+        wx.showModal({
+          title: '登录诊断',
+          content: 'wx.login 调用失败\n\n错误: ' + errMsg +
+            '\n当前 API: ' + diagBaseUrl,
+          showCancel: false
+        })
       }
     })
   },

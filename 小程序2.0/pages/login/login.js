@@ -92,6 +92,13 @@ Page({
       mask: true
     })
 
+    // 诊断信息
+    const app = getApp()
+    const diagBaseUrl = app?.globalData?.baseUrl || '未设置'
+    console.log('========== 登录页诊断 ==========')
+    console.log('baseUrl:', diagBaseUrl)
+    console.log('===============================')
+
     try {
       const code = await this.getWechatLoginCode()
       wx.setStorageSync('agreedToDisclaimer', true)
@@ -100,10 +107,12 @@ Page({
       wx.hideLoading()
       const cancelled = (err && (err.errMsg || err.message || '')).includes('cancel')
       if (!cancelled) {
-        wx.showToast({
-          title: '登录失败，请重试',
-          icon: 'none',
-          duration: 2500
+        const errMsg = (err && (err.message || err.errMsg)) || '未知'
+        wx.showModal({
+          title: '登录诊断',
+          content: '登录请求失败\n\n错误: ' + errMsg +
+            '\nAPI: ' + diagBaseUrl,
+          showCancel: false
         })
       }
       console.error('授权登录失败:', err)
@@ -120,9 +129,9 @@ Page({
             resolve(loginRes.code)
             return
           }
-          reject(new Error('未获取到登录 code'))
+          reject(new Error('wx.login 未返回 code'))
         },
-        fail: reject
+        fail: (err) => reject(new Error('wx.login 失败: ' + (err.errMsg || '未知')))
       })
     })
   },
@@ -184,24 +193,29 @@ Page({
           this.navigateToHome()
         }, 1500)
       } else {
+        const app = getApp()
+        const diagBaseUrl = app?.globalData?.baseUrl || '未设置'
+        wx.hideLoading()
+        wx.showModal({
+          title: '登录诊断',
+          content: '服务器返回异常\n\nsuccess: ' + JSON.stringify(response.success) +
+            '\nerror: ' + (response.error || response.message || '无') +
+            '\nAPI: ' + diagBaseUrl,
+          showCancel: false
+        })
         throw new Error('登录响应无效')
       }
     } catch (error) {
       console.error('微信登录失败:', error)
       wx.hideLoading()
-      let title = '登录失败，请重试'
       const errMsg = (error && (error.message || error.errMsg)) || ''
-      if (errMsg.includes('同一 Wi-Fi')) {
-        title = '请让手机和电脑连接同一Wi-Fi'
-      } else if (errMsg.includes('无法连接') || errMsg.includes('连接失败') || errMsg.includes('request:fail')) {
-        title = '无法连接服务器，请检查接口地址和后端'
-      } else if (errMsg.includes('超时')) {
-        title = '请求超时，请检查网络连接'
-      }
-      wx.showToast({
-        title: title,
-        icon: 'none',
-        duration: 3000
+      const app = getApp()
+      const diagBaseUrl = app?.globalData?.baseUrl || '未设置'
+      wx.showModal({
+        title: '登录诊断',
+        content: '请求失败\n\n错误: ' + errMsg +
+          '\nAPI: ' + diagBaseUrl,
+        showCancel: false
       })
     }
   },
