@@ -72,10 +72,12 @@ function request(url, method = 'GET', data = null, options = {}) {
       return;
     }
 
-    const tryRequest = (index) => {
+    const tryRequest = (index, retryCount = 0) => {
+      const MAX_RETRIES = 2; // 每个候选地址最多重试 2 次（共 3 次尝试）
       const baseUrl = candidates[index];
       const fullUrl = baseUrl + url;
-      console.log('CODEBUDDY_DEBUG request method=', method, 'fullUrl=', fullUrl, 'hasToken=', !!token);
+      const attemptLabel = retryCount > 0 ? ` (重试${retryCount}/${MAX_RETRIES})` : '';
+      console.log('CODEBUDDY_DEBUG request method=', method, 'fullUrl=', fullUrl, 'hasToken=', !!token, 'attempt=', retryCount + 1);
       wx.request({
         url: fullUrl,
         method: method,
@@ -137,12 +139,23 @@ function request(url, method = 'GET', data = null, options = {}) {
           }
         },
         fail: (err) => {
-          console.log('CODEBUDDY_DEBUG request fail err=', err, 'url=', fullUrl, 'tryIndex=', index);
-          if (index < candidates.length - 1) {
-            console.log('CODEBUDDY_DEBUG 尝试下一个地址:', candidates[index + 1]);
-            tryRequest(index + 1);
+          console.log('CODEBUDDY_DEBUG request fail err=', err, 'url=', fullUrl, 'tryIndex=', index, 'retryCount=', retryCount);
+
+          // 先尝试同地址重试（退避延迟：1s, 2s）
+          if (retryCount < MAX_RETRIES) {
+            const delay = (retryCount + 1) * 1000; // 1s, 2s 递增
+            console.log('CODEBUDDY_DEBUG 同地址重试, 延迟', delay, 'ms');
+            setTimeout(() => tryRequest(index, retryCount + 1), delay);
             return;
           }
+
+          // 同地址重试耗尽，尝试下一个候选地址
+          if (index < candidates.length - 1) {
+            console.log('CODEBUDDY_DEBUG 尝试下一个地址:', candidates[index + 1]);
+            tryRequest(index + 1, 0);
+            return;
+          }
+
           // 所有地址都尝试失败
           const originalErrMsg = err.errMsg || '';
           const toastTitle = buildConnectionErrorMessage(candidates, originalErrMsg)
@@ -186,7 +199,8 @@ function uploadFileWithCandidates(pathname, filePath, formData = {}, options = {
       return
     }
 
-    const tryUpload = (index) => {
+    const tryUpload = (index, retryCount = 0) => {
+      const MAX_UPLOAD_RETRIES = 1; // 上传重试次数比普通请求少
       const baseUrl = candidates[index]
       const uploadUrl = `${baseUrl}${pathname}`
 
@@ -229,8 +243,15 @@ function uploadFileWithCandidates(pathname, filePath, formData = {}, options = {
           reject(new Error(errorMsg))
         },
         fail: (err) => {
+          // 同地址重试
+          if (retryCount < MAX_UPLOAD_RETRIES) {
+            const delay = (retryCount + 1) * 1500;
+            setTimeout(() => tryUpload(index, retryCount + 1), delay);
+            return;
+          }
+          // 尝试下一个候选
           if (index < candidates.length - 1) {
-            tryUpload(index + 1)
+            tryUpload(index + 1, 0)
             return
           }
 
