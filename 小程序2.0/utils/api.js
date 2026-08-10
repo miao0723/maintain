@@ -144,8 +144,8 @@ function request(url, method = 'GET', data = null, options = {}) {
             return;
           }
           // 所有地址都尝试失败
-          const errMsg = err.errMsg || '';
-          const toastTitle = buildConnectionErrorMessage(candidates, errMsg)
+          const originalErrMsg = err.errMsg || '';
+          const toastTitle = buildConnectionErrorMessage(candidates, originalErrMsg)
 
           if (!suppressErrorToast) {
             wx.showToast({
@@ -154,7 +154,8 @@ function request(url, method = 'GET', data = null, options = {}) {
               duration: 3000
             });
           }
-          reject(new Error(`${toastTitle} | candidates: ${candidates.join(', ')}`));
+          // 把原始微信错误传给上层，方便诊断
+          reject(new Error(`[${originalErrMsg}] ${toastTitle} | candidates: ${candidates.join(', ')}`));
         }
       });
     };
@@ -233,8 +234,8 @@ function uploadFileWithCandidates(pathname, filePath, formData = {}, options = {
             return
           }
 
-          const errMsg = err.errMsg || ''
-          const toastTitle = buildConnectionErrorMessage(candidates, errMsg)
+          const originalErrMsg = err.errMsg || ''
+          const toastTitle = buildConnectionErrorMessage(candidates, originalErrMsg)
           if (!suppressErrorToast) {
             wx.showToast({
               title: toastTitle,
@@ -242,7 +243,7 @@ function uploadFileWithCandidates(pathname, filePath, formData = {}, options = {
               duration: 3000
             })
           }
-          reject(new Error(`${toastTitle} | candidates: ${candidates.join(', ')}`))
+          reject(new Error(`[${originalErrMsg}] ${toastTitle} | candidates: ${candidates.join(', ')}`))
         }
       })
     }
