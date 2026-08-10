@@ -47,8 +47,8 @@ function request(url, method = 'GET', data = null, options = {}) {
     : [];
   const suppressErrorToast = !!options.suppressErrorToast
   const resolveOnHttpError = !!options.resolveOnHttpError
-  // 超时时间（毫秒），默认 15s。不设置时 wx.request 可能长时间挂起导致页面卡死
-  const timeout = options.timeout || 15000
+  // 超时时间（毫秒），默认 30s。微信真机网络可能波动较大
+  const timeout = options.timeout || 30000
 
   return new Promise((resolve, reject) => {
     const baseCandidates = getApiBaseCandidates()
