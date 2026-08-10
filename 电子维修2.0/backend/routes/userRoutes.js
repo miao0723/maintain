@@ -280,11 +280,16 @@ router.post('/login', async (req, res) => {
       `https://api.weixin.qq.com/sns/jscode2session?appid=${process.env.WECHAT_APP_ID}&secret=${process.env.WECHAT_APP_SECRET}&js_code=${code}&grant_type=authorization_code`
     );
 
-    const { openid, unionid, session_key } = wechatResponse.data;
+    const wxData = wechatResponse.data || {};
+    const { openid, unionid, session_key, errcode, errmsg } = wxData;
 
-    if (!openid) {
-      console.error('微信登录失败:', wechatResponse.data);
-      return res.status(401).json({ error: 'WeChat login failed' });
+    // 微信jscode2session返回了错误码（如40013 AppID无效 / 40125 AppSecret错误 / 40163 code已使用）
+    if (errcode || !openid) {
+      console.error('[微信登录] jscode2session 返回异常:', wxData);
+      return res.status(401).json({
+        error: 'WeChat login failed',
+        wechat: { errcode: errcode || null, errmsg: errmsg || 'no openid' }
+      });
     }
 
     // 检查用户是否已存在

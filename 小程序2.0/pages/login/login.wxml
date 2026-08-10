@@ -1,0 +1,63 @@
+<!-- pages/login/login.wxml -->
+<view class="login-container">
+  <view class="login-card">
+    <view class="login-logo">🔧</view>
+    <view class="login-title">电子维修服务</view>
+    <view class="login-desc">登录后可使用故障自检、报价确认、进度反馈与设备回收</view>
+
+    <button
+      class="login-btn"
+      bindtap="handleLogin"
+      loading="{{loading}}"
+      disabled="{{loading}}"
+    >
+      <text class="btn-text">{{loading ? '登录中...' : '微信一键登录'}}</text>
+    </button>
+
+    <view class="login-policy">
+      <text>登录即表示同意</text>
+      <text class="login-link" bindtap="viewAgreement" catchtap="viewAgreement">《免责协议》</text>
+      <text>和</text>
+      <text class="login-link" bindtap="viewPrivacyPolicy" catchtap="viewPrivacyPolicy">《隐私政策》</text>
+    </view>
+  </view>
+
+  <!-- 资料补全弹层：读取微信头像与昵称 -->
+  <view class="fill-mask" wx:if="{{showProfileFill}}">
+    <view class="fill-card">
+      <view class="fill-title">完善微信资料</view>
+      <view class="fill-sub">点击下方按钮，一键获取您的微信头像和昵称</view>
+
+      <!-- 头像预览 -->
+      <view class="fill-preview">
+        <image
+          wx:if="{{fillAvatarUrl}}"
+          class="fill-preview-img"
+          src="{{fillAvatarUrl}}"
+          mode="aspectFill"></image>
+        <view wx:else class="fill-preview-default">👤</view>
+        <text class="fill-preview-name">{{fillNickName || '微信用户'}}</text>
+      </view>
+
+      <!-- 昵称 input：隐藏，仅用于接收微信一键填入的昵称 -->
+      <input
+        class="fill-nick-hidden"
+        type="nickname"
+        value="{{fillNickName}}"
+        bindnickname="onFillNickName"
+        bindinput="onFillNickNameInput"
+        maxlength="20"/>
+
+      <!-- 一步到位：点一次同时获取头像 + 昵称并自动保存 -->
+      <button
+        class="fill-oneshot"
+        open-type="chooseAvatar"
+        bindchooseavatar="onChooseAvatarAndSave"
+        loading="{{isFilling}}"
+        disabled="{{isFilling}}"
+      >{{isFilling ? '保存中...' : '获取微信头像和昵称'}}</button>
+
+      <view class="fill-skip" bindtap="skipProfileFill">暂不设置，直接进入</view>
+    </view>
+  </view>
+</view>

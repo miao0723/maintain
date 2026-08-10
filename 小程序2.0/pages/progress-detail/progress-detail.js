@@ -1,0 +1,89 @@
+const app = getApp();
+
+Page({
+  data: {
+    feedback: null,
+    loading: true
+  },
+
+  onLoad(options) {
+    // 从页面参数中读取反馈数据
+    if (options.data) {
+      try {
+        const feedback = JSON.parse(decodeURIComponent(options.data));
+        feedback.displayPhotos = Array.isArray(feedback.photos) ? [...feedback.photos] : [];
+        this.setData({
+          feedback: feedback,
+          loading: false
+        });
+        this.preloadPhotos(feedback.photos || []);
+        wx.setNavigationBarTitle({ title: feedback.formatted_time || '反馈详情' });
+      } catch (e) {
+        console.error('解析反馈数据失败:', e);
+        wx.showToast({ title: '数据加载失败', icon: 'none' });
+        this.setData({ loading: false });
+      }
+    } else {
+      wx.showToast({ title: '参数错误', icon: 'none' });
+      this.setData({ loading: false });
+    }
+  },
+
+  /**
+   * 预览照片
+   */
+  previewPhoto(e) {
+    const url = e.currentTarget.dataset.url;
+    const photos = this.data.feedback.photos || [];
+    wx.previewImage({
+      urls: photos,
+      current: url
+    });
+  },
+
+  preloadPhotos(photos = []) {
+    photos.forEach((url, index) => {
+      if (!url) return;
+      wx.getImageInfo({
+        src: url,
+        success: (res) => {
+          this.setData({
+            [`feedback.displayPhotos[${index}]`]: res.path || url
+          });
+        },
+        fail: () => {
+          this.setData({
+            [`feedback.displayPhotos[${index}]`]: url
+          });
+        }
+      });
+    });
+  },
+
+  /**
+   * 播放视频
+   */
+  playVideo(e) {
+    const url = e.currentTarget.dataset.url;
+    if (!url) {
+      wx.showToast({ title: '视频地址无效', icon: 'none' });
+      return;
+    }
+    wx.navigateTo({
+      url: `/pages/video-player/video-player?url=${encodeURIComponent(url)}`
+    });
+  },
+
+  /**
+   * 格式化时长
+   */
+  formatDuration(seconds) {
+    if (!seconds || seconds <= 0) return '0s';
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (minutes > 0) {
+      return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${secs}s`;
+  }
+});

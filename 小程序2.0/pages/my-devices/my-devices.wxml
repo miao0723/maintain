@@ -1,0 +1,138 @@
+<!--pages/my-devices/my-devices.wxml-->
+<view class="page-container">
+  <!-- 页面头部 -->
+  <view class="page-header">
+    <view class="header-icon">📱</view>
+    <view class="header-texts">
+      <text class="header-title">我的设备</text>
+      <text class="header-sub">绑定常用设备，维修下单更快一步</text>
+    </view>
+    <view class="header-count" wx:if="{{deviceList.length > 0}}">
+      <text class="count-num">{{deviceList.length}}</text>
+      <text class="count-unit">/10</text>
+    </view>
+  </view>
+
+  <!-- 清单切换：维修设备 / 回收设备（同一设备记录的两种视图，编辑后自动同步） -->
+  <view class="tab-switch">
+    <view class="tab-item {{activeTab === 'repair' ? 'active' : ''}}" data-tab="repair" bindtap="switchTab">
+      <text class="tab-icon">🔧</text>
+      <text class="tab-text">维修设备</text>
+    </view>
+    <view class="tab-item {{activeTab === 'recycle' ? 'active' : ''}}" data-tab="recycle" bindtap="switchTab">
+      <text class="tab-icon">♻️</text>
+      <text class="tab-text">回收设备</text>
+    </view>
+  </view>
+
+  <!-- 顶部说明栏 -->
+  <view class="tip-bar" wx:if="{{deviceList.length === 0}}">
+    <text class="tip-icon">💡</text>
+    <text class="tip-text">绑定你的常用设备，维修/回收时可直接选择，无需重复填写型号</text>
+  </view>
+
+  <!-- 设备列表 -->
+  <view class="device-list" wx:if="{{deviceList.length > 0}}">
+    <view class="list-header">
+      <text class="list-title">{{activeTab === 'repair' ? '维修设备' : '回收设备'}}</text>
+      <text class="list-hint" wx:if="{{deviceList.length >= 8}}">设备数量较多，建议清理不再使用的设备</text>
+    </view>
+
+    <view
+      class="device-card {{item.is_default ? 'is-default' : ''}}"
+      wx:for="{{deviceList}}"
+      wx:key="id"
+    >
+      <!-- 默认设备徽章 -->
+      <view class="default-ribbon" wx:if="{{item.is_default}}">
+        <text class="ribbon-text">★ 默认设备</text>
+      </view>
+
+      <view class="card-main" bindtap="goDeviceDetail" data-id="{{item.id}}">
+        <!-- 设备图标 -->
+        <view class="device-icon-wrap {{item.is_default ? 'icon-default' : ''}}">
+          <text class="device-icon">{{deviceIcons[item.device_type_id] || '🔧'}}</text>
+        </view>
+
+        <!-- 设备信息 -->
+        <view class="device-info">
+          <view class="device-name-row">
+            <text class="device-name">{{item.device_nickname || item.device_model}}</text>
+          </view>
+          <text class="device-model" wx:if="{{item.device_nickname}}">{{item.brand_name ? item.brand_name + ' ' : ''}}{{item.device_model}}</text>
+          <view class="device-meta">
+            <text class="device-sub">
+              {{item.device_type_name || '未知类型'}}
+              <block wx:if="{{item.serial_number}}"> · {{item.serial_number}}</block>
+            </text>
+          </view>
+          <text class="device-condition" wx:if="{{item.device_condition}}">{{item.device_condition}}</text>
+          <text class="purpose-tag repair" wx:if="{{item.device_purpose === 'repair'}}">仅维修</text>
+          <text class="purpose-tag recycle" wx:if="{{item.device_purpose === 'recycle'}}">仅回收</text>
+          <text class="warranty-tag {{item.warranty_status}}" wx:if="{{item.warranty_status && item.warranty_status !== 'none'}}">{{item.warranty_status === 'in' ? '质保中' : '已过保'}}</text>
+        </view>
+      </view>
+
+      <!-- 设置默认按钮（非默认设备显示） -->
+      <view class="card-actions" wx:if="{{!item.is_default}}">
+        <view class="action-btn default-btn" catchtap="setDefault" data-id="{{item.id}}">
+          <text class="action-icon">⭐</text>
+          <text class="action-text">设为默认</text>
+        </view>
+      </view>
+
+      <view class="divider"></view>
+
+      <!-- 快速发起入口 -->
+      <view class="card-quick-actions">
+        <view class="quick-btn repair-btn" catchtap="startRepair" data-index="{{index}}">
+          <text class="quick-icon">🔧</text>
+          <text>发起维修</text>
+        </view>
+        <view class="quick-btn recycle-btn" catchtap="startRecycle" data-index="{{index}}">
+          <text class="quick-icon">♻️</text>
+          <text>发起回收</text>
+        </view>
+      </view>
+
+      <!-- 操作按钮 -->
+      <view class="card-footer">
+        <view class="footer-btn edit-btn" catchtap="editDevice" data-id="{{item.id}}">
+          <text class="footer-icon">✏️</text>
+          <text>编辑</text>
+        </view>
+        <view class="footer-btn delete-btn" catchtap="deleteDevice" data-id="{{item.id}}" data-name="{{item.device_nickname || item.device_model}}">
+          <text class="footer-icon">🗑️</text>
+          <text>删除</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{deviceList.length === 0 && !isLoading}}">
+    <view class="empty-illustration">
+      <view class="empty-glow"></view>
+      <text class="empty-icon">🖥️</text>
+    </view>
+    <text class="empty-title">还没有绑定{{activeTab === 'repair' ? '维修' : '回收'}}设备</text>
+    <text class="empty-desc">添加常用设备，下单时快速选择，无需重复填写型号</text>
+    <view class="empty-action" bindtap="goToAdd">
+      <text class="empty-action-text">+ 立即添加</text>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{isLoading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 底部添加按钮 -->
+  <view class="bottom-bar">
+    <button class="add-btn" bindtap="goToAdd">
+      <text class="add-icon">+</text>
+      <text>添加设备</text>
+    </button>
+  </view>
+</view>

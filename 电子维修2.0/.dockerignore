@@ -1,0 +1,23 @@
+# 项目根构建上下文忽略项（构建 backend 镜像用）
+node_modules
+**/node_modules
+*.log
+.git
+.claude
+.cloudbase
+.DS_Store
+*.md
+uploads
+images
+assets
+libs
+pages
+custom-tab-bar
+theme
+miniprogram
+cloudfunctions
+backend/test_*.js
+backend/verify_*.js
+backend/query_admins.js
+backend/e2e_*
+backend/server-delete-debug.*

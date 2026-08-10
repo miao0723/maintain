@@ -1,0 +1,61 @@
+flowchart TD
+    classDef entry fill:#e3f2fd,stroke:#1e88e5,color:#0d47a1;
+    classDef adm fill:#fce4ec,stroke:#d81b60,color:#880e4f;
+    classDef ord fill:#fff3e0,stroke:#fb8c00,color:#e65100;
+    classDef endd fill:#e8f5e9,stroke:#43a047,color:#1b5e20;
+
+    subgraph E["① 用户入口（三种进入方式）"]
+        direction TB
+        H(["🏠 首页 home"])
+        A["📱 直接进维修页\ntabBar 维修"]
+        H --> A
+        B1["🤖 AI 故障自检\ndiagnose"] --> B2["📋 诊断结果\n初步判断"] --> B3["💬 咨询客服\nservice"] --> B4["🛒 客服页进入维修下单"]
+        H --> B1
+        C1["📦 我的设备\nmy-devices"] --> C2["➕ 添加/选设备\ndevice-edit"] --> C3["🔧 发起维修\n带入设备信息"]
+        H --> C1
+    end
+
+    RP["📝 维修下单页 repair\n选设备/品牌/故障\n服务方式/地址/图片"]
+    SB(["✅ 提交订单\nPOST /api/orders/create"])
+    A --> RP
+    B4 --> RP
+    C3 --> RP
+    RP --> SB
+
+    subgraph Q["② 管理员报价"]
+        direction TB
+        Q1["🛡️ 管理员订单 admin-orders"] --> Q2["💰 填报价金额/说明\n上传报价文件"] --> Q3["📤 提交报价\nPUT /quote"]
+    end
+
+    subgraph O["③ 订单状态流转"]
+        direction TB
+        P["pending 待处理"] -->|"🔧 报价"| Qd["quoted 待确认报价"]
+        Qd -->|"👤 接受"| Cd["confirmed 已确认"]
+        Qd -->|"👤 拒绝"| PR["pending 报价被拒"]
+        PR -->|"🔧 重新报价"| Qd
+        Cd -->|"🔧 开始处理"| PRO["processing 维修中"]
+        PRO -->|"🔧 完成 actual_price"| D["completed 已完成"]
+        D -->|"👤 评价"| R["review 已评价"]
+        P -->|"🔧 取消/退款"| X["cancelled 已取消"]
+    end
+
+    subgraph F["④ 进度申请与管理员反馈"]
+        direction TB
+        PA["👤 进度申请\nprogress-apply-create"] --> PA2["⏳ progress_apply 待审核"] --> PA3["🛡️ 通过 / 拒绝(原因)"]
+        PA3 -->|"通过 approved"| FB["🔧 管理员上传图/视频\nprogress-feedback"] --> FB2["📸 progress_photos"] --> FB3["👤 查看(角标)\norder-detail"]
+    end
+
+    SB --> P
+    Q3 -. "生成 quoted 状态" .-> Qd
+    Cd --> PA
+    PRO --> PA
+    PRO -. "更新百分比" .-> FB3
+    PA3 -. "通过" .-> FB
+
+    R --> END(["🎉 流程结束"])
+    X --> END
+
+    class A,B1,B2,B3,B4,C1,C2,C3,RP entry;
+    class Q1,Q2,Q3,PA,PA2,PA3,FB,FB2,FB3 adm;
+    class P,Qd,Cd,PR,PRO,D,R,X ord;
+    class END endd;

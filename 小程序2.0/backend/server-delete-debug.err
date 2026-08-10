@@ -1,0 +1,1254 @@
+解析产品JSON失败: 1 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 2 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 3 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 4 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 5 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 6 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,主板维修,摄像头维修" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 7 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 8 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 9 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 10 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 11 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 12 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 13 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 14 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 15 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 16 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 17 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 18 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 19 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 20 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 21 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 22 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,主板维修,摄像头维修" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 23 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 24 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 25 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 26 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 27 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 28 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 29 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 30 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 31 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 32 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 33 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 34 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 35 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 36 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 37 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 38 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,主板维修,摄像头维修" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 39 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 40 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 41 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 42 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 43 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 44 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 45 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 46 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 47 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 48 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 49 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 50 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 51 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 52 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 53 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 54 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,主板维修,摄像头维修" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 55 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 56 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 57 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 58 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 59 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 60 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 61 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 62 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 63 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 64 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 65 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 66 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 67 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 68 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 69 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 70 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,主板维修,摄像头维修" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 71 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 72 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 73 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 74 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 75 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 76 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 77 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 78 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 79 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 80 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 81 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 82 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 83 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 84 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 85 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 86 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,主板维修,摄像头维修" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 87 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 88 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 89 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 90 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 91 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 92 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 93 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 94 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 95 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 96 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+Error: SyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\types\json.js:169:10)
+    at parse (D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:228:14)
+    at invokeCallback (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:238:16)
+    at done (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:508:28)
+    at endReadableNT (node:internal/streams/readable:1729:12) {
+  expose: true,
+  statusCode: 400,
+  status: 400,
+  body: 'null',
+  type: 'entity.parse.failed'
+}
+Error: SyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\types\json.js:169:10)
+    at parse (D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:228:14)
+    at invokeCallback (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:238:16)
+    at done (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:508:28)
+    at endReadableNT (node:internal/streams/readable:1729:12) {
+  expose: true,
+  statusCode: 400,
+  status: 400,
+  body: 'null',
+  type: 'entity.parse.failed'
+}
+Error: SyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\types\json.js:169:10)
+    at parse (D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:228:14)
+    at invokeCallback (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:238:16)
+    at done (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:508:28)
+    at endReadableNT (node:internal/streams/readable:1729:12) {
+  expose: true,
+  statusCode: 400,
+  status: 400,
+  body: 'null',
+  type: 'entity.parse.failed'
+}
+Error: SyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\types\json.js:169:10)
+    at parse (D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:228:14)
+    at invokeCallback (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:238:16)
+    at done (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:508:28)
+    at endReadableNT (node:internal/streams/readable:1729:12) {
+  expose: true,
+  statusCode: 400,
+  status: 400,
+  body: 'null',
+  type: 'entity.parse.failed'
+}
+解析产品JSON失败: 1 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 2 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 3 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 4 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 5 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 6 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,主板维修,摄像头维修" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 7 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 8 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 9 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 10 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 11 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 12 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 13 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 14 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 15 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 16 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 17 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 18 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 19 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 20 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 21 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 22 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,主板维修,摄像头维修" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 23 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 24 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 25 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 26 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 27 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 28 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 29 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 30 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 31 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 32 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 33 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 34 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 35 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 36 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 37 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 38 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,主板维修,摄像头维修" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 39 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 40 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 41 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 42 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 43 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 44 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 45 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 46 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 47 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 48 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 49 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 50 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 51 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 52 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 53 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 54 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,主板维修,摄像头维修" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 55 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 56 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 57 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 58 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 59 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 60 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 61 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 62 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 63 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 64 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 65 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 66 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 67 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 68 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 69 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 70 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,主板维修,摄像头维修" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 71 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 72 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 73 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 74 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 75 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 76 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 77 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 78 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 79 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 80 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 81 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 82 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 83 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 84 SyntaxError: Unexpected token '屏', "屏幕维修,键盘更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 85 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 86 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,主板维修,摄像头维修" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 87 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 88 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 89 SyntaxError: Unexpected token '充', "充电盒维修,电池更换"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 90 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 91 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 92 SyntaxError: Unexpected token '传', "传感器清洁,镜头维修"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 93 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 94 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 95 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+解析产品JSON失败: 96 SyntaxError: Unexpected token '屏', "屏幕维修,电池更换,"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:143:53
+    at Array.map (<anonymous>)
+    at D:\maintain\电子维修2.0\backend\routes\productRoutes.js:139:40
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+Error: SyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\types\json.js:169:10)
+    at parse (D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:228:14)
+    at invokeCallback (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:238:16)
+    at done (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:508:28)
+    at endReadableNT (node:internal/streams/readable:1729:12) {
+  expose: true,
+  statusCode: 400,
+  status: 400,
+  body: 'null',
+  type: 'entity.parse.failed'
+}
+Error: SyntaxError: Unexpected token 'n', "null" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\types\json.js:169:10)
+    at parse (D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\types\json.js:86:15)
+    at D:\maintain\电子维修2.0\backend\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:228:14)
+    at invokeCallback (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:238:16)
+    at done (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\maintain\电子维修2.0\backend\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:508:28)
+    at endReadableNT (node:internal/streams/readable:1729:12) {
+  expose: true,
+  statusCode: 400,
+  status: 400,
+  body: 'null',
+  type: 'entity.parse.failed'
+}

@@ -1,0 +1,737 @@
+'use strict';
+
+/**
+ * 客服常见问题（FAQ）知识库与匹配 Agent
+ * ------------------------------------------------------------
+ * 目标：保证页面上展示的「常见问题 / 快捷短语」一定能被回答，
+ *       不再出现「暂时没有查到对应的结果」。
+ *
+ * 每条 FAQ 结构：
+ *  - id        唯一标识
+ *  - category  分类（用于统计/展示）
+ *  - question  标准问法（命中时优先展示）
+ *  - must      门槛词：消息必须至少包含其一，否则该条不计分（防止误命中）
+ *  - phrases   高权重短语：消息包含其一即大幅加分，覆盖提问的多样性表达
+ *  - keywords  普通关键词：命中加分（兜底）
+ *  - answer    标准回复（专业、友好，符合「修小宝」人设）
+ *  - intent    意图标签（便于前端/日志归类）
+ *  - actions   建议操作（前端可渲染：quick_reply 必显示；button 仅 book_repair/
+ *             submit_recycle/submit_order 会透传并可用，其余一律用 quick_reply）
+ */
+
+const FAQ_ENTRIES = [
+  // ===================== 服务时间 / 时效 =====================
+  {
+    id: 'faq_business_hours',
+    category: '服务时间',
+    question: '营业时间是什么时候？',
+    must: ['营业', '开门', '几点', '时间', '关门', '上班'],
+    phrases: ['营业时间', '几点开门', '几点营业', '几点关门', '营业到几点', '什么时候开门', '什么时候营业', '上班时间', '几点上班', '门店时间', '几点开始', '几点结束', '今天营业吗'],
+    keywords: ['营业', '开门', '关门', '上班', '时间'],
+    answer: '我们的服务时间为每天 9:00–21:00，周末及节假日正常营业，部分门店支持预约后延长服务。您可以直接到店，也可以在小程序预约或申请上门/邮寄，我来帮您安排~',
+    intent: 'time',
+    actions: [
+      { type: 'quick_reply', text: '我想预约维修' },
+      { type: 'quick_reply', text: '门店地址在哪？' }
+    ]
+  },
+  {
+    id: 'faq_repair_duration',
+    category: '服务时间',
+    question: '一般维修需要多长时间？',
+    must: ['多久', '时间', '时长', '几天', '个小时', '修好', '维修'],
+    phrases: ['维修需要多长时间', '一般多久修好', '修好要多久', '维修要多久', '多长时间能修好', '几天能修好', '多久能修好', '维修周期', '大概几天', '修机要多久', '要等多久'],
+    keywords: ['多久', '修好', '时长', '周期'],
+    answer: '常见故障（换屏、换电池、充电口等）一般 1–3 小时完成、当天可取；主板、进水、芯片级维修通常 1–3 个工作日；需订配件会提前告知预计时间。所有设备先免费检测，确定方案与价格后再开工，全程可在小程序查看进度。',
+    intent: 'time',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '维修费用大概是多少？' }
+    ]
+  },
+
+  // ===================== 维修类（按设备/故障） =====================
+  {
+    id: 'faq_phone_screen',
+    category: '维修',
+    question: '手机屏幕碎了怎么修？',
+    must: ['屏幕', '屏', '碎', '裂', '玻璃', '显示'],
+    phrases: ['屏幕碎', '屏幕裂', '碎屏', '外屏碎', '内屏碎', '屏幕坏了', '屏幕摔碎', '换屏幕', '屏幕碎了怎么修', '屏幕破损', '屏碎', '屏裂', '屏坏', '屏烂', '屏摔', '屏摔烂', '玻璃碎', '显示异常', '屏幕摔了', '屏幕摔烂'],
+    keywords: ['屏幕', '碎', '裂', '换屏', '屏', '烂', '摔'],
+    answer: '手机屏碎可修：先免费检测区分外屏（玻璃）或内屏（显示/触控）损坏。外屏碎裂一般 1–2 小时更换；若内屏显示异常、触控失灵则需换总成。提供原装与高品质屏可选，价格透明、修前报价。建议尽快修，避免碎玻璃划伤或进灰加重故障。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '换屏大概多少钱？' }
+    ]
+  },
+  {
+    id: 'faq_phone_battery',
+    category: '维修',
+    question: '手机电池不耐用了怎么办？',
+    must: ['电池', '续航', '电量', '耗电'],
+    phrases: ['电池不耐', '电池不耐用', '电池不行', '续航差', '续航短', '耗电快', '电量掉得快', '电池老化', '电池鼓包', '电池健康', '换电池', '电池怎么办'],
+    keywords: ['电池', '续航', '耗电', '电量'],
+    answer: '电池不耐用时可更换新电池：先免费检测电池健康度，确认衰减后更换原装或高品质电池，一般 30 分钟–1 小时完成，并做防水密封。更换后续航明显恢复且享质保。如伴随耗电异常、发热，也可能与主板电源管理有关，检测时会一并排查。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '换电池大概多少钱？' }
+    ]
+  },
+  {
+    id: 'faq_phone_water',
+    category: '维修',
+    question: '手机进水了怎么处理？',
+    must: ['进水', '水', '泡', '淋', '潮', '湿'],
+    phrases: ['进水了', '进水怎么', '掉水里', '掉水了', '泡水', '淋雨', '溅水', '受潮', '进水了怎么处理', '手机进水', '进水维修', '进液'],
+    keywords: ['进水', '泡水', '掉水', '淋雨', '受潮'],
+    answer: '手机进水请立刻：关机、拔卡、不要充电或尝试开机！尽快到店做专业清洗烘干与腐蚀处理，越早处理成功率越高。进水后切勿用吹风机热吹或用力甩。我们提供进水维修，修前会检测并报价，进水机建议优先送修而非观望。',
+    intent: 'water',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '进水应急处理' }
+    ]
+  },
+  {
+    id: 'faq_laptop_no_power',
+    category: '维修',
+    question: '笔记本无法开机怎么办？',
+    must: ['笔记本', '电脑', '开机', '黑屏', '不亮', '不通电'],
+    phrases: ['无法开机', '开不了机', '不能开机', '不开机', '黑屏不开机', '按电源没反应', '笔记本开不了', '电脑开不了', '笔记本无法开机', '电脑无法开机', '不通电'],
+    keywords: ['开机', '黑屏', '不通电', '笔记本', '电脑'],
+    answer: '笔记本无法开机先自查：插电看指示灯/充电灯是否亮、长按电源键 30 秒放电复位、外接显示器排除屏幕问题。仍不开机多为电池、电源口、主板或内存故障。建议到店免费检测，我们可修电源接口、主板、换电池等，复杂情况会先报价再修。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '维修费用大概是多少？' }
+    ]
+  },
+  {
+    id: 'faq_laptop_heat',
+    category: '维修',
+    question: '笔记本散热不好怎么解决？',
+    must: ['笔记本', '电脑', '散热', '发热', '温度', '风扇', '清灰'],
+    phrases: ['散热不好', '散热差', '发热严重', '温度过高', '风扇响', '风扇吵', '清灰', '硅脂', '掉帧', '笔记本发烫', '电脑发烫', '散热怎么解决'],
+    keywords: ['散热', '发热', '风扇', '清灰', '温度'],
+    answer: '笔记本散热差、发烫掉帧，通常是风扇积灰或硅脂干涸。可做清灰+更换硅脂+散热管维护，一般 1–2 小时完成，能明显降低温度、减少降频卡顿。如伴随异响可能是风扇轴承损坏，可一并更换。建议定期保养，尤其游戏本/老机器。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '一般维修需要多长时间？' }
+    ]
+  },
+  {
+    id: 'faq_tablet_screen',
+    category: '维修',
+    question: '平板屏幕摔碎了能修吗？',
+    must: ['平板', 'ipad', '屏', '屏幕', '碎', '裂'],
+    phrases: ['平板屏幕', '平板碎', '平板屏碎', '平板摔碎', 'ipad屏幕', 'ipad碎', '平板屏幕摔碎', '平板换屏', '平板屏裂'],
+    keywords: ['平板', '屏幕', '碎', '屏', 'ipad'],
+    answer: '平板屏碎可修：先检测外屏还是内屏（触控/显示）损坏。iPad 等外屏更换较快，内屏总成较贵、耗时略长。提供原装与高品质屏可选，修前报价。大屏设备建议尽快修，避免碎裂扩大或割伤，也可选择邮寄/上门。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '平板维修大概多少钱？' }
+    ]
+  },
+  {
+    id: 'faq_tablet_charge',
+    category: '维修',
+    question: '平板充不进电怎么办？',
+    must: ['平板', 'ipad', '充', '电', '充电'],
+    phrases: ['充不进电', '充不上电', '无法充电', '不能充电', '充电没反应', '平板充不进', 'ipad充不进', '充电慢', '电量不涨'],
+    keywords: ['充电', '充不进', '充不上', '平板'],
+    answer: '平板充不进电先排查：换线换头、清充电口灰尘、重启。仍不行多为充电口松动/损坏、电池老化或充电 IC 故障。可到店免费检测，修充电口或换电池一般当天完成。长期亏电也可能损伤电池，建议尽早处理。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '平板维修大概多少钱？' }
+    ]
+  },
+  {
+    id: 'faq_camera_lens',
+    category: '维修',
+    question: '相机镜头故障能修吗？',
+    must: ['相机', '镜头', '镜'],
+    phrases: ['镜头故障', '镜头坏', '镜头卡', '镜头伸不出', '镜头异响', '镜头模糊', '镜头不能伸缩', '相机镜头', '镜头维修', '镜头不收'],
+    keywords: ['镜头', '相机', '镜'],
+    answer: '相机镜头故障（如无法伸缩、异响、模糊、卡死）可修：先检测是镜组、马达还是卡口问题。支持变焦/定焦镜头维修、CMOS 清洁、卡口校正等。部分严重损坏需评估，价格依镜头型号与损坏程度而定，修前会报价，专业设备建议交由专人处理。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '相机维修大概多少钱？' }
+    ]
+  },
+  {
+    id: 'faq_camera_focus',
+    category: '维修',
+    question: '相机无法对焦怎么办？',
+    must: ['相机', '对焦', '聚焦', '模糊'],
+    phrases: ['无法对焦', '对不上焦', '对焦慢', '对焦失败', '拍照模糊', '相机模糊', '聚焦不了', '相机无法对焦', '对焦不准'],
+    keywords: ['对焦', '聚焦', '模糊', '相机'],
+    answer: '相机无法对焦先排查：擦净镜头、切换对焦模式/单点对焦、更新固件、摘掉遮光罩。仍不行多为对焦马达、传感器或主板问题。可到店检测，维修涵盖对焦模块、快门、防抖等，修前报价。专业器材建议避免自行拆修。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '相机镜头故障能修吗？' }
+    ]
+  },
+  {
+    id: 'faq_drone_crash',
+    category: '维修',
+    question: '无人机炸机了怎么修？',
+    must: ['无人机', '炸机', '坠', '摔', '撞', '云台', '桨'],
+    phrases: ['炸机', '坠机', '摔了', '撞了', '无人机坏', '无人机摔', '云台坏', '桨叶坏', '无人机炸机', '飞丢', '炸机了怎么修'],
+    keywords: ['炸机', '无人机', '坠机', '云台', '桨'],
+    answer: '无人机炸机（坠机）可修：先评估机臂、云台、桨叶、飞控主板与图传损坏情况。我们提供云台校准/更换、电机与桨叶更换、飞控主板维修、图传修复等。炸机后请勿强行起飞，到店做全面检测与报价，严重损伤会说明可用性。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '无人机图传信号差能修吗？' }
+    ]
+  },
+  {
+    id: 'faq_drone_video',
+    category: '维修',
+    question: '无人机图传信号差能修吗？',
+    must: ['无人机', '图传', '信号', '天线'],
+    phrases: ['图传差', '图传信号', '图传不好', '图传断', '信号差', '无人机信号', '图传信号差', '图传距离短', '天线坏'],
+    keywords: ['图传', '信号', '无人机', '天线'],
+    answer: '无人机图传信号差先排查：远离干扰源、更新固件、重校准天线、检查天线与排线。仍差多为图传模块、天线或主板问题。可到店检测维修图传模块/天线，修前报价。飞行前建议校准指南针与图传，避免远距离遮挡。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '无人机炸机了怎么修？' }
+    ]
+  },
+  {
+    id: 'faq_earphone_charge',
+    category: '维修',
+    question: '耳机充不上电怎么办？',
+    must: ['耳机', '充电', '充', '电', '盒'],
+    phrases: ['充不上电', '充不进电', '无法充电', '不能充电', '充电没反应', '耳机充', '充电盒坏', '耳机充不上', '耳机不充电'],
+    keywords: ['充电', '充不上', '充不进', '耳机', '盒'],
+    answer: '耳机充不上电先排查：清充电触点、换线换充电盒、重置耳机。仍不行多为电池老化、充电盒电路或触点损坏。支持单耳/双耳电池更换、充电盒维修、蓝牙模块维修，一般当天完成，修前报价。长期放置亏电易损电池，建议定期充电。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '耳机一只不响了能修吗？' }
+    ]
+  },
+  {
+    id: 'faq_earphone_one_side',
+    category: '维修',
+    question: '耳机一只不响了能修吗？',
+    must: ['耳机', '响', '声', '音', '单边', '一只'],
+    phrases: ['一只不响', '一边没声', '单边无声', '左耳不响', '右耳不响', '一只没声音', '耳机一只', '一边不响', '单耳无声', '耳机没声音'],
+    keywords: ['不响', '无声', '单边', '耳机', '一只'],
+    answer: '耳机一只不响先排查：清出声孔、换耳套、重置、单耳重新配对。仍无声多为扬声器单元、排线或主板问题。支持音频单元更换、蓝牙模块维修、左右耳电池更换等，修前报价。入耳/头戴均可修，建议避免液体进入。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '耳机充不上电怎么办？' }
+    ]
+  },
+  {
+    id: 'faq_watch_screen',
+    category: '维修',
+    question: '智能手表屏幕能换吗？',
+    must: ['手表', 'watch', '屏', '屏幕', '碎', '裂'],
+    phrases: ['手表屏幕', '手表屏', '手表碎', '手表换屏', '屏幕能换', '手表屏碎', '手表屏幕碎', '手表屏裂', '表屏', '智能手表屏幕'],
+    keywords: ['手表', '屏幕', '换屏', '碎', '屏'],
+    answer: '智能手表屏幕可换：先检测外屏还是内屏（触控/显示）损坏，更换后做防水密封与气密测试。支持 Apple Watch、华为、三星等主流手表换屏与换电池。一般 1–2 小时完成，修前报价，换屏后建议做防水复检。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '手表电池能换吗？' }
+    ]
+  },
+  {
+    id: 'faq_gamepad_drift',
+    category: '维修',
+    question: '游戏机手柄漂移能修吗？',
+    must: ['手柄', '摇杆', '漂移', '游戏机', 'ps', 'xbox', 'switch'],
+    phrases: ['手柄漂移', '摇杆漂移', '漂移能修', '手柄飘', '摇杆飘', 'ps手柄', 'xbox手柄', 'switch手柄', '游戏机手柄', '手柄失灵'],
+    keywords: ['手柄', '漂移', '摇杆', '游戏机'],
+    answer: '游戏机手柄摇杆漂移可修：多为摇杆电位器磨损或进灰，可做漂移校正、摇杆模块更换或整机手柄维修，一般当天完成，修前报价。PS/Xbox/Switch 手柄均支持。如主机 HDMI 无输出、光驱异常也可一并检测维修。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '游戏机其他故障能修吗？' }
+    ]
+  },
+  {
+    id: 'faq_monitor_flowers',
+    category: '维修',
+    question: '显示器花屏是什么原因？',
+    must: ['显示器', '屏幕', '花屏', '屏', '显示'],
+    phrases: ['花屏', '显示器花屏', '屏幕花', '竖线', '横线', '彩条', '显示器坏', '显示异常', '显示器花', '屏花'],
+    keywords: ['花屏', '显示器', '屏幕', '显示'],
+    answer: '显示器花屏多为屏线、驱动板、电源板或面板问题：先排查信号线/显卡，仍花屏则可能是显示器硬件。可修屏幕面板、背光、驱动板、电源板与接口，依型号报价，修前检测。大屏/4K/OLED 面板更换成本较高，会先说明是否值得修。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '显示器维修大概多少钱？' }
+    ]
+  },
+  {
+    id: 'faq_pc_no_power',
+    category: '维修',
+    question: '台式机不开机怎么排查？',
+    must: ['台式', '电脑', '开机', '黑屏', '不通电', '主机'],
+    phrases: ['台式机', '台式不开机', '主机不开机', '电脑不开机', '台式机开不了', '主机没反应', '台式机无法开机', '电脑无法开机', '不通电'],
+    keywords: ['台式', '开机', '黑屏', '不通电', '主机'],
+    answer: '台式机不开机先排查：查电源线/插座、清 CMOS、重插内存与显卡、听报警音。仍不开机多为电源、主板、内存或 CPU 故障。可到店免费检测，修电源、主板、显卡、清灰保养等，复杂情况先报价再修。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '台式机维修大概多少钱？' }
+    ]
+  },
+  {
+    id: 'faq_printer_jam',
+    category: '维修',
+    question: '打印机卡纸能修吗？',
+    must: ['打印机', '卡纸', '走纸', '打印'],
+    phrases: ['卡纸', '打印机卡纸', '反复卡纸', '走纸', '打印机坏', '打印模糊', '打印机不打印', '喷头堵', '打印机卡'],
+    keywords: ['卡纸', '打印机', '走纸', '打印'],
+    answer: '打印机卡纸可修：先按指引取出卡纸、清搓纸轮与传感器。反复卡纸多为搓纸轮老化、走纸通道异物或传感器故障。支持喷头清洗/更换、走纸维修、主板维修，修前报价。喷墨机长期不用易堵头，建议定期开机打印。',
+    intent: 'repair',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '打印机维修大概多少钱？' }
+    ]
+  },
+  {
+    id: 'faq_data_recovery',
+    category: '维修',
+    question: '数据能恢复吗？',
+    must: ['数据', '恢复', '资料', '照片', '文件', '聊天记录', '格式化', '误删'],
+    phrases: ['数据恢复', '数据丢失', '恢复数据', '误删', '格式化', '找回数据', '找回照片', '找回文件', '照片丢失', '文件丢失', '聊天记录丢失', '恢复照片', '恢复文件', '硬盘数据', 'u盘数据', 'sd卡数据', '数据能恢复'],
+    keywords: ['数据', '恢复', '资料', '照片', '文件'],
+    answer: '数据可以恢复：支持手机/电脑/硬盘/U盘/SD卡 的照片、文件、聊天记录等恢复。先免费检测判断可恢复性，依数据量与难度报价，恢复成功再付费。重要数据建议提前备份；进水/摔损设备请先关机，避免二次写入覆盖。',
+    intent: 'data_recovery',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '数据会丢吗？' }
+    ]
+  },
+
+  // ===================== 价格 / 保修 / 服务方式 =====================
+  {
+    id: 'faq_repair_price',
+    category: '价格',
+    question: '维修费用大概是多少？',
+    must: ['费用', '价格', '多少钱', '收费', '报价', '价位', '贵'],
+    phrases: ['维修费用', '维修价格', '维修多少钱', '维修收费', '大概多少钱', '维修报价', '修一下多少钱', '收费怎么算', '维修贵吗', '费用大概', '维修费'],
+    keywords: ['费用', '价格', '多少钱', '收费', '报价'],
+    answer: '维修费用依设备类型与故障而定：手机换屏约 200–2500 元、换电池 80–400 元；笔记本屏幕 400–4000 元、主板 500–5000 元；平板、手表、耳机、相机、无人机等均有参考区间。所有设备先免费检测，修前给准确报价，价格透明、无隐形收费。',
+    intent: 'pricing',
+    actions: [
+      { type: 'quick_reply', text: '免费检测' },
+      { type: 'quick_reply', text: '我想预约维修' }
+    ]
+  },
+  {
+    id: 'faq_free_check',
+    category: '服务方式',
+    question: '免费检测是什么意思？',
+    must: ['免费', '检测', '检查', '验机', '诊断', '测'],
+    phrases: ['免费检测', '免费检查', '免费验机', '免费诊断', '检测免费', '检查免费', '免费测', '免费帮看', '免费看', '检测一下', '帮我检测', '检测要钱', '检测收费', '检测费', '检测多少钱', '要不要检测费', '检测收钱', '免费检测吗', '检测免费吗', '上门检测', '到店检测'],
+    keywords: ['免费', '检测', '检查', '验机', '诊断'],
+    answer: '我们提供免费检测：您把设备（手机/电脑/平板/相机/手表等）交给我们后，先由工程师做外观、功能与故障点检测，给出准确的故障判断与维修报价，整个过程不收取任何检测费。确定方案并确认价格后再开工，您可随时选择是否维修，检测不强制消费。您可以直接点下方「预约维修」，或申请上门/邮寄，我来帮您安排~',
+    intent: 'free_check',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '维修费用大概是多少？' }
+    ]
+  },
+  {
+    id: 'faq_warranty',
+    category: '保修',
+    question: '维修有保修吗？',
+    must: ['保修', '质保', '保', '返修', '三包'],
+    phrases: ['维修有保修', '有保修吗', '质保多久', '保修期', '保修政策', '修完保', '保修吗', '质保', '返修', '三包', '保多久'],
+    keywords: ['保修', '质保', '返修', '保'],
+    answer: '维修享质保：普通维修 90 天质保，主板/芯片级维修 180 天质保，配件均享对应保修，质保期内同一故障免费返修。维修后会出具凭证，您可在小程序查看维修记录。非人为损坏的复发问题直接联系我们返修。',
+    intent: 'warranty',
+    actions: [
+      { type: 'quick_reply', text: '保修政策详情' },
+      { type: 'quick_reply', text: '返修怎么处理？' }
+    ]
+  },
+  {
+    id: 'faq_home_pickup',
+    category: '服务方式',
+    question: '支持上门取件吗？',
+    must: ['上门', '取件', '到家', '上门取'],
+    phrases: ['上门取件', '上门服务', '上门维修', '到家', '能上门吗', '支持上门', '上门取', '上门收', '上门检测'],
+    keywords: ['上门', '取件', '到家'],
+    answer: '支持上门取件/上门服务：您在小程序提交设备与故障，我们安排上门取件或上门检测（部分城市/区域），修前报价、确认后再修，修好送回。具体覆盖范围与时段以您所在城市为准，我可以帮您登记并安排~',
+    intent: 'address',
+    actions: [
+      { type: 'quick_reply', text: '预约上门取件' },
+      { type: 'quick_reply', text: '支持邮寄维修吗？' }
+    ]
+  },
+  {
+    id: 'faq_mail_repair',
+    category: '服务方式',
+    question: '支持邮寄维修吗？',
+    must: ['邮寄', '寄', '快递', '邮', '寄修'],
+    phrases: ['邮寄维修', '寄修', '可以寄修', '怎么寄', '寄到哪', '邮寄', '快递修', '支持邮寄', '寄修流程', '邮寄地址'],
+    keywords: ['邮寄', '寄', '快递', '寄修'],
+    answer: '支持邮寄维修：在小程序提交设备信息后，我们会提供邮寄地址与打包注意事项，您寄出后可在小程序跟踪进度，修前报价、确认后开工，修好寄回。邮寄建议做好缓冲包装、保留运单，贵重设备建议保价。',
+    intent: 'delivery',
+    actions: [
+      { type: 'quick_reply', text: '寄修流程' },
+      { type: 'quick_reply', text: '支持上门取件吗？' }
+    ]
+  },
+  {
+    id: 'faq_repair_flow',
+    category: '服务方式',
+    question: '维修流程是什么？怎么下单？',
+    must: ['流程', '下单', '怎么修', '步骤', '预约', '怎么预约'],
+    phrases: ['维修流程', '怎么下单', '如何下单', '怎么维修', '维修步骤', '怎么预约', '如何预约', '下单流程', '维修怎么操作', '怎么提交订单', '预约维修'],
+    keywords: ['流程', '下单', '预约', '步骤'],
+    answer: '维修很简单：① 在小程序选择设备或描述故障；② 免费检测并出方案报价；③ 确认后维修；④ 验收取机/寄回。您也可以点下方「预约维修」直接下单，或选上门/邮寄。全程进度可在「我的订单」查看。',
+    intent: 'appointment',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'quick_reply', text: '一般维修需要多长时间？' }
+    ]
+  },
+
+  // ===================== 回收类 =====================
+  {
+    id: 'faq_recycle_phone_price',
+    category: '回收',
+    question: '旧手机能回收多少钱？',
+    must: ['回收', '旧', '手机', '卖', '值', '折价', '换新'],
+    phrases: ['旧手机回收', '手机回收', '手机能卖', '手机值多少', '旧手机能回收', '手机回收价', '旧机回收', '手机折价', '回收手机', '旧手机多少钱'],
+    keywords: ['回收', '手机', '卖', '值', '折价'],
+    answer: '旧手机回收价看品牌、型号、成色与维修史：近新品约原价 60%–85%，良好 40%–60%，一般 25%–40%，较差/有故障 10%–25%。具体以专业检测为准。您可在回收页提交机型与成色，免费获取准确估价，不产生费用。',
+    intent: 'recycle_price',
+    actions: [
+      { type: 'button', text: '提交回收评估', action: 'submit_recycle' },
+      { type: 'quick_reply', text: '怎么看设备成色？' }
+    ]
+  },
+  {
+    id: 'faq_recycle_laptop',
+    category: '回收',
+    question: '笔记本电脑回收怎么估价？',
+    must: ['回收', '笔记本', '电脑', '估价', '评估', '卖', '值'],
+    phrases: ['笔记本回收', '电脑回收', '笔记本估价', '笔记本怎么估价', '笔记本能卖', '电脑能卖', '笔记本回收怎么估价', '笔记本值多少', '回收笔记本'],
+    keywords: ['回收', '笔记本', '电脑', '估价', '卖'],
+    answer: '笔记本回收按品牌、配置、成色与年限估价：近新 50%–75%、良好 35%–50%、一般 20%–35%、较差 5%–20%。独显/高配更值钱，维修史与电池健康会影响价格。在回收页提交信息即可免费估价，检测后给最终报价。',
+    intent: 'recycle',
+    actions: [
+      { type: 'button', text: '提交回收评估', action: 'submit_recycle' },
+      { type: 'quick_reply', text: '怎么看设备成色？' }
+    ]
+  },
+  {
+    id: 'faq_recycle_condition',
+    category: '回收',
+    question: '怎么看设备成色？',
+    must: ['成色', '看成色', '新旧', '几成', '品相'],
+    phrases: ['怎么看成色', '看成色', '成色怎么看', '几成新', '怎么判断成色', '设备成色', '成色标准', '新旧程度'],
+    keywords: ['成色', '几成', '品相', '新旧'],
+    answer: '看成色主要看：外观（划痕、磕碰、掉漆）、功能（能否正常开机/触控/通话）、屏幕（有无亮点坏线）、维修史（是否拆修/进水）、配件与箱说。成色越好回收价越高。您在回收页提交时描述这些情况，我们会据此估价。',
+    intent: 'recycle',
+    actions: [
+      { type: 'button', text: '提交回收评估', action: 'submit_recycle' },
+      { type: 'quick_reply', text: '旧手机能回收多少钱？' }
+    ]
+  },
+  {
+    id: 'faq_recycle_trade_in',
+    category: '回收',
+    question: '以旧换新怎么操作？',
+    must: ['以旧换新', '换新', '抵扣', '折抵', '旧换'],
+    phrases: ['以旧换新', '换新怎么', '旧机换新', '抵扣', '折抵', '旧换新', '以旧换新怎么操作', '旧机抵', '换新品'],
+    keywords: ['以旧换新', '换新', '抵扣', '折抵'],
+    answer: '支持以旧换新：把旧设备估价抵扣新机款，差额补付即可。流程：提交旧机信息免费估价 → 确认抵扣金额 → 选新机补差价 → 安排交付/回收旧机。部分品牌机型有换新活动，详情可在回收页或咨询我~',
+    intent: 'recycle',
+    actions: [
+      { type: 'button', text: '提交回收评估', action: 'submit_recycle' },
+      { type: 'quick_reply', text: '旧手机能回收多少钱？' }
+    ]
+  },
+  {
+    id: 'faq_recycle_tablet_price',
+    category: '回收',
+    question: '平板回收价格是多少？',
+    must: ['回收', '平板', 'ipad', '卖', '值', '折价'],
+    phrases: ['平板回收', '平板能卖', '平板值多少', 'ipad回收', '平板回收价', '平板折价', '回收平板', '旧平板多少钱'],
+    keywords: ['回收', '平板', 'ipad', '卖', '值'],
+    answer: '平板回收价看品牌型号与成色：近新 55%–75%、良好 35%–55%、一般 20%–35%、较差 8%–20%（屏幕破损或硬件故障更低）。iPad 等保值较好。在回收页提交型号与成色可免费获取准确估价。',
+    intent: 'recycle_price',
+    actions: [
+      { type: 'button', text: '提交回收评估', action: 'submit_recycle' },
+      { type: 'quick_reply', text: '怎么看设备成色？' }
+    ]
+  },
+  {
+    id: 'faq_recycle_camera',
+    category: '回收',
+    question: '相机能折价回收吗？',
+    must: ['回收', '相机', '折价', '卖', '值', '镜头'],
+    phrases: ['相机回收', '相机折价', '相机能卖', '相机值多少', '镜头回收', '回收相机', '相机回收价', '旧相机多少钱', '微单回收'],
+    keywords: ['回收', '相机', '折价', '卖', '镜头'],
+    answer: '相机可折价回收：按品牌（佳能/尼康/索尼等）、型号、快门数、成色与镜头状况估价，近新 50%–70%、良好 35%–50%、一般 20%–35%、较差 8%–20%。机身与镜头可分别估价。在回收页提交信息免费估价，专业人员核算。',
+    intent: 'recycle',
+    actions: [
+      { type: 'button', text: '提交回收评估', action: 'submit_recycle' },
+      { type: 'quick_reply', text: '怎么看设备成色？' }
+    ]
+  },
+  {
+    id: 'faq_recycle_drone',
+    category: '回收',
+    question: '无人机回收估价流程？',
+    must: ['回收', '无人机', '估价', '评估', '卖', '值'],
+    phrases: ['无人机回收', '无人机估价', '无人机能卖', '无人机值多少', '回收无人机', '无人机回收估价', '大疆回收', '旧无人机多少钱'],
+    keywords: ['回收', '无人机', '估价', '卖', '值'],
+    answer: '无人机可回收估价：看品牌型号、飞行时长、磕碰与电池循环。近新 45%–65%、良好 25%–45%、一般 10%–25%、较差 3%–15%（需维修才能用更低）。大疆等主流机型更保值。回收页提交信息可免费估价。',
+    intent: 'recycle',
+    actions: [
+      { type: 'button', text: '提交回收评估', action: 'submit_recycle' },
+      { type: 'quick_reply', text: '怎么看设备成色？' }
+    ]
+  },
+  {
+    id: 'faq_recycle_data_safe',
+    category: '回收',
+    question: '回收后数据会泄露吗？',
+    must: ['回收', '数据', '隐私', '泄露', '安全', '清除'],
+    phrases: ['回收数据', '数据泄露', '数据安全', '隐私', '数据会丢', '数据清除', '回收后数据', '数据保密', '信息泄露'],
+    keywords: ['回收', '数据', '隐私', '泄露', '安全'],
+    answer: '回收前请务必退出账号、恢复出厂并清空数据；我们收机后会做数据清除与隐私保护处理，全程不触碰您的个人信息。若设备无法开机，也会按数据保护流程处理。您可放心，回收不泄露数据。',
+    intent: 'recycle',
+    actions: [
+      { type: 'button', text: '提交回收评估', action: 'submit_recycle' },
+      { type: 'quick_reply', text: '数据能恢复吗？' }
+    ]
+  },
+  {
+    id: 'faq_recycle_home_pickup',
+    category: '回收',
+    question: '回收支持上门取件吗？',
+    must: ['回收', '上门', '取件', '到家'],
+    phrases: ['回收上门', '回收取件', '上门回收', '上门取件回收', '回收能上门', '回收上门取件', '回收到家'],
+    keywords: ['回收', '上门', '取件'],
+    answer: '回收同样支持上门取件：在小程序回收页提交设备信息完成估价后，可预约上门取件/交接，检测确认价格后成交、当场结算。具体覆盖城市与时段以您所在地为准，我来帮您安排~',
+    intent: 'recycle',
+    actions: [
+      { type: 'button', text: '提交回收评估', action: 'submit_recycle' },
+      { type: 'quick_reply', text: '支持上门取件吗？' }
+    ]
+  },
+  {
+    id: 'faq_recycle_watch_price',
+    category: '回收',
+    question: '手表回收价格怎么判断？',
+    must: ['回收', '手表', 'watch', '卖', '值', '折价'],
+    phrases: ['手表回收', '手表能卖', '手表值多少', '手表回收价', '手表折价', '回收手表', '旧手表多少钱', '智能手表回收'],
+    keywords: ['回收', '手表', '卖', '值', '折价'],
+    answer: '手表回收价看品牌型号与成色：Apple Watch 等近新 50%–70%、良好 30%–50%、一般 15%–30%、较差 5%–15%（屏幕破损/功能异常更低）。表带原装、功能正常更值钱。回收页提交信息可免费估价。',
+    intent: 'recycle_price',
+    actions: [
+      { type: 'button', text: '提交回收评估', action: 'submit_recycle' },
+      { type: 'quick_reply', text: '怎么看设备成色？' }
+    ]
+  },
+
+  // ===================== 通用专业 FAQ =====================
+  {
+    id: 'faq_contact',
+    category: '联系',
+    question: '客服电话是多少？怎么联系？',
+    must: ['电话', '联系', '微信', '找', '客服'],
+    phrases: ['客服电话', '联系电话', '联系方式', '怎么联系', '电话多少', '怎么找你们', '联系你们', '客服怎么联系', '微信多少', '怎么联系客服'],
+    keywords: ['电话', '联系', '微信', '客服'],
+    answer: '您可以直接在小程序里和我（修小宝）对话咨询，绝大多数问题我都能帮您处理~ 如需人工，说一句「转人工」我就会为您接入；也可到店或预约上门。把具体需求告诉我（订单号/设备/故障/城市），我立刻帮您分流处理。',
+    intent: 'contact',
+    actions: [
+      { type: 'quick_reply', text: '营业时间是什么时候？' },
+      { type: 'quick_reply', text: '转人工客服' }
+    ]
+  },
+  {
+    id: 'faq_address',
+    category: '联系',
+    question: '门店地址在哪？',
+    must: ['地址', '门店', '店', '位置', '在哪', '怎么去'],
+    phrases: ['门店地址', '地址在哪', '店址', '在哪里', '位置', '怎么去', '门店在哪', '服务点', '门店位置', '附近门店'],
+    keywords: ['地址', '门店', '位置', '在哪'],
+    answer: '我们支持到店、上门与邮寄多种方式。具体门店地址与交通指引可在小程序「我的-门店」查看，或告诉我您所在的城市，我帮您匹配最近的服务点并发送地址。到店前建议先在小程序预约，减少等待。',
+    intent: 'address',
+    actions: [
+      { type: 'quick_reply', text: '查看门店地址' },
+      { type: 'quick_reply', text: '预约上门取件' }
+    ]
+  },
+  {
+    id: 'faq_device_scope',
+    category: '业务范围',
+    question: '你们支持哪些设备？',
+    must: ['哪些', '什么设备', '支持', '修', '收', '范围', '品类'],
+    phrases: ['支持哪些设备', '哪些设备', '什么能修', '能修什么', '修什么', '收什么', '业务范围', '什么设备', '哪些能修', '支持修'],
+    keywords: ['哪些', '支持', '设备', '范围'],
+    answer: '我们维修/回收各类电子设备：手机、平板、笔记本/台式机、智能手表/手环、耳机、相机/镜头、无人机、游戏机、显示器、打印机，以及路由器、智能音箱、扫地机器人等智能家居与小家电。不确定能否修，直接告诉我设备与故障即可~',
+    intent: 'product',
+    actions: [
+      { type: 'button', text: '预约维修', action: 'book_repair' },
+      { type: 'button', text: '提交回收申请', action: 'submit_recycle' }
+    ]
+  },
+  {
+    id: 'faq_warranty_detail',
+    category: '保修',
+    question: '保修政策详情',
+    must: ['保修', '质保', '政策', '返修', '保'],
+    phrases: ['保修政策', '质保政策', '保修详情', '保修政策详情', '保修范围', '返修流程', '质保详情', '保修说明'],
+    keywords: ['保修', '质保', '政策', '返修'],
+    answer: '质保政策：普通维修 90 天、主板/芯片级 180 天质保，配件享对应保修；质保期内同一非人为故障免费返修。维修出具凭证，记录可在小程序查看。进水/人为损坏不在保内，但可付费维修，详情可发我订单号帮您查。',
+    intent: 'warranty',
+    actions: [
+      { type: 'quick_reply', text: '返修怎么处理？' },
+      { type: 'quick_reply', text: '维修有保修吗？' }
+    ]
+  },
+  {
+    id: 'faq_progress',
+    category: '进度',
+    question: '我的订单现在处理到哪一步了？',
+    must: ['订单', '进度', '状态', '到哪', '好了', '完成', '维修到'],
+    phrases: ['订单进度', '我的订单', '处理到哪', '维修到哪', '订单状态', '到哪一步', '修到哪', '订单现在', '查进度', '进度查询', '好了吗'],
+    keywords: ['订单', '进度', '状态', '到哪'],
+    answer: '查订单进度很简单：把订单号发我，或到「我的订单」查看实时状态。维修通常经历 待检测→报价中→维修中→待取/已发货→已完成。您也可以直接说「查我的订单」，我帮您核对当前阶段~',
+    intent: 'progress',
+    actions: [
+      { type: 'quick_reply', text: '我想查询订单进度' },
+      { type: 'quick_reply', text: '我的订单现在到哪一步了？' }
+    ]
+  },
+  {
+    id: 'faq_invoice',
+    category: '支付',
+    question: '可以开发票吗？',
+    must: ['发票', '开票', '抬头', '税号'],
+    phrases: ['开发票', '可以开票', '发票', '电子发票', '纸质发票', '开票', '报销', '发票怎么开', '能开发票'],
+    keywords: ['发票', '开票', '抬头'],
+    answer: '维修/回收均可开具发票：维修完成付款后，可在订单详情申请电子发票或纸质发票；企业用户支持抬头与税号。如需开票，把订单号与抬头发我，我帮您登记处理~',
+    intent: 'payment',
+    actions: [
+      { type: 'quick_reply', text: '订单怎么付款？' },
+      { type: 'quick_reply', text: '退款流程是什么？' }
+    ]
+  }
+];
+
+function normalize(text) {
+  return (text || '').toLowerCase().trim();
+}
+
+/**
+ * 计算单条 FAQ 与用户消息的匹配得分
+ */
+function scoreEntry(message, entry) {
+  const m = normalize(message);
+
+  // 门槛：必须包含 must 中至少一个词，否则不计分（防误命中）
+  if (entry.must && entry.must.length) {
+    const pass = entry.must.some(k => m.includes(k.toLowerCase()));
+    if (!pass) return 0;
+  }
+
+  let score = 0;
+
+  // 标准问法近似匹配（高权重）
+  if (entry.question) {
+    const q = normalize(entry.question);
+    if (m === q || m.includes(q) || q.includes(m)) {
+      score += 12;
+    }
+  }
+
+  // 短语匹配（长短语权重更高，覆盖提问多样性）
+  (entry.phrases || []).forEach(p => {
+    const pl = p.toLowerCase();
+    if (m.includes(pl)) {
+      score += 5 + Math.min(pl.length, 10);
+    }
+  });
+
+  // 关键词匹配（兜底加分）
+  (entry.keywords || []).forEach(k => {
+    const kl = k.toLowerCase();
+    if (m.includes(kl)) {
+      score += 3;
+    }
+  });
+
+  return score;
+}
+
+/**
+ * 匹配 FAQ
+ * @param {string} message 用户消息
+ * @param {number} threshold 命中阈值（默认 7）
+ * @returns {{matched:boolean, entry:object|null, score:number}}
+ */
+function matchFAQ(message, threshold = 7) {
+  let best = null;
+  let bestScore = 0;
+
+  for (const entry of FAQ_ENTRIES) {
+    const s = scoreEntry(message, entry);
+    if (s > bestScore) {
+      bestScore = s;
+      best = entry;
+    }
+  }
+
+  if (best && bestScore >= threshold) {
+    return { matched: true, entry: best, score: bestScore };
+  }
+  return { matched: false, entry: null, score: bestScore };
+}
+
+class FaqAgent {
+  /**
+   * 若命中常见问题，返回标准回复；否则返回 null（交由原流程/大模型处理）
+   */
+  buildReply(message) {
+    const { matched, entry } = matchFAQ(message);
+    if (!matched || !entry) return null;
+
+    return {
+      reply: entry.answer,
+      intent: entry.intent || 'faq',
+      suggestedActions: entry.actions || [],
+      confidence: Math.min(0.7 + entry.answer.length / 600, 0.98),
+      node: 'faq'
+    };
+  }
+
+  match(message) {
+    return matchFAQ(message);
+  }
+
+  get entries() {
+    return FAQ_ENTRIES;
+  }
+}
+
+module.exports = {
+  FAQ_ENTRIES,
+  matchFAQ,
+  scoreEntry,
+  FaqAgent,
+  faqAgent: new FaqAgent()
+};

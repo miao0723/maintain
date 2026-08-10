@@ -1,0 +1,872 @@
+<!--pages/repair/repair.wxml-->
+<view class="page-container">
+  <!-- 顶部Tab切换 -->
+  <view class="top-tabs">
+    <view class="tab-item {{currentTab === 'repair' ? 'active' : ''}}" bindtap="switchTab" data-tab="repair">
+      <text class="tab-text">维修服务</text>
+    </view>
+    <view class="tab-item {{currentTab === 'recycle' ? 'active' : ''}}" bindtap="switchTab" data-tab="recycle">
+      <text class="tab-text">物品回收</text>
+    </view>
+  </view>
+
+  <!-- 维修服务内容 -->
+  <view class="tab-content" wx:if="{{currentTab === 'repair'}}">
+    <view class="repair-wizard">
+      <view class="repair-hero">
+        <view class="repair-hero-copy">
+          <text class="repair-hero-eyebrow">维修服务向导</text>
+          <text class="repair-hero-title">按 5 步提交维修需求</text>
+          <text class="repair-hero-desc">不知道型号也可以先填。</text>
+        </view>
+        <view class="repair-hero-badge">{{repairStepDisplayIndex}} / {{repairSteps.length}}</view>
+      </view>
+
+      <view class="repair-progress-card">
+        <view class="repair-progress-head">
+          <text class="repair-progress-title">{{currentRepairStep.title}}</text>
+          <text class="repair-progress-percent">{{repairStepPercent}}</text>
+        </view>
+        <text class="repair-progress-hint">{{currentRepairStep.hint}}</text>
+        <view class="repair-progress-track">
+          <view class="repair-progress-bar" style="width: {{repairStepPercent}};"></view>
+        </view>
+        <scroll-view class="repair-step-strip" scroll-x enhanced show-scrollbar="{{false}}">
+          <view class="repair-step-list">
+            <view class="repair-step-chip {{repairStepIndex === item.id ? 'active' : ''}} {{repairStepIndex > item.id ? 'done' : ''}}" wx:for="{{repairSteps}}" wx:key="id" bindtap="jumpToRepairStep" data-step="{{item.id}}">
+              <text class="repair-step-chip-index">{{item.stepNo}}</text>
+              <text class="repair-step-chip-text">{{item.title}}</text>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+
+      <view class="repair-overview wizard-summary" wx:if="{{selectedDevice || isCustomDevice}}">
+        <view class="overview-header">
+          <view>
+            <text class="overview-title">当前维修摘要</text>
+            <text class="overview-subtitle">信息会随着步骤补充实时更新</text>
+          </view>
+          <view class="overview-state {{canSubmit ? 'ready' : 'editing'}}">{{canSubmit ? '可提交' : '进行中'}}</view>
+        </view>
+        <view class="overview-tags">
+          <view class="overview-tag">{{deviceTypeDisplay || '未选设备'}}</view>
+          <view class="overview-tag" wx:if="{{brandDisplay}}">{{brandDisplay}}</view>
+          <view class="overview-tag" wx:if="{{modelDisplay}}">{{modelDisplay}}</view>
+          <view class="overview-tag accent" wx:if="{{problemDisplay}}">{{problemDisplay}}</view>
+        </view>
+      </view>
+
+      <view class="wizard-stage" wx:if="{{repairStepIndex === 0}}">
+        <view class="wizard-stage-header">
+          <text class="wizard-stage-title">先告诉我，您要维修什么设备？</text>
+        </view>
+
+        <view class="section">
+          <view class="device-grid">
+            <view class="device-item {{selectedDevice && selectedDevice.id === item.id ? 'active' : ''}}" wx:for="{{deviceTypes}}" wx:key="id" bindtap="selectDevice" data-id="{{item.id}}">
+              <image wx:if="{{item.imageUrl}}" class="device-icon" src="{{item.imageUrl}}" mode="aspectFit" binderror="onDeviceImgError" data-index="{{index}}"></image>
+              <view wx:else class="device-icon-text">{{item.icon}}</view>
+              <text class="device-name">{{item.name}}</text>
+            </view>
+            <view class="device-item {{isCustomDevice ? 'active custom' : 'custom'}}" bindtap="selectCustomDevice">
+              <image wx:if="{{customIconUrl}}" class="device-icon" src="{{customIconUrl}}" mode="aspectFit" binderror="onCustomImgError"></image>
+              <view wx:else class="device-icon-text">✏️</view>
+              <text class="device-name">自定义</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="section custom-input-section" wx:if="{{isCustomDevice}}">
+          <view class="custom-header">
+            <view class="custom-badge">
+              <text class="custom-badge-icon">✏️</text>
+              <text class="custom-badge-text">自定义设备</text>
+            </view>
+            <text class="input-required {{customDeviceType ? 'filled' : ''}}">{{customDeviceType ? '✓ 已填写' : '必填'}}</text>
+          </view>
+          <view class="input-wrapper {{customDeviceType ? 'has-value' : ''}}">
+            <text class="input-prefix">设备类型：</text>
+            <input class="custom-input-field" placeholder="例如：无人机、投影仪等" value="{{customDeviceType}}" bindinput="onCustomDeviceInput" maxlength="20"/>
+          </view>
+        </view>
+      </view>
+
+      <view class="wizard-stage" wx:if="{{repairStepIndex === 1}}">
+        <view class="wizard-stage-header">
+          <text class="wizard-stage-title">接下来补充品牌和型号</text>
+        </view>
+
+        <view class="section custom-input-section" wx:if="{{isCustomDevice}}">
+          <view class="custom-header">
+            <view class="custom-badge">
+              <text class="custom-badge-icon">✏️</text>
+              <text class="custom-badge-text">品牌名称</text>
+            </view>
+            <text class="input-required {{customBrand ? 'filled' : ''}}">{{customBrand ? '已填写' : '选填'}}</text>
+          </view>
+          <view class="input-wrapper {{customBrand ? 'has-value' : ''}}">
+            <text class="input-prefix">品牌：</text>
+            <input class="custom-input-field" placeholder="例如：大疆、索尼、极米等" value="{{customBrand}}" bindinput="onCustomBrandInput" maxlength="20"/>
+          </view>
+        </view>
+
+        <view class="section" wx:if="{{selectedDevice && !isCustomDevice && currentBrands.length > 0}}">
+          <view class="section-header">
+            <view class="section-title">设备品牌</view>
+          </view>
+          <view class="brand-grid">
+            <view class="brand-item {{selectedBrand && selectedBrand.id === item.id ? 'active' : ''}}" wx:for="{{currentBrands}}" wx:key="id" bindtap="selectBrand" data-id="{{item.id}}">
+              <text class="brand-name">{{item.name}}</text>
+            </view>
+            <view class="brand-item {{isCustomBrand ? 'active custom' : 'custom'}}" bindtap="selectCustomBrand">
+              <text class="brand-name">其他品牌</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="section custom-input-section" wx:if="{{isCustomBrand}}">
+          <view class="custom-header">
+            <view class="custom-badge">
+              <text class="custom-badge-icon">✏️</text>
+              <text class="custom-badge-text">自定义品牌</text>
+            </view>
+            <text class="input-required {{customBrand ? 'filled' : ''}}">{{customBrand ? '✓ 已填写' : '必填'}}</text>
+          </view>
+          <view class="input-wrapper {{customBrand ? 'has-value' : ''}}">
+            <text class="input-prefix">品牌名称：</text>
+            <input class="custom-input-field" placeholder="例如：大疆、索尼、极米等" value="{{customBrand}}" bindinput="onCustomBrandInput" maxlength="20"/>
+          </view>
+        </view>
+
+        <view class="section" wx:if="{{selectedDevice && !isCustomDevice && ((selectedBrand && !isCustomBrand) || isCustomBrand) && !isCustomModel}}">
+          <view class="section-header drawer-header" bindtap="toggleModelDrawer">
+            <view class="drawer-title-group">
+              <view class="section-title">设备型号</view>
+              <view class="drawer-summary" wx:if="{{selectedModelName}}">已选：{{selectedModelName}}</view>
+            </view>
+            <view class="drawer-toggle">
+              <text class="drawer-toggle-text">{{showModelDrawer ? '收起' : '展开'}}</text>
+              <text class="drawer-toggle-icon">{{showModelDrawer ? '▴' : '▾'}}</text>
+            </view>
+          </view>
+          <view class="drawer-content" wx:if="{{showModelDrawer}}">
+            <view class="model-list-inline" wx:if="{{currentModels.length > 0 && !isCustomBrand}}">
+              <view class="model-item {{selectedModel && selectedModel.id === item.id ? 'active' : ''}}" wx:for="{{currentModels}}" wx:key="id" bindtap="selectModel" data-id="{{item.id}}">
+                <view class="model-info">
+                  <text class="model-name">{{item.name}}</text>
+                  <text class="model-rate" wx:if="{{item.priceRate && item.priceRate !== 1}}">价格倍率: {{item.priceRate}}x</text>
+                </view>
+              </view>
+            </view>
+            <view class="custom-model-btn" bindtap="selectCustomModel">
+              <text class="custom-btn-icon">✏️</text>
+              <text class="custom-btn-text">自定义型号</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="section custom-input-section" wx:if="{{isCustomModel}}">
+          <view class="custom-header">
+            <view class="custom-badge">
+              <text class="custom-badge-icon">✏️</text>
+              <text class="custom-badge-text">自定义型号</text>
+            </view>
+            <text class="input-required {{customModel ? 'filled' : ''}}">{{customModel ? '✓ 已填写' : '必填'}}</text>
+          </view>
+          <view class="input-wrapper {{customModel ? 'has-value' : ''}}">
+            <text class="input-prefix">设备型号：</text>
+            <input class="custom-input-field" placeholder="例如：Mavic 3 Pro、Xperia 1 V、PS5等" value="{{customModel}}" bindinput="onCustomModelInput" maxlength="30"/>
+          </view>
+        </view>
+      </view>
+
+      <view class="wizard-stage" wx:if="{{repairStepIndex === 2}}">
+        <view class="wizard-stage-header">
+          <text class="wizard-stage-title">问题是什么？可以顺手补几张照片</text>
+        </view>
+
+        <view class="section" wx:if="{{isCustomDevice || selectedBrand || selectedModelName || isCustomModel}}">
+          <view class="section-header drawer-header" bindtap="toggleProblemDrawer">
+            <view class="drawer-title-group">
+              <view class="section-title">故障描述</view>
+              <view class="section-subtitle" wx:if="{{!isCustomProblem && !problemDisplay}}">选择常见故障或自定义描述</view>
+              <view class="drawer-summary" wx:if="{{problemDisplay}}">已选：{{problemDisplay}}</view>
+            </view>
+            <view class="drawer-toggle">
+              <text class="drawer-toggle-text">{{showProblemDrawer ? '收起' : '展开'}}</text>
+              <text class="drawer-toggle-icon">{{showProblemDrawer ? '▴' : '▾'}}</text>
+            </view>
+          </view>
+          <view class="drawer-content" wx:if="{{showProblemDrawer}}">
+            <view class="problem-list" wx:if="{{commonProblems.length > 0 && !isCustomProblem && !isCustomDevice && !isCustomBrand && !isCustomModel}}">
+              <view class="problem-option {{selectedProblem && selectedProblem.id === item.id ? 'active' : ''}}" wx:for="{{commonProblems}}" wx:key="id" bindtap="selectProblem" data-id="{{item.id}}">
+                <view class="problem-left">
+                  <text class="problem-icon">{{item.icon || '🔧'}}</text>
+                  <view class="problem-info">
+                    <text class="problem-name">{{item.name}}</text>
+                    <text class="problem-price">预估: ¥{{item.formattedPrice}}</text>
+                  </view>
+                </view>
+                <view class="problem-check {{selectedProblem && selectedProblem.id === item.id ? 'checked' : ''}}">✓</view>
+              </view>
+              <view class="problem-option {{isCustomProblem ? 'active custom-problem' : ''}}" bindtap="selectCustomProblem" wx:if="{{!isCustomDevice && !isCustomBrand && !isCustomModel}}">
+                <view class="problem-left">
+                  <text class="problem-icon">✏️</text>
+                  <view class="problem-info">
+                    <text class="problem-name">自定义故障</text>
+                    <text class="problem-price">等待报价</text>
+                  </view>
+                </view>
+                <view class="problem-check {{isCustomProblem ? 'checked' : ''}}">✓</view>
+              </view>
+            </view>
+
+            <view class="section custom-input-section inner-drawer-section" wx:if="{{isCustomProblem}}">
+              <view class="custom-header">
+                <view class="custom-badge">
+                  <text class="custom-badge-icon">✏️</text>
+                  <text class="custom-badge-text">自定义故障</text>
+                </view>
+                <text class="input-required {{customProblemDesc ? 'filled' : ''}}">{{customProblemDesc ? '✓ 已填写' : '必填'}}</text>
+              </view>
+              <view class="textarea-wrapper {{customProblemDesc ? 'has-value' : ''}}">
+                <textarea class="textarea custom-textarea" placeholder="请详细描述问题，例如无法开机、屏幕花屏、无法连接网络等" value="{{customProblemDesc}}" bindinput="onCustomProblemInput" maxlength="200"/>
+                <text class="char-count">{{customProblemDesc.length}}/200</text>
+              </view>
+            </view>
+
+            <view class="extra-desc-input" wx:if="{{!isCustomProblem && selectedProblem}}">
+              <textarea class="textarea" placeholder="继续补充一下故障细节、出现频率、是否摔过进水等..." value="{{extraDescription}}" bindinput="onExtraDescInput" maxlength="200"/>
+              <text class="char-count">{{extraDescription.length}}/200</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="section">
+          <view class="section-header">
+            <view class="section-title">设备照片</view>
+            <view class="required-tag">选填</view>
+          </view>
+          <view class="upload-area">
+            <view class="upload-btn" bindtap="chooseImage" wx:if="{{imageList.length < 5}}">
+              <text class="upload-icon">+</text>
+              <text class="upload-text">添加照片</text>
+            </view>
+            <view class="image-preview" wx:for="{{imageList}}" wx:key="index" bindtap="previewImage" data-index="{{index}}">
+              <image class="preview-img" src="{{item}}" mode="aspectFill"></image>
+              <view class="remove-btn" catchtap="deleteImage" data-index="{{index}}">×</view>
+            </view>
+          </view>
+          <view class="upload-tip">
+            <text class="tip-icon">💡</text>
+            <text class="tip-text">上传问题位置、开机状态、外观情况，能明显提升诊断效率</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="wizard-stage" wx:if="{{repairStepIndex === 3}}">
+        <view class="wizard-stage-header">
+          <text class="wizard-stage-title">最后安排服务方式和联系信息</text>
+        </view>
+
+        <view class="section">
+          <view class="section-header">
+            <view class="section-title">服务方式</view>
+          </view>
+          <view class="service-options">
+            <view class="service-option {{serviceType === 'shop' ? 'active' : ''}}" bindtap="selectServiceType" data-type="shop">
+              <view class="service-icon">🏪</view>
+              <view class="service-info">
+                <text class="service-name">到店维修</text>
+                <text class="service-desc">适合您方便到店时，现场沟通更直接</text>
+              </view>
+              <view class="service-check {{serviceType === 'shop' ? 'checked' : ''}}">✓</view>
+            </view>
+            <view class="service-option {{serviceType === 'home' ? 'active' : ''}}" bindtap="selectServiceType" data-type="home">
+              <view class="service-icon">🚚</view>
+              <view class="service-info">
+                <text class="service-name">上门取件</text>
+                <text class="service-desc">不方便出门时，我们可按地址上门取件</text>
+              </view>
+              <view class="service-check {{serviceType === 'home' ? 'checked' : ''}}">✓</view>
+            </view>
+          </view>
+        </view>
+
+        <view class="section" wx:if="{{selectedUnit}}">
+          <view class="selected-unit-card">
+            <view class="unit-card-main">
+              <view class="unit-icon">🏢</view>
+              <view class="unit-details">
+                <view class="unit-name-row">
+                  <text class="unit-name-text">{{selectedUnit.name}}</text>
+                  <view class="unit-default-badge" wx:if="{{selectedUnit.isDefault}}">默认</view>
+                </view>
+                <view class="unit-contact-row">
+                  <text class="unit-contact-person">{{selectedUnit.contactName}}</text>
+                  <text class="unit-contact-phone">{{selectedUnit.contactPhone}}</text>
+                </view>
+                <view class="unit-address-row">
+                  <text class="unit-address-icon">📍</text>
+                  <text class="unit-address-text">{{selectedUnit.address}}</text>
+                </view>
+              </view>
+            </view>
+            <view class="unit-card-actions">
+              <view class="unit-action-btn" bindtap="showUnitSelector">
+                <text class="action-icon">🔄</text>
+                <text class="action-text">更换</text>
+              </view>
+              <view class="unit-action-btn cancel" bindtap="cancelSelectUnit">
+                <text class="action-icon">✕</text>
+                <text class="action-text">取消</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="section" wx:if="{{!selectedUnit}}">
+          <view class="select-unit-hint" bindtap="showUnitSelector">
+            <text class="hint-icon">🏢</text>
+            <text class="hint-text">选择单位信息（选填）</text>
+            <text class="hint-arrow">→</text>
+          </view>
+          <view class="unit-tip">
+            <text class="tip-icon">💡</text>
+            <text class="tip-text">有单位信息时，后续开发票和报销会更方便</text>
+          </view>
+        </view>
+
+        <view class="section" wx:if="{{serviceType === 'home' && selectedAddress}}">
+          <view class="section-title">上门地址</view>
+          <view class="selected-address" bindtap="showAddressSelector">
+            <view class="address-content">
+              <view class="address-header">
+                <text class="contact-name">{{selectedAddress.contactName}}</text>
+                <text class="contact-phone">{{selectedAddress.contactPhone}}</text>
+              </view>
+              <text class="address-detail">{{selectedAddress.province}} {{selectedAddress.city}} {{selectedAddress.district}} {{selectedAddress.detail}}</text>
+            </view>
+            <view class="address-actions">
+              <text class="change-btn">更换</text>
+              <text class="arrow-icon">→</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="section" wx:if="{{serviceType === 'home' && !selectedAddress}}">
+          <view class="select-address-hint" bindtap="showAddressSelector">
+            <text class="hint-icon">📍</text>
+            <text class="hint-text">请选择上门取件地址</text>
+            <text class="hint-arrow">→</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="wizard-stage" wx:if="{{repairStepIndex === 4}}">
+        <view class="wizard-stage-header">
+          <text class="wizard-stage-title">确认一下这些信息，再提交订单</text>
+        </view>
+
+        <view class="section device-info">
+          <view class="info-header">
+            <view class="info-left">
+              <text class="info-icon">📱</text>
+              <text class="info-label">设备信息</text>
+            </view>
+            <view class="custom-tags">
+              <view class="custom-tag" wx:if="{{isCustomDevice}}">自定义设备</view>
+              <view class="custom-tag" wx:if="{{isCustomBrand}}">自定义品牌</view>
+              <view class="custom-tag" wx:if="{{isCustomModel}}">自定义型号</view>
+              <view class="custom-tag" wx:if="{{isCustomProblem}}">自定义故障</view>
+            </view>
+          </view>
+          <view class="info-content compact-info-grid">
+            <view class="device-detail-item">
+              <view class="detail-label-row">
+                <text class="detail-icon">🔲</text>
+                <text class="detail-label">设备类型</text>
+              </view>
+              <view class="detail-value-row">
+                <text class="detail-value">{{deviceTypeDisplay || '未填写'}}</text>
+              </view>
+            </view>
+            <view class="device-detail-item">
+              <view class="detail-label-row">
+                <text class="detail-icon">🏷️</text>
+                <text class="detail-label">品牌型号</text>
+              </view>
+              <view class="detail-value-row">
+                <text class="detail-value">{{brandDisplay || '未填写'}} {{modelDisplay || ''}}</text>
+              </view>
+            </view>
+            <view class="device-detail-item">
+              <view class="detail-label-row">
+                <text class="detail-icon">⚠️</text>
+                <text class="detail-label">故障描述</text>
+              </view>
+              <view class="detail-value-row">
+                <text class="detail-value">{{problemDisplay || '未填写'}}</text>
+              </view>
+            </view>
+            <view class="device-detail-item">
+              <view class="detail-label-row">
+                <text class="detail-icon">🧾</text>
+                <text class="detail-label">服务方式</text>
+              </view>
+              <view class="detail-value-row">
+                <text class="detail-value">{{serviceType === 'home' ? '上门取件' : '到店维修'}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="section review-card-section" wx:if="{{extraDescription || imageList.length > 0 || selectedUnit || (serviceType === 'home' && selectedAddress)}}">
+          <view class="review-row" wx:if="{{extraDescription}}">
+            <text class="review-label">补充说明</text>
+            <text class="review-value">{{extraDescription}}</text>
+          </view>
+          <view class="review-row" wx:if="{{imageList.length > 0}}">
+            <text class="review-label">设备照片</text>
+            <text class="review-value">已上传 {{imageList.length}} 张</text>
+          </view>
+          <view class="review-row" wx:if="{{selectedUnit}}">
+            <text class="review-label">单位信息</text>
+            <text class="review-value">{{selectedUnit.name}}</text>
+          </view>
+          <view class="review-row" wx:if="{{serviceType === 'home' && selectedAddress}}">
+            <text class="review-label">上门地址</text>
+            <text class="review-value">{{selectedAddress.contactName}} {{selectedAddress.contactPhone}} {{selectedAddress.province}} {{selectedAddress.city}} {{selectedAddress.district}} {{selectedAddress.detail}}</text>
+          </view>
+        </view>
+
+        <view class="section price-section wizard-price-section">
+          <view class="price-title">{{isWaitingPrice ? '提交后人工报价' : '预估维修价格'}}</view>
+          <view class="price-display">
+            <text class="price-value waiting-price" wx:if="{{isWaitingPrice}}">等待报价</text>
+            <text class="price-value" wx:else>¥{{formattedEstimatedPrice}}</text>
+          </view>
+          <view class="price-badge" wx:if="{{isWaitingPrice}}">
+            <text class="badge-icon">⏰</text>
+            <text class="badge-text">存在自定义项，管理员会人工确认价格</text>
+          </view>
+        </view>
+
+        <view class="section submit-callout">
+          <button class="confirm-submit-btn" bindtap="submitRepairOrder" disabled="{{!repairStepSubmitReady || repairSubmitting}}" loading="{{repairSubmitting}}">
+            {{isWaitingPrice ? '确认并提交待报价订单' : '确认并提交维修订单'}}
+          </button>
+        </view>
+      </view>
+
+      <view class="repair-step-footer">
+        <button class="repair-step-btn ghost single" wx:if="{{repairStepIsLast}}" bindtap="goRepairPrevStep">上一步</button>
+        <button class="repair-step-btn ghost" wx:if="{{repairStepCanPrev && !repairStepIsLast}}" bindtap="goRepairPrevStep">上一步</button>
+        <button class="repair-step-btn primary only" wx:if="{{!repairStepCanPrev && !repairStepIsLast}}" bindtap="goRepairNextStep" disabled="{{!repairStepCanNext}}">下一步</button>
+        <button class="repair-step-btn primary" wx:if="{{repairStepCanPrev && !repairStepIsLast}}" bindtap="goRepairNextStep" disabled="{{!repairStepCanNext}}">
+          下一步
+        </button>
+      </view>
+    </view>
+  </view>
+
+    <!-- 物品回收内容 -->
+  <view class="tab-content" wx:if="{{currentTab === 'recycle'}}">
+    <view class="recycle-overview" wx:if="{{recycleType || isCustomRecycleType}}">
+      <view class="overview-header">
+        <view>
+          <text class="overview-title">回收信息</text>
+          <text class="overview-subtitle">优先补全类型、品牌、型号、成色</text>
+        </view>
+        <view class="overview-state {{canSubmitRecycle ? 'ready' : 'editing'}}">{{canSubmitRecycle ? '可提交' : '待完善'}}</view>
+      </view>
+      <view class="overview-tags">
+        <view class="overview-tag">{{isCustomRecycleType ? customRecycleType : (recycleType ? recycleType.name : '未选类型')}}</view>
+        <view class="overview-tag" wx:if="{{selectedRecycleBrand || customRecycleBrand}}">{{isCustomRecycleBrand ? customRecycleBrand : selectedRecycleBrand.name}}</view>
+        <view class="overview-tag" wx:if="{{deviceModel}}">{{deviceModel}}</view>
+        <view class="overview-tag accent" wx:if="{{deviceCondition}}">{{deviceCondition}}</view>
+      </view>
+    </view>
+
+    <!-- 回收类型 -->
+    <view class="section">
+      <view class="section-header drawer-header" bindtap="toggleRecycleTypeDrawer">
+        <view class="drawer-title-group">
+          <view class="section-title">回收类型</view>
+          <view class="section-subtitle" wx:if="{{!(recycleType || isCustomRecycleType)}}">找不到您的类型？可以选择自定义</view>
+          <view class="drawer-summary" wx:if="{{recycleType || isCustomRecycleType}}">
+            已选：{{isCustomRecycleType ? customRecycleType : recycleType.name}}
+          </view>
+        </view>
+        <view class="drawer-toggle">
+          <text class="drawer-toggle-text">{{showRecycleTypeDrawer ? '收起' : '展开'}}</text>
+          <text class="drawer-toggle-icon">{{showRecycleTypeDrawer ? '▴' : '▾'}}</text>
+        </view>
+      </view>
+      <view class="drawer-content" wx:if="{{showRecycleTypeDrawer}}">
+      <view class="recycle-types recycle-grid">
+        <view
+          class="recycle-item {{recycleType && recycleType.id === item.id ? 'active' : ''}}"
+          wx:for="{{recycleTypes}}"
+          wx:key="id"
+          bindtap="selectRecycleType"
+          data-id="{{item.id}}">
+          <view class="recycle-icon">{{item.icon}}</view>
+          <view class="recycle-info">
+            <text class="recycle-name">{{item.name}}</text>
+            <text class="recycle-price">{{item.price}}</text>
+            <text class="recycle-summary">{{item.summary}}</text>
+          </view>
+          <view class="recycle-check {{recycleType && recycleType.id === item.id ? 'checked' : ''}}">✓</view>
+        </view>
+        <!-- 自定义回收类型选项 -->
+        <view
+          class="recycle-item {{isCustomRecycleType ? 'active custom' : 'custom'}}"
+          bindtap="selectCustomRecycleType">
+          <view class="recycle-icon">✏️</view>
+          <view class="recycle-info">
+            <text class="recycle-name">自定义类型</text>
+            <text class="recycle-price">等待报价</text>
+            <text class="recycle-summary">无人机、音响、专业设备等</text>
+          </view>
+          <view class="recycle-check {{isCustomRecycleType ? 'checked' : ''}}">✓</view>
+        </view>
+      </view>
+      </view>
+    </view>
+
+    <!-- 自定义回收类型输入 -->
+    <view class="section custom-input-section" wx:if="{{isCustomRecycleType}}">
+      <view class="custom-header">
+        <view class="custom-badge">
+          <text class="custom-badge-icon">✏️</text>
+          <text class="custom-badge-text">自定义回收类型</text>
+        </view>
+        <text class="input-required {{customRecycleType ? 'filled' : ''}}">{{customRecycleType ? '✓ 已填写' : '必填'}}</text>
+      </view>
+      <view class="input-wrapper {{customRecycleType ? 'has-value' : ''}}">
+        <text class="input-prefix">设备类型：</text>
+        <input
+          class="custom-input-field"
+          placeholder="例如：无人机、投影仪、音响等"
+          value="{{customRecycleType}}"
+          bindinput="onCustomRecycleTypeInput"
+          maxlength="20"/>
+      </view>
+      <view class="input-tip">
+        <text class="tip-icon">💡</text>
+        <text class="tip-text">准确描述设备类型有助于我们提供精准的回收报价</text>
+      </view>
+    </view>
+
+    <!-- 设备品牌 -->
+    <view class="section" wx:if="{{recycleType || isCustomRecycleType}}">
+      <view class="section-header drawer-header" bindtap="toggleRecycleBrandDrawer">
+        <view class="drawer-title-group">
+          <view class="section-title">设备品牌</view>
+          <view class="drawer-summary" wx:if="{{selectedRecycleBrand || customRecycleBrand}}">
+            已选：{{isCustomRecycleBrand ? customRecycleBrand : selectedRecycleBrand.name}}
+          </view>
+        </view>
+        <view class="drawer-toggle">
+          <text class="drawer-toggle-text">{{showRecycleBrandDrawer ? '收起' : '展开'}}</text>
+          <text class="drawer-toggle-icon">{{showRecycleBrandDrawer ? '▴' : '▾'}}</text>
+        </view>
+      </view>
+      <view class="drawer-content" wx:if="{{showRecycleBrandDrawer}}">
+      <!-- 预设品牌列表（选择了回收类型时显示） -->
+      <view class="brand-grid" wx:if="{{recycleBrands.length > 0}}">
+        <view
+          class="brand-item {{selectedRecycleBrand && selectedRecycleBrand.id === item.id ? 'active' : ''}}"
+          wx:for="{{recycleBrands}}"
+          wx:key="id"
+          bindtap="selectRecycleBrand"
+          data-id="{{item.id}}">
+          <text class="brand-name">{{item.name}}</text>
+        </view>
+        <!-- 自定义品牌选项 -->
+        <view
+          class="brand-item {{isCustomRecycleBrand ? 'active custom' : 'custom'}}"
+          bindtap="selectCustomRecycleBrand">
+          <text class="brand-name">其他品牌</text>
+        </view>
+      </view>
+      <!-- 自定义回收类型时，只显示自定义品牌入口 -->
+      <view class="brand-grid" wx:if="{{recycleBrands.length === 0}}">
+        <view
+          class="brand-item {{isCustomRecycleBrand ? 'active custom' : 'custom'}}"
+          bindtap="selectCustomRecycleBrand">
+          <text class="brand-name">自定义品牌</text>
+        </view>
+      </view>
+      </view>
+    </view>
+
+    <!-- 自定义品牌输入 -->
+    <view class="section custom-input-section" wx:if="{{isCustomRecycleBrand}}">
+      <view class="custom-header">
+        <view class="custom-badge">
+          <text class="custom-badge-icon">✏️</text>
+          <text class="custom-badge-text">自定义品牌</text>
+        </view>
+        <text class="input-required {{customRecycleBrand ? 'filled' : ''}}">{{customRecycleBrand ? '✓ 已填写' : '必填'}}</text>
+      </view>
+      <view class="input-wrapper {{customRecycleBrand ? 'has-value' : ''}}">
+        <text class="input-prefix">品牌名称：</text>
+        <input
+          class="custom-input-field"
+          placeholder="例如：大疆、索尼、极米等"
+          value="{{customRecycleBrand}}"
+          bindinput="onCustomRecycleBrandInput"
+          maxlength="20"/>
+      </view>
+      <view class="input-tip">
+        <text class="tip-icon">💡</text>
+        <text class="tip-text">品牌信息可以帮助我们更准确地评估设备价值</text>
+      </view>
+    </view>
+
+    <!-- 设备型号 -->
+    <view class="section" wx:if="{{(recycleType || isCustomRecycleType) && (selectedRecycleBrand || isCustomRecycleBrand)}}">
+      <view class="section-header drawer-header" bindtap="toggleRecycleModelDrawer">
+        <view class="drawer-title-group">
+          <view class="section-title">设备型号</view>
+          <view class="section-subtitle" wx:if="{{!deviceModel}}">已知型号直接选，价格会更准确</view>
+          <view class="drawer-summary" wx:if="{{deviceModel}}">
+            已选：{{deviceModel}}{{selectedRecycleModel ? '' : '（手动输入）'}}
+          </view>
+        </view>
+        <view class="drawer-toggle">
+          <text class="drawer-toggle-text">{{showRecycleModelDrawer ? '收起' : '展开'}}</text>
+          <text class="drawer-toggle-icon">{{showRecycleModelDrawer ? '▴' : '▾'}}</text>
+        </view>
+      </view>
+      <view class="drawer-content" wx:if="{{showRecycleModelDrawer}}">
+        <view class="model-list-inline" wx:if="{{recycleModels.length > 0 && !isCustomRecycleBrand}}">
+          <view
+            class="model-item {{selectedRecycleModel && selectedRecycleModel.id === item.id ? 'active' : ''}}"
+            wx:for="{{recycleModels}}"
+            wx:key="id"
+            bindtap="selectRecycleModel"
+            data-id="{{item.id}}">
+            <view class="model-info">
+              <text class="model-name">{{item.name}}</text>
+              <text class="model-rate">报价系数 {{item.priceRate}}x</text>
+            </view>
+          </view>
+        </view>
+        <view class="custom-model-btn" bindtap="selectCustomRecycleModel">
+          <text class="custom-btn-icon">✏️</text>
+          <text class="custom-btn-text">手动输入型号</text>
+        </view>
+        <input
+          class="model-input recycle-model-input"
+          placeholder="请输入具体型号，如：iPhone 13 Pro"
+          value="{{deviceModel}}"
+          bindinput="onRecycleModelInput"/>
+        <text class="model-input-tip" wx:if="{{!selectedRecycleModel && deviceModel}}">
+          当前为手动输入型号，将转为人工报价
+        </text>
+      </view>
+    </view>
+
+    <!-- 设备状态 -->
+    <view class="section" wx:if="{{(recycleType || isCustomRecycleType) && (selectedRecycleBrand || isCustomRecycleBrand)}}">
+      <view class="section-header drawer-header" bindtap="toggleRecycleConditionDrawer">
+        <view class="drawer-title-group">
+          <view class="section-title">设备状态（成色）</view>
+          <view class="drawer-summary" wx:if="{{deviceCondition}}">已选：{{deviceCondition}}</view>
+        </view>
+        <view class="drawer-toggle">
+          <text class="drawer-toggle-text">{{showRecycleConditionDrawer ? '收起' : '展开'}}</text>
+          <text class="drawer-toggle-icon">{{showRecycleConditionDrawer ? '▴' : '▾'}}</text>
+        </view>
+      </view>
+      <view class="drawer-content" wx:if="{{showRecycleConditionDrawer}}">
+      <view class="condition-options">
+        <view
+          class="condition-item {{deviceCondition === item.name ? 'active' : ''}}"
+          wx:for="{{conditions}}"
+          wx:key="id"
+          bindtap="selectRecycleCondition"
+          data-id="{{item.id}}">
+          <view class="condition-header">
+            <text class="condition-name">{{item.name}}</text>
+            <text class="condition-rate">{{item.rate * 10}}折</text>
+          </view>
+          <text class="condition-desc">回收价按{{item.rate * 100}}%计算</text>
+        </view>
+      </view>
+      </view>
+    </view>
+
+    <!-- 回收描述 -->
+    <view class="section" wx:if="{{(recycleType || isCustomRecycleType) && (selectedRecycleBrand || isCustomRecycleBrand)}}">
+      <view class="section-title">设备描述</view>
+      <view class="custom-input">
+        <textarea
+          class="textarea"
+          placeholder="请详细描述设备的情况，如：是否有划痕、是否修过、配件是否齐全等..."
+          value="{{recycleDescription}}"
+          bindinput="onRecycleDescriptionInput"
+          maxlength="200"/>
+        <text class="char-count">{{recycleDescription.length}}/200</text>
+      </view>
+    </view>
+
+    <!-- 上传设备照片 -->
+    <view class="section" wx:if="{{(recycleType || isCustomRecycleType) && (selectedRecycleBrand || isCustomRecycleBrand)}}">
+      <view class="section-title">上传设备照片</view>
+      <view class="upload-area">
+        <view class="upload-btn" bindtap="chooseRecycleImage" wx:if="{{recycleImageList.length < 3}}">
+          <text class="upload-icon">+</text>
+          <text class="upload-text">添加照片</text>
+        </view>
+        <view class="image-preview" wx:for="{{recycleImageList}}" wx:key="index" bindtap="previewRecycleImage" data-index="{{index}}">
+          <image class="preview-img" src="{{item}}" mode="aspectFill"></image>
+          <view class="remove-btn" catchtap="deleteRecycleImage" data-index="{{index}}">×</view>
+        </view>
+      </view>
+      <text class="upload-tip">最多上传3张照片，有助于我们准确评估设备价值</text>
+    </view>
+
+    <!-- 创建回收订单按钮 -->
+    <view class="section">
+      <button class="create-recycle-btn {{canSubmitRecycle ? 'active' : 'disabled'}}" bindtap="showRecycleConfirm" disabled="{{!canSubmitRecycle || recycleSubmitting}}" loading="{{recycleSubmitting}}">
+        <text class="btn-icon">📦</text>
+        <text class="btn-text">{{canSubmitRecycle ? '创建回收订单' : '请完善回收信息'}}</text>
+        <text class="btn-hint" wx:if="{{canSubmitRecycle && !isRecycleWaitingPrice}}">预估价：¥{{recyclablePrice}}</text>
+        <text class="btn-hint waiting" wx:if="{{canSubmitRecycle && isRecycleWaitingPrice}}">等待管理员报价</text>
+      </button>
+      <text class="create-hint" wx:if="{{!canSubmitRecycle}}">请依次选择：回收类型、品牌、型号、成色</text>
+    </view>
+
+    <!-- 估价结果 -->
+    <view class="section price-section" wx:if="{{recyclablePrice > 0 && !isRecycleWaitingPrice}}">
+      <view class="price-title">预估回收价</view>
+      <view class="price-display">
+        <text class="price-symbol">¥</text>
+        <text class="price-amount">{{recyclablePrice}}</text>
+      </view>
+      <text class="price-note">最终价格以检测后实际报价为准</text>
+    </view>
+
+    <!-- 等待报价提示 -->
+    <view class="section price-section waiting-section" wx:if="{{isRecycleWaitingPrice}}">
+      <view class="price-title">等待报价</view>
+      <view class="price-display waiting-display">
+        <text class="price-icon">⏰</text>
+        <text class="price-amount">等待管理员报价</text>
+      </view>
+      <text class="price-note">自定义类型或品牌需要管理员评估后报价</text>
+    </view>
+
+    <!-- 提交回收 -->
+    <view class="bottom-action recycle-action" wx:if="{{canSubmitRecycle}}">
+      <view class="price-info">
+        <text class="price-label">{{isRecycleWaitingPrice ? '状态：' : '预估价：'}}</text>
+        <text class="price-value {{isRecycleWaitingPrice ? 'waiting' : ''}}" wx:if="{{isRecycleWaitingPrice}}">等待报价</text>
+        <text class="price-value" wx:else>¥{{recyclablePrice}}</text>
+      </view>
+      <button class="submit-btn recycle-btn {{isRecycleWaitingPrice ? 'waiting' : ''}}" bindtap="submitRecycleOrder" disabled="{{recycleSubmitting}}" loading="{{recycleSubmitting}}">
+        <text class="btn-icon" wx:if="{{isRecycleWaitingPrice}}">📤</text>
+        <text>{{isRecycleWaitingPrice ? '提交申请' : '提交回收申请'}}</text>
+      </button>
+    </view>
+  </view>
+
+  <!-- 底部间距 -->
+  <view class="bottom-space"></view>
+
+  <!-- 单位选择器弹窗 -->
+  <view class="unit-selector-mask" wx:if="{{showUnitSelector}}" catchtap="hideUnitSelector">
+    <view class="unit-selector-content" catchtap="">
+      <view class="unit-selector-header">
+        <text class="unit-selector-title">选择单位</text>
+        <view class="unit-selector-close" bindtap="hideUnitSelector">×</view>
+      </view>
+
+      <scroll-view class="unit-selector-body" scroll-y>
+        <view wx:if="{{unitList.length === 0}}" class="empty-unit">
+          <text class="empty-icon">🏢</text>
+          <text class="empty-text">暂无单位</text>
+        </view>
+
+        <view class="unit-item-list">
+          <view
+            class="unit-list-item {{selectedUnit && selectedUnit.id === item.id ? 'selected' : ''}}"
+            wx:for="{{unitList}}"
+            wx:key="id"
+            bindtap="selectUnit"
+            data-id="{{item.id}}">
+            <view class="unit-list-left">
+              <view class="unit-list-icon">🏢</view>
+              <view class="unit-list-details">
+                <view class="unit-list-name-row">
+                  <text class="unit-list-name">{{item.name}}</text>
+                  <view class="unit-list-badge" wx:if="{{item.isDefault}}">默认</view>
+                </view>
+                <view class="unit-list-contact">
+                  <text class="contact-person">{{item.contactName}}</text>
+                  <text class="contact-phone">{{item.contactPhone}}</text>
+                </view>
+                <text class="unit-list-address">{{item.address}}</text>
+              </view>
+            </view>
+            <view class="unit-list-check" wx:if="{{selectedUnit && selectedUnit.id === item.id}}">✓</view>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view class="unit-selector-footer">
+        <button class="add-unit-btn" bindtap="addNewUnit">
+          <text class="add-btn-icon">+</text>
+          <text>添加新单位</text>
+        </button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 地址选择器弹窗 -->
+  <view class="address-selector-mask" wx:if="{{showAddressSelector}}" catchtap="hideAddressSelector">
+    <view class="address-selector-content" catchtap="">
+      <view class="address-selector-header">
+        <text class="address-selector-title">选择上门地址</text>
+        <view class="address-selector-close" bindtap="hideAddressSelector">×</view>
+      </view>
+
+      <scroll-view class="address-selector-body" scroll-y>
+        <view wx:if="{{addressList.length === 0}}" class="empty-address">
+          <text class="empty-icon">📍</text>
+          <text class="empty-text">暂无地址</text>
+        </view>
+
+        <view class="address-item-list">
+          <view
+            class="address-item {{selectedAddress && selectedAddress.id === item.id ? 'selected' : ''}}"
+            wx:for="{{addressList}}"
+            wx:key="id"
+            bindtap="selectAddress"
+            data-id="{{item.id}}">
+            <view class="address-item-content">
+              <view class="address-item-header">
+                <text class="contact-name">{{item.contactName}}</text>
+                <text class="contact-phone">{{item.contactPhone}}</text>
+              </view>
+              <text class="address-detail">{{item.province}} {{item.city}} {{item.district}} {{item.detail}}</text>
+            </view>
+            <view wx:if="{{selectedAddress && selectedAddress.id === item.id}}" class="address-check">✓</view>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view class="address-selector-footer">
+        <button class="add-address-btn" bindtap="addNewAddress">
+          <text class="add-btn-icon">+</text>
+          <text>添加新地址</text>
+        </button>
+      </view>
+    </view>
+  </view>
+</view>

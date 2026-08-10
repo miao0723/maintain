@@ -1,0 +1,142 @@
+@import './theme/dark-mode.wxss';
+
+page {
+  background: #f6f8fb;
+  color: #1f2937;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", "Roboto", sans-serif;
+  font-size: 28rpx;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.page-container,
+.container {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+view,
+button,
+scroll-view,
+swiper,
+input,
+textarea,
+image,
+navigator {
+  box-sizing: border-box;
+  transition-duration: 260ms;
+  transition-timing-function: ease-out;
+}
+
+button {
+  min-height: 88rpx !important;
+  min-width: 88rpx !important;
+  padding: 0 24rpx !important;
+  border-radius: 18rpx !important;
+  font-size: 32rpx !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  background: #4f6b84 !important;
+  border: none !important;
+  box-shadow: 0 10rpx 24rpx rgba(79, 107, 132, 0.14) !important;
+  transition: transform 200ms ease-out, box-shadow 260ms ease-out, opacity 200ms ease-out !important;
+}
+
+button::after {
+  border: none !important;
+}
+
+button:active {
+  transform: scale(0.98);
+  box-shadow: 0 8rpx 20rpx rgba(79, 107, 132, 0.14);
+  background: #445e75 !important;
+}
+
+.action-btn,
+.order-action-btn,
+.detail-btn,
+.review-btn,
+.logout-btn,
+.menu-item,
+.tab-item,
+.submit-btn,
+.save-btn,
+.add-btn,
+.confirm-btn,
+.contact-btn,
+.send-btn,
+.empty-btn,
+.login-btn,
+.auth-btn,
+.btn-agree,
+.btn-disagree {
+  min-height: 88rpx !important;
+  min-width: 88rpx !important;
+  border-radius: 18rpx !important;
+  transition: transform 200ms ease-out, box-shadow 260ms ease-out, background-color 260ms ease-out, opacity 200ms ease-out !important;
+}
+
+.action-btn,
+.order-action-btn,
+.detail-btn,
+.review-btn,
+.send-btn {
+  min-height: 80rpx !important;
+  font-size: 32rpx !important;
+  font-weight: 500 !important;
+}
+
+.btn-group,
+.bottom-action,
+.modal-actions,
+.unit-actions,
+.order-actions {
+  gap: 24rpx !important;
+}
+
+.form-item,
+.menu-item,
+.section-title,
+.order-item,
+.card,
+.section {
+  margin-bottom: 16rpx;
+}
+
+input,
+textarea {
+  min-height: 88rpx;
+  padding: 0 24rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #dde5ee;
+  background: #ffffff;
+  color: #1f2937;
+  font-size: 30rpx;
+  transition: border-color 200ms ease-out, box-shadow 200ms ease-out, background-color 260ms ease-out;
+}
+
+textarea {
+  padding-top: 20rpx;
+  padding-bottom: 20rpx;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #4f6b84;
+  box-shadow: 0 0 0 4rpx rgba(79, 107, 132, 0.12);
+}
+
+.section,
+.card,
+.agreement-box,
+.order-item,
+.menu-item,
+.form-section,
+.modal-container,
+.unit-item,
+.address-item {
+  border-radius: 28rpx;
+  box-shadow: 0 10rpx 28rpx rgba(102, 118, 138, 0.08);
+  background-color: #ffffff;
+}

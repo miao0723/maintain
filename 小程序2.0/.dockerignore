@@ -1,0 +1,16 @@
+# 后端构建上下文忽略项（backend 目录）
+node_modules
+npm-debug.log
+*.log
+uploads
+.git
+.claude
+.cloudbase
+models
+.DS_Store
+*.md
+test_*.js
+verify_*.js
+query_admins.js
+e2e_*
+server-delete-debug.*

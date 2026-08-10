@@ -1,0 +1,1457 @@
+<!-- 引入 WXS 工具函数 -->
+<wxs src="super-admin.wxs" module="utils" />
+
+<!-- 超级管理员页面 -->
+<view class="container">
+  <!-- 顶部导航 -->
+  <view class="header">
+    <view class="admin-card">
+      <image class="admin-avatar" src="{{adminInfo.avatar_url || adminInfo.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill" binderror="onAvatarError"></image>
+      <view class="admin-meta">
+        <text class="admin-name">{{adminInfo.nickname || adminInfo.real_name || '超级管理员'}}</text>
+        <view class="admin-role-row">
+          <text class="admin-role">👑 超级管理员</text>
+          <text class="admin-time">{{currentTime || '--:--:--'}}</text>
+        </view>
+      </view>
+      <text class="logout-btn" bindtap="logout">退出</text>
+    </view>
+  </view>
+
+  <!-- 页面切换标签（可横向滑动） -->
+  <view class="tabs-wrapper">
+    <view class="tabs-fade tabs-fade-left {{!canScrollLeft ? 'is-hidden' : ''}}"></view>
+    <scroll-view
+      class="tabs"
+      scroll-x
+      scroll-into-view="{{activeTabScrollId}}"
+      bindscroll="onTabsScroll"
+      enhanced
+      show-scrollbar="{{false}}"
+    >
+      <view class="tabs-inner">
+        <view id="tab-dashboard" class="tab {{currentPage === 'dashboard' ? 'active' : ''}}" bindtap="switchPage" data-page="dashboard">
+          <text class="tab-icon-emoji">📊</text>
+          <text class="tab-label">仪表盘</text>
+        </view>
+        <view id="tab-orders" class="tab {{currentPage === 'orders' ? 'active' : ''}}" bindtap="switchPage" data-page="orders">
+          <text class="tab-icon-emoji">📋</text>
+          <text class="tab-label">工单管理</text>
+        </view>
+        <view id="tab-myOrders" class="tab {{currentPage === 'myOrders' ? 'active' : ''}}" bindtap="switchPage" data-page="myOrders">
+          <text class="tab-icon-emoji">📝</text>
+          <text class="tab-label">我的订单</text>
+          <view wx:if="{{approvedApplyCount > 0}}" class="tab-badge my-orders-badge">!</view>
+        </view>
+        <view id="tab-device" class="tab {{currentPage === 'device' ? 'active' : ''}}" bindtap="switchPage" data-page="device">
+          <text class="tab-icon-emoji">📱</text>
+          <text class="tab-label">设备统计</text>
+        </view>
+        <view id="tab-inventory" class="tab {{currentPage === 'inventory' ? 'active' : ''}}" bindtap="switchPage" data-page="inventory">
+          <text class="tab-icon-emoji">📦</text>
+          <text class="tab-label">库存管理</text>
+        </view>
+        <view id="tab-technicians" class="tab {{currentPage === 'technicians' ? 'active' : ''}}" bindtap="switchPage" data-page="technicians">
+          <text class="tab-icon-emoji">👨‍🔧</text>
+          <text class="tab-label">维修人员</text>
+        </view>
+        <view id="tab-progressApply" class="tab {{currentPage === 'progressApply' ? 'active' : ''}}" bindtap="switchPage" data-page="progressApply">
+          <text class="tab-icon-emoji">📝</text>
+          <text class="tab-label">申请处理</text>
+          <view wx:if="{{pendingApplyCount > 0}}" class="tab-badge">{{pendingApplyCount > 99 ? '99+' : pendingApplyCount}}</view>
+        </view>
+        <view id="tab-afterSales" class="tab {{currentPage === 'afterSales' ? 'active' : ''}}" bindtap="switchPage" data-page="afterSales">
+          <text class="tab-icon-emoji">🛠</text>
+          <text class="tab-label">售后管理</text>
+          <view wx:if="{{pendingAfterSalesCount > 0}}" class="tab-badge">{{pendingAfterSalesCount > 99 ? '99+' : pendingAfterSalesCount}}</view>
+        </view>
+        <view id="tab-income" class="tab {{currentPage === 'income' ? 'active' : ''}}" bindtap="switchPage" data-page="income">
+          <text class="tab-icon-emoji">💰</text>
+          <text class="tab-label">收入</text>
+        </view>
+        <view id="tab-service" class="tab service-tab" bindtap="goToServiceManagement">
+          <text class="tab-icon-emoji">💬</text>
+          <text class="tab-label">客服管理</text>
+          <view wx:if="{{pendingHumanServiceCount > 0}}" class="tab-badge human-service-badge">{{pendingHumanServiceCount > 99 ? '99+' : pendingHumanServiceCount}}</view>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="tabs-fade tabs-fade-right {{!canScrollRight ? 'is-hidden' : ''}}">
+      <text class="fade-arrow">›</text>
+    </view>
+    <view class="tabs-scrollbar">
+      <view class="tabs-scrollbar-thumb" style="width: {{scrollThumbWidth}}%; margin-left: {{scrollThumbLeft}}%;"></view>
+    </view>
+  </view>
+
+  <!-- 内容区域 -->
+  <view class="content">
+    
+    <!-- 仪表盘 -->
+    <view class="dashboard" wx:if="{{currentPage === 'dashboard'}}">
+      <view class="refresh-bar">
+        <text>仪表盘数据</text>
+        <text class="refresh-btn" bindtap="loadDashboardData">刷新</text>
+      </view>
+
+      <!-- 核心数据卡片 -->
+      <view class="stats-grid">
+        <view class="stat-card" bindtap="onOrderStatClick" data-status="all">
+          <text class="stat-icon">📋</text>
+          <view class="stat-info">
+            <text class="stat-value">{{dashboardData.orders.total_orders || 0}}</text>
+            <text class="stat-label">总工单</text>
+            <text class="stat-sub">待处理 {{dashboardData.orders.pending_orders || 0}}</text>
+          </view>
+        </view>
+        <view class="stat-card" bindtap="onUserStatClick">
+          <text class="stat-icon">👥</text>
+          <view class="stat-info">
+            <text class="stat-value">{{dashboardData.users.total_users || 0}}</text>
+            <text class="stat-label">用户数</text>
+            <text class="stat-sub">管理员 {{dashboardData.users.admin_users || 0}}</text>
+          </view>
+        </view>
+        <view class="stat-card">
+          <text class="stat-icon">💰</text>
+          <view class="stat-info">
+            <text class="stat-value">¥{{utils.formatPrice(dashboardData.revenue.total_revenue)}}</text>
+            <text class="stat-label">总收入</text>
+            <text class="stat-sub">本月 ¥{{utils.formatPrice(dashboardData.revenue.monthly_revenue)}}</text>
+          </view>
+        </view>
+        <view class="stat-card" bindtap="switchPage" data-page="inventory">
+          <text class="stat-icon">📦</text>
+          <view class="stat-info">
+            <text class="stat-value">{{dashboardData.parts.total_parts || 0}}</text>
+            <text class="stat-label">备件数</text>
+            <text class="stat-sub danger-text">预警 {{dashboardData.parts.low_stock_parts || 0}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 订单状态分布 -->
+      <view class="section">
+        <view class="section-title">订单状态</view>
+        <view class="order-stats">
+          <view class="order-stat-item" bindtap="onOrderStatClick" data-status="pending">
+            <text class="stat-num pending">{{dashboardData.orders.pending_orders || 0}}</text>
+            <text class="stat-text">待处理</text>
+          </view>
+          <view class="order-stat-item" bindtap="onOrderStatClick" data-status="processing">
+            <text class="stat-num processing">{{dashboardData.orders.processing_orders || 0}}</text>
+            <text class="stat-text">处理中</text>
+          </view>
+          <view class="order-stat-item" bindtap="onOrderStatClick" data-status="completed">
+            <text class="stat-num completed">{{dashboardData.orders.completed_orders || 0}}</text>
+            <text class="stat-text">已完成</text>
+          </view>
+          <view class="order-stat-item" bindtap="onOrderStatClick" data-status="cancelled">
+            <text class="stat-num cancelled">{{dashboardData.orders.cancelled_orders || 0}}</text>
+            <text class="stat-text">已取消</text>
+          </view>
+          <view class="order-stat-item" bindtap="onOrderStatClick" data-status="review">
+            <text class="stat-num review">{{dashboardData.orders.review_orders || 0}}</text>
+            <text class="stat-text">待评价</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 收入统计 -->
+      <view class="section">
+        <view class="section-title">收入统计</view>
+        <view class="revenue-stats">
+          <view class="revenue-stat-item">
+            <text class="revenue-icon">💵</text>
+            <view class="revenue-info">
+              <text class="revenue-label">今日收入</text>
+              <text class="revenue-value">¥{{utils.formatPrice(dashboardData.revenue.daily_revenue)}}</text>
+            </view>
+          </view>
+          <view class="revenue-stat-item">
+            <text class="revenue-icon">📅</text>
+            <view class="revenue-info">
+              <text class="revenue-label">本周收入</text>
+              <text class="revenue-value">¥{{utils.formatPrice(dashboardData.revenue.weekly_revenue)}}</text>
+            </view>
+          </view>
+          <view class="revenue-stat-item">
+            <text class="revenue-icon">📆</text>
+            <view class="revenue-info">
+              <text class="revenue-label">本月收入</text>
+              <text class="revenue-value highlight">¥{{utils.formatPrice(dashboardData.revenue.monthly_revenue)}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 库存预警 -->
+      <view class="section" wx:if="{{dashboardData.parts.low_stock_parts > 0}}">
+        <view class="section-title warning-title">⚠️ 库存预警</view>
+        <view class="warning-tip">
+          <text>有 {{dashboardData.parts.low_stock_parts}} 种备件库存不足，请及时补货</text>
+          <text class="go-btn" bindtap="switchPage" data-page="inventory">去补货</text>
+        </view>
+      </view>
+
+      <!-- 最近工单 -->
+      <view class="section" wx:if="{{dashboardData.recentOrders && dashboardData.recentOrders.length > 0}}">
+        <view class="section-title">最近工单</view>
+        <view class="recent-orders">
+          <view class="recent-order-item" wx:for="{{dashboardData.recentOrders}}" wx:key="id" bindtap="viewOrderDetail" data-order-id="{{item.id}}">
+            <view class="ro-left">
+              <text class="ro-device">{{item.device_model || '未知设备'}}</text>
+              <text class="ro-customer">{{item.customer_name || item.nickname || '客户'}}</text>
+            </view>
+            <view class="ro-right">
+              <text class="ro-price">¥{{utils.formatPrice(item.estimated_price)}}</text>
+              <text class="ro-status" style="color: {{utils.getStatusColor(item.status)}}">{{utils.getStatusText(item.status)}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 最近用户 -->
+      <view class="section" wx:if="{{dashboardData.recentUsers && dashboardData.recentUsers.length > 0}}">
+        <view class="section-title">最近用户</view>
+        <view class="recent-users">
+          <view class="recent-user-item" wx:for="{{dashboardData.recentUsers}}" wx:key="id">
+            <image class="ru-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill" binderror="onRecentUserAvatarError" data-index="{{index}}"></image>
+            <view class="ru-info">
+              <text class="ru-name">{{item.nickname || item.real_name || '用户'}}</text>
+              <text class="ru-time">{{utils.formatDate(item.created_at)}}</text>
+            </view>
+            <text class="ru-role {{item.role}}">{{item.role === 'super_admin' ? '超级管理员' : item.role === 'admin' ? '管理员' : '用户'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 工单管理 -->
+    <view class="orders" wx:if="{{currentPage === 'orders'}}">
+      <!-- 搜索栏 -->
+      <view class="search-bar">
+        <view class="search-input-wrap">
+          <text class="search-icon">🔍</text>
+          <input class="search-input" placeholder="搜索订单号、客户、手机号" value="{{keyword}}" bindinput="onOrderSearchInput" confirm-type="search" bindconfirm="onSearchOrder"></input>
+          <text class="search-clear" wx:if="{{keyword}}" bindtap="onClearSearch">✕</text>
+        </view>
+        <button class="search-btn" bindtap="onSearchOrder">搜索</button>
+      </view>
+
+      <!-- 状态筛选 -->
+      <view class="filter-bar">
+        <scroll-view class="filter-scroll" scroll-x>
+          <view class="filter-chip {{!statusFilter ? 'active' : ''}}" bindtap="onStatusFilterChange" data-value="" data-label="全部">全部</view>
+          <view class="filter-chip {{statusFilter === 'pending' ? 'active' : ''}}" bindtap="onStatusFilterChange" data-value="pending" data-label="待处理">待处理</view>
+          <view class="filter-chip {{statusFilter === 'processing' ? 'active' : ''}}" bindtap="onStatusFilterChange" data-value="processing" data-label="处理中">处理中</view>
+          <view class="filter-chip {{statusFilter === 'completed' ? 'active' : ''}}" bindtap="onStatusFilterChange" data-value="completed" data-label="已完成">已完成</view>
+          <view class="filter-chip {{statusFilter === 'cancelled' ? 'active' : ''}}" bindtap="onStatusFilterChange" data-value="cancelled" data-label="已取消">已取消</view>
+          <view class="filter-chip {{statusFilter === 'review' ? 'active' : ''}}" bindtap="onStatusFilterChange" data-value="review" data-label="待评价">待评价</view>
+        </scroll-view>
+      </view>
+
+      <!-- 设备类型筛选 -->
+      <view class="filter-bar type-filter">
+        <scroll-view class="filter-scroll" scroll-x>
+          <view class="filter-chip type-chip {{!deviceTypeFilter ? 'active' : ''}}" bindtap="onDeviceTypeFilterChange" data-value="全部" data-label="全部">全部</view>
+          <view class="filter-chip type-chip" wx:for="{{deviceTypeOptions}}" wx:key="*this" wx:for-item="type" bindtap="onDeviceTypeFilterChange" data-value="{{type}}" data-label="{{type}}">{{type}}</view>
+        </scroll-view>
+      </view>
+
+      <!-- 结果提示 -->
+      <view class="result-tip" wx:if="{{orderTotal > 0}}">
+        <text>共 {{orderTotal}} 条记录</text>
+      </view>
+
+      <!-- 工单列表 -->
+      <view class="order-list" wx:if="{{orders.length > 0}}">
+        <view class="order-item" wx:for="{{orders}}" wx:key="id">
+          <view class="order-header">
+            <view class="oh-left">
+              <text class="order-no">{{item.order_id || '未知订单号'}}</text>
+              <text class="order-type-tag">{{utils.getDeviceTypeName(item.device_type)}}</text><text class="order-type-tag order-type" wx:if="{{item.order_type === 'recycle'}}">回收</text><text class="order-type-tag service-type" wx:if="{{item.service_type === 'home'}}">上门</text>
+            </view>
+            <view class="order-status-badge" style="background-color: {{utils.getStatusColor(item.status)}}; color: #fff;">
+              {{utils.getStatusText(item.status)}}
+            </view>
+          </view>
+          <view class="order-body">
+            <view class="order-info-row">
+              <text class="info-label">客户:</text>
+              <text class="info-value">{{item.customer_name || item.nickname || '未知'}}</text>
+              <text class="info-phone" bindtap="makeCall" data-phone="{{item.phone}}" wx:if="{{item.phone}}">📞</text>
+            </view>
+            <view class="order-info-row">
+              <text class="info-label">设备:</text>
+              <text class="info-value">{{item.device_model || '未知设备'}}</text>
+              <text class="info-time">{{utils.formatDate(item.created_at)}}</text>
+            </view>
+            <view class="order-info-row">
+              <text class="info-label">描述:</text>
+              <text class="info-value desc" wx:if="{{!item.isRecycle || !item.recycleDescSummary}}">{{item.problem_description || item.custom_description || '无'}}</text>
+              <text class="info-value desc" wx:else>{{item.recycleDescSummary}}...</text>
+            </view>
+            <view class="order-info-row">
+              <text class="info-label">价格:</text>
+              <!-- 优先显示实际价格,若无则显示预估价格 -->
+              <text class="info-value price">¥{{utils.formatPrice(item.actual_price || item.estimated_price)}}</text>
+            </view>
+            <view class="order-info-row" wx:if="{{item.assigned_to}}">
+              <text class="info-label">分配:</text>
+              <text class="info-value">{{item.assigned_display_name || item.assigned_name || (item.order_type === 'recycle' ? '处理人员' : '维修人员')}}</text>
+            </view>
+          </view>
+          <view class="order-footer">
+            <view class="order-actions">
+              <button class="action-btn primary" size="mini" bindtap="viewOrderDetail" data-order-id="{{item.id}}">详情</button>
+              <button class="action-btn success" size="mini" wx:if="{{item.status === 'pending'}}" bindtap="assignOrderToTechnician" data-order-id="{{item.id}}">分配</button>
+              <button class="action-btn" size="mini" wx:if="{{item.status === 'pending'}}" bindtap="updateOrderStatus" data-order-id="{{item.id}}" data-current-status="{{item.status}}">状态</button>
+              <button class="action-btn" size="mini" wx:if="{{item.status === 'quoted'}}" style="background: #8b5cf6; color: #fff;">等待确认</button>
+              <button class="action-btn success" size="mini" wx:if="{{item.status === 'confirmed'}}" bindtap="updateOrderStatus" data-order-id="{{item.id}}" data-current-status="{{item.status}}">开始处理</button>
+              <button class="action-btn feedback" size="mini" wx:if="{{item.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{item.id}}">📹 进度反馈</button>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="empty-state" wx:if="{{!orderListLoading && orders.length === 0}}">
+        <text class="empty-icon">📭</text>
+        <text class="empty-text">暂无工单</text>
+      </view>
+
+      <!-- 加载中 -->
+      <view class="empty-state" wx:if="{{orderListLoading}}">
+        <text class="empty-icon">⏳</text>
+        <text class="empty-text">加载中...</text>
+      </view>
+
+      <!-- 分页 -->
+      <view class="pagination" wx:if="{{orders.length > 0}}">
+        <button class="page-btn {{orderPage <= 1 ? 'disabled' : ''}}" size="mini" bindtap="loadPrevPage">上一页</button>
+        <text class="page-info">{{orderPage}} / {{Math.ceil(orderTotal / orderPageSize) || 1}}</text>
+        <button class="page-btn {{orderPage >= Math.ceil(orderTotal / orderPageSize) ? 'disabled' : ''}}" size="mini" bindtap="loadNextPage">下一页</button>
+      </view>
+    </view>
+
+    <!-- 我的订单（分配给当前管理员的订单） -->
+    <view class="my-orders" wx:if="{{currentPage === 'myOrders'}}">
+      <view class="order-stats-cards">
+        <view class="order-stat-card pending" bindtap="onOrderStatClick" data-status="pending">
+          <text class="osc-icon">⏳</text>
+          <view class="osc-info">
+            <text class="osc-value">{{dashboardData.orders.pending_orders || 0}}</text>
+            <text class="osc-label">待处理</text>
+          </view>
+        </view>
+        <view class="order-stat-card processing" bindtap="onOrderStatClick" data-status="processing">
+          <text class="osc-icon">🔧</text>
+          <view class="osc-info">
+            <text class="osc-value">{{dashboardData.orders.processing_orders || 0}}</text>
+            <text class="osc-label">处理中</text>
+          </view>
+        </view>
+        <view class="order-stat-card completed" bindtap="onOrderStatClick" data-status="completed">
+          <text class="osc-icon">✅</text>
+          <view class="osc-info">
+            <text class="osc-value">{{dashboardData.orders.completed_orders || 0}}</text>
+            <text class="osc-label">已完成</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 加载我的订单 -->
+      <view wx:if="{{!orderListLoading && orders.length === 0}}" class="empty-state">
+        <text class="empty-icon">📭</text>
+        <text class="empty-text">暂无分配给我的订单</text>
+      </view>
+
+      <!-- 我的订单列表 -->
+      <view class="my-order-list" wx:if="{{orders.length > 0}}">
+        <view class="my-order-item" wx:for="{{orders}}" wx:key="id">
+          <view class="myo-header">
+            <view class="myo-left">
+              <text class="myo-no">{{item.order_id || '未知订单号'}}</text>
+              <text class="myo-type">{{utils.getDeviceTypeName(item.device_type)}}</text>
+            </view>
+            <view class="myo-right">
+              <text class="myo-status" style="background-color: {{utils.getStatusColor(item.status)}}; color: #fff;">{{utils.getStatusText(item.status)}}</text>
+            </view>
+          </view>
+          <!-- 已通过进度申请提醒 -->
+          <view wx:if="{{item.hasApprovedPa}}" class="myo-pa-notice">
+            <text class="myo-pa-icon">📢</text>
+            <text class="myo-pa-text">该订单有已通过的进度申请，请及时反馈进度</text>
+          </view>
+          <view class="myo-body">
+            <view class="myo-info-row">
+              <text class="myo-label">客户:</text>
+              <text class="myo-value">{{item.customer_name || item.nickname || '未知'}}</text>
+              <text class="info-phone" bindtap="makeCall" data-phone="{{item.phone}}" wx:if="{{item.phone}}">📞</text>
+            </view>
+            <view class="myo-info-row">
+              <text class="myo-label">设备:</text>
+              <text class="myo-value">{{item.device_model || '未知设备'}}</text>
+            </view>
+            <view class="myo-info-row">
+              <text class="myo-label">描述:</text>
+              <text class="myo-value myo-desc" wx:if="{{!item.isRecycle || !item.recycleDescSummary}}">{{item.problem_description || item.custom_description || '无'}}</text>
+              <text class="myo-value myo-desc" wx:else>{{item.recycleDescSummary}}...</text>
+            </view>
+            <view class="myo-info-row">
+              <text class="myo-label">价格:</text>
+              <!-- 优先显示实际价格,若无则显示预估价格 -->
+              <text class="myo-value myo-price">¥{{utils.formatPrice(item.actual_price || item.estimated_price)}}</text>
+            </view>
+
+            <!-- 进度显示 -->
+            <view class="myo-progress-section" wx:if="{{item.status === 'processing'}}">
+              <view class="myo-progress-label">
+                <text class="mpl-left">{{item.order_type === 'recycle' ? '回收进度' : '维修进度'}}</text>
+                <text class="mpl-right">{{item.progress || 0}}%</text>
+              </view>
+              <view class="myo-progress-bar">
+                <view class="myo-progress-fill" style="width: {{item.progress || 0}}%"></view>
+              </view>
+            </view>
+          </view>
+          <view class="myo-footer">
+            <view class="myo-actions">
+              <button class="myo-btn primary" size="mini" bindtap="viewOrderDetail" data-order-id="{{item.id}}">详情</button>
+              <button class="myo-btn primary" size="mini" wx:if="{{item.status === 'pending'}}" bindtap="openQuoteModal" data-order-id="{{item.id}}">💰 报价</button>
+              <button class="myo-btn" size="mini" wx:if="{{item.status === 'quoted'}}" style="background: #8b5cf6; color: #fff;">等待确认</button>
+              <button class="myo-btn success" size="mini" wx:if="{{item.status === 'confirmed'}}" bindtap="doUpdateOrderStatus" data-order-id="{{item.id}}" data-status="processing">开始处理</button>
+              <button class="myo-btn feedback" size="mini" wx:if="{{item.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{item.id}}">📹 进度反馈</button>
+              <button class="myo-btn success" size="mini" wx:if="{{item.status === 'processing'}}" bindtap="doUpdateOrderStatus" data-order-id="{{item.id}}" data-status="completed">完成</button>
+              <button class="myo-btn danger" size="mini" wx:if="{{item.status !== 'completed' && item.status !== 'quoted'}}" bindtap="doUpdateOrderStatus" data-order-id="{{item.id}}" data-status="cancelled">取消</button>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 设备统计 -->
+    <view class="device-stats" wx:if="{{currentPage === 'device'}}">
+      <!-- 今日工单 -->
+      <view class="section">
+        <view class="section-title">今日工单</view>
+        <view class="today-stats">
+          <view class="today-stat-item">
+            <text class="ts-num pending">{{deviceStats.todayStats.pending_today || 0}}</text>
+            <text class="ts-label">待处理</text>
+          </view>
+          <view class="today-stat-item">
+            <text class="ts-num processing">{{deviceStats.todayStats.processing_today || 0}}</text>
+            <text class="ts-label">处理中</text>
+          </view>
+          <view class="today-stat-item">
+            <text class="ts-num completed">{{deviceStats.todayStats.completed_today || 0}}</text>
+            <text class="ts-label">已完成</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 本月统计 -->
+      <view class="section">
+        <view class="section-title">本月统计</view>
+        <view class="month-stats">
+          <view class="ms-item">
+            <text class="ms-label">总工单</text>
+            <text class="ms-value">{{deviceStats.monthStats.total_month || 0}}</text>
+          </view>
+          <view class="ms-item">
+            <text class="ms-label">完成率</text>
+            <text class="ms-value highlight">{{completionRate || 0}}%</text>
+          </view>
+          <view class="ms-item">
+            <text class="ms-label">平均收入</text>
+            <text class="ms-value">¥{{averageRevenue}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 设备类型分布 -->
+      <view class="section" wx:if="{{deviceStats.deviceDistribution && deviceStats.deviceDistribution.length > 0}}">
+        <view class="section-title">设备类型分布</view>
+        <view class="device-list">
+          <view class="device-item" wx:for="{{deviceStats.deviceDistribution}}" wx:key="device_type">
+            <view class="device-item-header">
+              <text class="device-name">{{item.device_type_name || '未知设备'}}</text>
+              <text class="device-total">共 {{item.count || 0}} 台</text>
+            </view>
+            <view class="device-bar">
+              <view class="bar-segment pending" style="width: {{(item.pending / item.count * 100) || 0}}%"></view>
+              <view class="bar-segment processing" style="width: {{(item.processing / item.count * 100) || 0}}%"></view>
+              <view class="bar-segment completed" style="width: {{(item.completed / item.count * 100) || 0}}%"></view>
+              <view class="bar-segment cancelled" style="width: {{(item.cancelled / item.count * 100) || 0}}%"></view>
+            </view>
+            <view class="device-detail">
+              <text class="dd-item pending">待:{{item.pending || 0}}</text>
+              <text class="dd-item processing">中:{{item.processing || 0}}</text>
+              <text class="dd-item completed">完:{{item.completed || 0}}</text>
+              <text class="dd-item cancelled">取:{{item.cancelled || 0}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 常见故障 -->
+      <view class="section" wx:if="{{deviceStats.faultStats && deviceStats.faultStats.length > 0}}">
+        <view class="section-title">常见故障</view>
+        <view class="fault-list">
+          <view class="fault-item" wx:for="{{deviceStats.faultStats}}" wx:key="fault_short">
+            <view class="fault-rank {{index < 3 ? 'top' : ''}}">{{index + 1}}</view>
+            <text class="fault-desc">{{item.fault_short || '未知故障'}}</text>
+            <text class="fault-count">{{item.count || 0}} 次</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 库存管理 -->
+    <view class="inventory" wx:if="{{currentPage === 'inventory'}}">
+      <view class="inventory-overview">
+        <view class="io-item">
+          <text class="io-num">{{partsTotal || 0}}</text>
+          <text class="io-label">备件总数</text>
+        </view>
+        <view class="io-item warning">
+          <text class="io-num">{{partsWarningCount || 0}}</text>
+          <text class="io-label">库存预警</text>
+        </view>
+        <button class="add-btn-small" bindtap="addPart">+ 添加备件</button>
+      </view>
+
+      <!-- 备件列表 -->
+      <view class="parts-list" wx:if="{{partsInventory.length > 0}}">
+        <view class="part-item {{item.quantity <= item.min_quantity ? 'warning' : ''}}" wx:for="{{partsInventory}}" wx:key="id">
+          <view class="part-header">
+            <view class="part-name-wrap">
+              <text class="part-name">{{item.name || '未知备件'}}</text>
+              <text class="part-model">{{item.model || ''}}</text>
+            </view>
+            <text class="part-status-tag" wx:if="{{item.quantity <= item.min_quantity}}">⚠️ 库存不足</text>
+          </view>
+          <view class="part-body">
+            <view class="part-grid">
+              <view class="pg-item">
+                <text class="pg-label">库存</text>
+                <text class="pg-value {{item.quantity <= item.min_quantity ? 'danger' : ''}}">{{item.quantity || 0}}</text>
+              </view>
+              <view class="pg-item">
+                <text class="pg-label">最低库存</text>
+                <text class="pg-value">{{item.min_quantity || 5}}</text>
+              </view>
+              <view class="pg-item">
+                <text class="pg-label">单价</text>
+                <text class="pg-value">¥{{utils.formatPrice(item.unit_price)}}</text>
+              </view>
+              <view class="pg-item">
+                <text class="pg-label">分类</text>
+                <text class="pg-value">{{item.category || '未分类'}}</text>
+              </view>
+              <view class="pg-item">
+                <text class="pg-label">供应商</text>
+                <text class="pg-value">{{item.supplier || '未知'}}</text>
+              </view>
+              <view class="pg-item">
+                <text class="pg-label">位置</text>
+                <text class="pg-value">{{item.location || '未指定'}}</text>
+              </view>
+            </view>
+          </view>
+          <view class="part-footer">
+            <button class="action-btn" size="mini" bindtap="editPart" data-part-id="{{item.id}}">编辑</button>
+            <button class="action-btn danger" size="mini" bindtap="deletePart" data-part-id="{{item.id}}">删除</button>
+          </view>
+        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="empty-state" wx:if="{{!loading && partsInventory.length === 0}}">
+        <text class="empty-icon">📦</text>
+        <text class="empty-text">暂无备件</text>
+        <text class="empty-sub">点击上方按钮添加备件</text>
+      </view>
+
+      <!-- 加载中 -->
+      <view class="empty-state" wx:if="{{loading}}">
+        <text class="empty-icon">⏳</text>
+        <text class="empty-text">加载中...</text>
+      </view>
+    </view>
+
+    <!-- 维修人员 -->
+    <view class="technicians" wx:if="{{currentPage === 'technicians'}}">
+      <view class="technician-summary">
+        <text class="ts-text">共有 {{technicianTotal || 0}} 位维修人员</text>
+      </view>
+
+      <!-- 维修人员列表 -->
+      <view class="technician-list" wx:if="{{technicians.length > 0}}">
+        <view class="technician-item" wx:for="{{technicians}}" wx:key="id">
+          <image class="tech-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <view class="tech-info">
+            <view class="tech-name-row">
+              <text class="tech-name">{{item.real_name || item.nickname || '维修人员'}}</text>
+              <text class="tech-role-tag {{item.role}}">{{item.role === 'super_admin' ? '超级管理员' : item.role === 'admin' ? '管理员' : '维修人员'}}</text>
+            </view>
+            <text class="tech-phone" wx:if="{{item.phone}}">📞 {{item.phone}}</text>
+            <text class="tech-email" wx:if="{{item.email}}">📧 {{item.email}}</text>
+            <view class="tech-stats-card">
+              <view class="tsc-item">
+                <text class="tsc-num processing">{{item.processing_orders || 0}}</text>
+                <text class="tsc-label">进行中</text>
+              </view>
+              <view class="tsc-item">
+                <text class="tsc-num completed">{{item.completed_orders || 0}}</text>
+                <text class="tsc-label">已完成</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="empty-state" wx:if="{{!loading && technicians.length === 0}}">
+        <text class="empty-icon">👨‍🔧</text>
+        <text class="empty-text">暂无维修人员</text>
+      </view>
+    </view>
+
+    <!-- 申请处理 -->
+    <view class="progress-apply" wx:if="{{currentPage === 'progressApply'}}">
+      <!-- 统计卡片 -->
+      <view class="pa-stats-row">
+        <view class="pa-stat-card" bindtap="onPaFilterChange" data-status="">
+          <text class="pa-stat-value">{{paStats.total}}</text>
+          <text class="pa-stat-label">全部</text>
+        </view>
+        <view class="pa-stat-card pending" bindtap="onPaFilterChange" data-status="pending">
+          <text class="pa-stat-value pending-value">{{paStats.pending || 0}}</text>
+          <text class="pa-stat-label">待审核</text>
+        </view>
+        <view class="pa-stat-card approved" bindtap="onPaFilterChange" data-status="approved">
+          <text class="pa-stat-value approved-value">{{paStats.approved || 0}}</text>
+          <text class="pa-stat-label">已通过</text>
+        </view>
+        <view class="pa-stat-card rejected" bindtap="onPaFilterChange" data-status="rejected">
+          <text class="pa-stat-value rejected-value">{{paStats.rejected || 0}}</text>
+          <text class="pa-stat-label">已拒绝</text>
+        </view>
+      </view>
+
+      <!-- 筛选标签 -->
+      <view class="pa-filter-tabs">
+        <view class="pa-filter-tab {{paStatusFilter === '' ? 'active' : ''}}" bindtap="onPaFilterChange" data-status="">全部</view>
+        <view class="pa-filter-tab {{paStatusFilter === 'pending' ? 'active' : ''}}" bindtap="onPaFilterChange" data-status="pending">待审核</view>
+        <view class="pa-filter-tab {{paStatusFilter === 'approved' ? 'active' : ''}}" bindtap="onPaFilterChange" data-status="approved">已通过</view>
+        <view class="pa-filter-tab {{paStatusFilter === 'rejected' ? 'active' : ''}}" bindtap="onPaFilterChange" data-status="rejected">已拒绝</view>
+      </view>
+
+      <!-- 加载状态 -->
+      <view wx:if="{{paLoading && paList.length === 0}}" class="pa-loading-state">
+        <view class="loading-spinner"></view>
+        <text>加载中...</text>
+      </view>
+
+      <!-- 空状态 -->
+      <view wx:elif="{{paList.length === 0 && !paLoading}}" class="pa-empty-state">
+        <text class="pa-empty-icon">📋</text>
+        <text class="pa-empty-text">暂无进度申请</text>
+      </view>
+
+      <!-- 申请列表 -->
+      <view wx:else class="pa-list">
+        <view class="pa-card" wx:for="{{paList}}" wx:key="id">
+          <view class="pa-card-header">
+            <view class="pa-card-header-left">
+              <text class="pa-apply-no">{{item.apply_no}}</text>
+              <text class="pa-apply-user">申请人: {{item.userName}}</text>
+            </view>
+            <view class="pa-status-badge" style="background: {{item.statusBg}}; color: {{item.statusColor}}">
+              {{item.statusIcon}} {{item.statusLabel}}
+            </view>
+          </view>
+
+          <view class="pa-info-grid">
+            <view class="pa-info-item">
+              <text class="pa-info-label">设备</text>
+              <text class="pa-info-value">{{item.device_name || item.order_device_model || '未填写'}}</text>
+            </view>
+            <view class="pa-info-item">
+              <text class="pa-info-label">进度类型</text>
+              <text class="pa-info-value">{{item.progressTypeText}}</text>
+            </view>
+            <view class="pa-info-item">
+              <text class="pa-info-label">联系方式</text>
+              <text class="pa-info-value">{{item.phone}}</text>
+            </view>
+            <view class="pa-info-item">
+              <text class="pa-info-label">申请时间</text>
+              <text class="pa-info-value time">{{item.createdAt}}</text>
+            </view>
+          </view>
+
+          <view class="pa-reason-box">
+            <text class="pa-reason-label">申请原因:</text>
+            <text class="pa-reason-text">{{item.apply_reason}}</text>
+          </view>
+
+          <view class="pa-order-link" bindtap="onPaViewOrder" data-orderid="{{item.order_id}}">
+            <text class="pa-link-icon">📦</text>
+            <text class="pa-link-text">查看关联订单 #{{item.order_id}}</text>
+            <text class="pa-link-arrow">›</text>
+          </view>
+
+          <!-- 待审核显示操作按钮 -->
+          <view wx:if="{{item.approval_status === 'pending'}}" class="pa-action-bar">
+            <view class="pa-action-btn approve" bindtap="onPaOpenApprove" data-id="{{item.id}}">✅ 通过</view>
+            <view class="pa-action-btn reject" bindtap="onPaOpenReject" data-id="{{item.id}}">❌ 拒绝</view>
+            <view class="pa-action-btn detail" bindtap="onPaViewDetail" data-id="{{item.id}}">查看</view>
+          </view>
+
+          <!-- 已处理的显示审批备注 -->
+          <view wx:if="{{item.approval_status !== 'pending' && item.approval_remark}}" class="pa-approval-note" style="border-left-color: {{item.statusColor}}">
+            <text class="pa-note-label">{{item.approval_status === 'approved' ? '审批备注:' : '拒绝原因:'}}</text>
+            <text class="pa-note-text">{{item.approval_remark}}</text>
+          </view>
+        </view>
+
+        <!-- 加载更多 -->
+        <view wx:if="{{paLoading && paList.length > 0}}" class="pa-loading-more">加载中...</view>
+        <view wx:if="{{!paHasMore && paList.length > 0}}" class="pa-no-more">没有更多了</view>
+      </view>
+
+      <!-- 审批通过弹窗 -->
+      <view wx:if="{{paShowApproveModal}}" class="pa-modal-overlay" bindtap="onPaCloseApprove">
+        <view class="pa-modal-content" catchtap="noop">
+          <view class="pa-modal-header">
+            <text class="pa-modal-title">审批通过</text>
+            <view class="pa-modal-close" bindtap="onPaCloseApprove">×</view>
+          </view>
+          <view class="pa-modal-body">
+            <view class="pa-modal-info">
+              <text class="pa-modal-info-label">申请编号: {{paCurrentApply.apply_no}}</text>
+              <text class="pa-modal-info-label">申请人: {{paCurrentApply.userName}}</text>
+            </view>
+            <view class="pa-form-group">
+              <text class="pa-form-label">审批备注 (选填)</text>
+              <textarea class="pa-form-textarea" placeholder="输入审批意见..." value="{{paApproveRemark}}" bindinput="onPaApproveRemarkInput"/>
+            </view>
+          </view>
+          <view class="pa-modal-footer">
+            <view class="pa-modal-btn cancel" bindtap="onPaCloseApprove">取消</view>
+            <view class="pa-modal-btn primary" bindtap="onPaSubmitApprove">确认通过</view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 拒绝弹窗 -->
+      <view wx:if="{{paShowRejectModal}}" class="pa-modal-overlay" bindtap="onPaCloseReject">
+        <view class="pa-modal-content" catchtap="noop">
+          <view class="pa-modal-header">
+            <text class="pa-modal-title">拒绝申请</text>
+            <view class="pa-modal-close" bindtap="onPaCloseReject">×</view>
+          </view>
+          <view class="pa-modal-body">
+            <view class="pa-modal-info">
+              <text class="pa-modal-info-label">申请编号: {{paCurrentApply.apply_no}}</text>
+              <text class="pa-modal-info-label">申请人: {{paCurrentApply.userName}}</text>
+            </view>
+            <view class="pa-form-group">
+              <text class="pa-form-label">拒绝原因 <text class="pa-required">*</text></text>
+              <textarea class="pa-form-textarea" placeholder="请填写拒绝原因..." value="{{paRejectRemark}}" bindinput="onPaRejectRemarkInput"/>
+            </view>
+          </view>
+          <view class="pa-modal-footer">
+            <view class="pa-modal-btn cancel" bindtap="onPaCloseReject">取消</view>
+            <view class="pa-modal-btn danger" bindtap="onPaSubmitReject">确认拒绝</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 售后管理 -->
+    <view class="after-sales" wx:if="{{currentPage === 'afterSales'}}">
+      <!-- 统计卡片 -->
+      <view class="pa-stats-row">
+        <view class="pa-stat-card" bindtap="onAsFilterChange" data-status="">
+          <text class="pa-stat-value">{{asStats.total}}</text>
+          <text class="pa-stat-label">全部</text>
+        </view>
+        <view class="pa-stat-card pending" bindtap="onAsFilterChange" data-status="pending">
+          <text class="pa-stat-value pending-value">{{asStats.pending}}</text>
+          <text class="pa-stat-label">待处理</text>
+        </view>
+        <view class="pa-stat-card approved" bindtap="onAsFilterChange" data-status="processing">
+          <text class="pa-stat-value approved-value">{{asStats.processing}}</text>
+          <text class="pa-stat-label">处理中</text>
+        </view>
+        <view class="pa-stat-card resolved" bindtap="onAsFilterChange" data-status="resolved">
+          <text class="pa-stat-value resolved-value">{{asStats.resolved}}</text>
+          <text class="pa-stat-label">已解决</text>
+        </view>
+        <view class="pa-stat-card rejected" bindtap="onAsFilterChange" data-status="rejected">
+          <text class="pa-stat-value rejected-value">{{asStats.rejected}}</text>
+          <text class="pa-stat-label">已拒绝</text>
+        </view>
+      </view>
+
+      <!-- 筛选标签 -->
+      <view class="pa-filter-tabs">
+        <view class="pa-filter-tab {{asStatusFilter === '' ? 'active' : ''}}" bindtap="onAsFilterChange" data-status="">全部</view>
+        <view class="pa-filter-tab {{asStatusFilter === 'pending' ? 'active' : ''}}" bindtap="onAsFilterChange" data-status="pending">待处理</view>
+        <view class="pa-filter-tab {{asStatusFilter === 'processing' ? 'active' : ''}}" bindtap="onAsFilterChange" data-status="processing">处理中</view>
+        <view class="pa-filter-tab {{asStatusFilter === 'resolved' ? 'active' : ''}}" bindtap="onAsFilterChange" data-status="resolved">已解决</view>
+        <view class="pa-filter-tab {{asStatusFilter === 'rejected' ? 'active' : ''}}" bindtap="onAsFilterChange" data-status="rejected">已拒绝</view>
+      </view>
+
+      <!-- 加载状态 -->
+      <view wx:if="{{asLoading && afterSalesList.length === 0}}" class="pa-loading-state">
+        <view class="loading-spinner"></view>
+        <text>加载中...</text>
+      </view>
+
+      <!-- 空状态 -->
+      <view wx:elif="{{afterSalesList.length === 0 && !asLoading}}" class="pa-empty-state">
+        <text class="pa-empty-icon">🛠️</text>
+        <text class="pa-empty-text">暂无售后申请</text>
+      </view>
+
+      <!-- 列表 -->
+      <view wx:else class="pa-list">
+        <view class="pa-card" wx:for="{{afterSalesList}}" wx:key="id">
+          <view class="pa-card-header">
+            <view class="pa-card-header-left">
+              <text class="pa-apply-no">售后单 #{{item.id}}</text>
+              <text class="pa-apply-user">申请人: {{item.applicantName}}</text>
+            </view>
+            <view class="pa-status-badge" style="background: {{item.statusBg}}; color: {{item.statusColor}}">
+              {{item.statusIcon}} {{item.statusLabel}}
+            </view>
+          </view>
+
+          <view class="pa-info-grid">
+            <view class="pa-info-item">
+              <text class="pa-info-label">产品</text>
+              <text class="pa-info-value">{{item.product_name}}</text>
+            </view>
+            <view class="pa-info-item">
+              <text class="pa-info-label">型号</text>
+              <text class="pa-info-value">{{item.product_model || '无'}}</text>
+            </view>
+            <view class="pa-info-item">
+              <text class="pa-info-label">类型</text>
+              <text class="pa-info-value">{{item.typeText}}</text>
+            </view>
+            <view class="pa-info-item">
+              <text class="pa-info-label">联系电话</text>
+              <text class="pa-info-value">{{item.contact_phone || '无'}}</text>
+            </view>
+            <view class="pa-info-item">
+              <text class="pa-info-label">关联订单</text>
+              <text class="pa-info-value">#{{item.order_id}}</text>
+            </view>
+            <view class="pa-info-item">
+              <text class="pa-info-label">申请时间</text>
+              <text class="pa-info-value time">{{item.createdAt}}</text>
+            </view>
+          </view>
+
+          <view class="pa-reason-box">
+            <text class="pa-reason-label">问题描述:</text>
+            <text class="pa-reason-text">{{item.description}}</text>
+          </view>
+
+          <!-- 图片凭证 -->
+          <view wx:if="{{item.images.length > 0}}" class="as-images">
+            <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="as-image" src="{{img}}" mode="aspectFill" bindtap="previewImage" data-url="{{img}}" data-urls="{{item.images}}"></image>
+          </view>
+
+          <!-- 待处理/处理中 显示操作 -->
+          <view wx:if="{{item.status === 'pending' || item.status === 'processing'}}" class="pa-action-bar">
+            <view class="pa-action-btn approve" bindtap="onAsOpenResolve" data-id="{{item.id}}">✅ 解决</view>
+            <view class="pa-action-btn reject" bindtap="onAsOpenReject" data-id="{{item.id}}">❌ 拒绝</view>
+          </view>
+
+          <!-- 已处理 显示备注 -->
+          <view wx:if="{{item.status === 'resolved' || item.status === 'rejected'}}" class="pa-approval-note" style="border-left-color: {{item.statusColor}}">
+            <text class="pa-note-label">{{item.status === 'resolved' ? '解决方案:' : '拒绝原因:'}}</text>
+            <text class="pa-note-text">{{item.admin_remark || '无'}}</text>
+            <text wx:if="{{item.resolvedAt}}" class="pa-note-time">{{item.resolvedAt}}</text>
+          </view>
+        </view>
+
+        <view wx:if="{{asLoading && afterSalesList.length > 0}}" class="pa-loading-more">加载中...</view>
+        <view wx:if="{{!asHasMore && afterSalesList.length > 0}}" class="pa-no-more">没有更多了</view>
+      </view>
+    </view>
+
+    <!-- 交易收入 -->
+    <view class="income" wx:if="{{currentPage === 'income'}}">
+      <view class="refresh-bar">
+        <text>交易收入</text>
+        <view class="refresh-actions">
+          <text class="refresh-btn" bindtap="onIncomeBackfill">历史回填</text>
+          <text class="refresh-btn" bindtap="loadIncomeData" data-reset="1">刷新</text>
+        </view>
+      </view>
+
+      <!-- 汇总卡片 -->
+      <view class="stats-grid">
+        <view class="stat-card">
+          <text class="stat-icon">💰</text>
+          <view class="stat-info">
+            <text class="stat-value">¥{{utils.formatPrice(incomeData.stats.total_income)}}</text>
+            <text class="stat-label">累计收入</text>
+            <text class="stat-sub">{{incomeData.stats.record_count || 0}} 笔</text>
+          </view>
+        </view>
+        <view class="stat-card">
+          <text class="stat-icon">✅</text>
+          <view class="stat-info">
+            <text class="stat-value">¥{{utils.formatPrice(incomeData.stats.paid_income)}}</text>
+            <text class="stat-label">已收款</text>
+            <text class="stat-sub">退款 ¥{{utils.formatPrice(incomeData.stats.refunded_income)}}</text>
+          </view>
+        </view>
+        <view class="stat-card">
+          <text class="stat-icon">🔧</text>
+          <view class="stat-info">
+            <text class="stat-value">¥{{utils.formatPrice(incomeData.stats.repair_income)}}</text>
+            <text class="stat-label">维修收入</text>
+            <text class="stat-sub">到店 ¥{{utils.formatPrice(incomeData.stats.shop_income)}}</text>
+          </view>
+        </view>
+        <view class="stat-card">
+          <text class="stat-icon">♻️</text>
+          <view class="stat-info">
+            <text class="stat-value">¥{{utils.formatPrice(incomeData.stats.recycle_income)}}</text>
+            <text class="stat-label">回收收入</text>
+            <text class="stat-sub">上门 ¥{{utils.formatPrice(incomeData.stats.door_to_door_income)}}</text>
+          </view>
+        </view>
+        <view class="stat-card">
+          <text class="stat-icon">📅</text>
+          <view class="stat-info">
+            <text class="stat-value">¥{{utils.formatPrice(incomeData.stats.monthly_income)}}</text>
+            <text class="stat-label">近30天</text>
+            <text class="stat-sub">今日 ¥{{utils.formatPrice(incomeData.stats.daily_income)}}</text>
+          </view>
+        </view>
+        <view class="stat-card">
+          <text class="stat-icon">📊</text>
+          <view class="stat-info">
+            <text class="stat-value">¥{{utils.formatPrice(incomeData.stats.avg_amount)}}</text>
+            <text class="stat-label">客单价</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 支付渠道分布 -->
+      <view class="section" wx:if="{{incomeData.by_channel.length > 0}}">
+        <view class="section-title">支付渠道分布</view>
+        <view class="channel-list">
+          <view class="channel-item" wx:for="{{incomeData.by_channel}}" wx:key="channel">
+            <text class="channel-name">{{item.channel === 'wechat_miniapp' ? '微信小程序' : (item.channel === 'cash' ? '现金' : (item.channel === 'alipay' ? '支付宝' : item.channel))}}</text>
+            <text class="channel-amount">¥{{item.amount}} · {{item.cnt}}笔</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 月度收入趋势（折线图） -->
+      <view class="section" wx:if="{{incomeData.monthly_trend.length > 0 && !showOrderDetail}}">
+        <view class="section-title">近6个月收入趋势</view>
+        <view class="trend-chart-wrap">
+          <canvas type="2d" id="incomeTrendChart" class="trend-canvas"></canvas>
+        </view>
+        <view class="trend-legend">
+          <view class="trend-legend-item" wx:for="{{incomeData.monthly_trend}}" wx:key="month">
+            <text class="trend-legend-month">{{item.month_label}}</text>
+            <text class="trend-legend-amount">¥{{item.amount}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 搜索（全部/维修/回收 通用） -->
+      <view class="income-search">
+        <view class="income-search-box">
+          <text class="income-search-icon">🔍</text>
+          <input
+            class="income-search-input"
+            placeholder="搜索 订单ID / 维修产品 / 用户名"
+            value="{{incomeKeyword}}"
+            bindinput="onIncomeSearchInput"
+            confirm-type="search"
+            bindconfirm="onIncomeSearch"
+          />
+          <text class="income-search-clear" wx:if="{{incomeKeyword}}" bindtap="onIncomeClearSearch">✕</text>
+        </view>
+        <text class="income-search-btn" bindtap="onIncomeSearch">搜索</text>
+      </view>
+
+      <!-- 筛选 -->
+      <view class="pa-filter-tabs">
+        <view class="pa-filter-tab {{incomeFilter === '' ? 'active' : ''}}" bindtap="onIncomeFilterChange" data-type="">全部</view>
+        <view class="pa-filter-tab {{incomeFilter === 'repair' ? 'active' : ''}}" bindtap="onIncomeFilterChange" data-type="repair">维修</view>
+        <view class="pa-filter-tab {{incomeFilter === 'recycle' ? 'active' : ''}}" bindtap="onIncomeFilterChange" data-type="recycle">回收</view>
+      </view>
+
+      <!-- 列表 -->
+      <scroll-view class="income-scroll" scroll-y bindscrolltolower="onIncomeReachBottom">
+        <view class="income-card" wx:for="{{incomeList}}" wx:key="id" bindtap="onIncomeItemTap" data-order-id="{{item.order_id}}">
+          <view class="income-card-left">
+            <text class="income-order-no">订单 {{item.order_no || item.order_id}}</text>
+            <text class="income-customer">{{item.customer_name}} · {{item.order_type === 'recycle' ? '回收' : '维修'}}{{item.service_type === 'door-to-door' ? '(上门)' : ''}}</text>
+            <text class="income-time">{{item.paid_at || '-'}}</text>
+          </view>
+          <view class="income-card-right">
+            <text class="income-amount">¥{{item.amount}}</text>
+            <text class="income-status {{item.payment_status === 'partial_refunded' ? 'partial' : 'paid'}}">{{item.payment_status === 'partial_refunded' ? '部分退款' : '已收款'}}</text>
+          </view>
+          <text class="income-card-arrow">›</text>
+        </view>
+
+        <view wx:if="{{incomeLoading && incomeList.length === 0}}" class="pa-loading-state">
+          <view class="loading-spinner"></view>
+          <text>加载中...</text>
+        </view>
+        <view wx:elif="{{incomeList.length === 0 && !incomeLoading}}" class="pa-empty-state">
+          <text class="pa-empty-icon">💰</text>
+          <text class="pa-empty-text">暂无收入记录</text>
+        </view>
+        <view wx:else>
+          <view wx:if="{{incomeLoading}}" class="pa-loading-more">加载中...</view>
+          <view wx:if="{{!incomeHasMore && incomeList.length > 0}}" class="pa-no-more">没有更多了</view>
+        </view>
+      </scroll-view>
+    </view>
+
+  </view>
+</view>
+
+<!-- 用户列表弹窗 -->
+<view class="popup-overlay" wx:if="{{showUserList}}">
+  <view class="popup-mask" bindtap="closeUserList"></view>
+  <view class="popup-content">
+    <view class="popup-header">
+      <text class="popup-title">用户管理</text>
+      <text class="popup-close" bindtap="closeUserList">✕</text>
+    </view>
+    <view class="popup-search">
+      <input class="popup-search-input" placeholder="搜索用户名、手机号" value="{{userKeyword}}" bindinput="onUserSearchInput"></input>
+      <text class="popup-search-clear" wx:if="{{userKeyword}}" bindtap="onClearUserSearch">✕</text>
+      <button class="popup-search-btn" size="mini" bindtap="onUserSearch">搜索</button>
+    </view>
+    <view class="popup-filters">
+      <view class="pfilter-item {{!userRoleFilter ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="">全部</view>
+      <view class="pfilter-item {{userRoleFilter === 'super_admin' ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="super_admin">超级管理员</view>
+      <view class="pfilter-item {{userRoleFilter === 'admin' ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="admin">管理员</view>
+      <view class="pfilter-item {{userRoleFilter === 'internal' ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="internal">内部人员</view>
+      <view class="pfilter-item {{userRoleFilter === 'user' ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="user">普通用户</view>
+    </view>
+    <scroll-view class="popup-scroll" scroll-y>
+      <view class="user-item" wx:for="{{users}}" wx:key="id">
+        <image class="user-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+        <view class="user-info">
+          <text class="user-name">{{item.nickname || item.real_name || '用户'}}</text>
+          <text class="user-phone">{{item.phone || '无手机号'}}</text>
+          <text class="user-join-time">{{utils.formatDate(item.created_at)}}</text>
+        </view>
+        <view class="user-actions-col">
+          <text class="ua-btn {{item.status ? 'enable' : 'disable'}}" bindtap="onToggleUserStatus" data-id="{{item.id}}" data-status="{{item.status}}">{{item.status ? '启用' : '禁用'}}</text>
+          <text class="ua-btn role" bindtap="onChangeUserRole" data-id="{{item.id}}" data-role="{{item.role}}">{{item.role === 'admin' ? '改为内部人员' : (item.role === 'internal' ? '改为普通用户' : '设为管理员')}}</text>
+        </view>
+      </view>
+      <view class="empty-state small" wx:if="{{!loading && users.length === 0}}">
+        <text class="empty-icon">👥</text>
+        <text class="empty-text">暂无用户</text>
+      </view>
+    </scroll-view>
+    <view class="popup-pagination">
+      <button class="page-btn {{userPage <= 1 ? 'disabled' : ''}}" size="mini" bindtap="loadPrevUserPage">上一页</button>
+      <text class="page-info">{{userPage}} / {{Math.ceil(userTotal / userPageSize) || 1}}</text>
+      <button class="page-btn {{userPage >= Math.ceil(userTotal / userPageSize) ? 'disabled' : ''}}" size="mini" bindtap="loadNextUserPage">下一页</button>
+    </view>
+  </view>
+</view>
+
+<!-- 工单详情弹窗 -->
+<view class="popup-overlay" wx:if="{{showOrderDetail && orderDetail}}">
+  <view class="popup-mask" bindtap="closeOrderDetail"></view>
+  <view class="popup-content detail-popup">
+    <view class="popup-header">
+      <text class="popup-title">工单详情</text>
+      <text class="popup-close" bindtap="closeOrderDetail">✕</text>
+    </view>
+    <scroll-view class="popup-scroll" scroll-y>
+      <!-- 基本信息 -->
+      <view class="detail-section">
+        <view class="detail-section-title">基本信息</view>
+        <view class="detail-row">
+          <text class="detail-label">订单号</text>
+          <text class="detail-value order-id">{{orderDetail.order_id || orderDetail.id}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">状态</text>
+          <text class="detail-value" style="color: {{utils.getStatusColor(orderDetail.status)}};">{{utils.getStatusText(orderDetail.status)}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">设备类型</text>
+          <text class="detail-value">{{utils.getDeviceTypeName(orderDetail.device_type)}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">设备型号</text>
+          <text class="detail-value">{{orderDetail.device_model || '未知设备'}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">订单类型</text>
+          <text class="detail-value">{{orderDetail.order_type === 'repair' ? '维修' : orderDetail.order_type === 'recycle' ? '回收' : '未知'}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">服务方式</text>
+          <text class="detail-value">{{orderDetail.service_type === 'shop' ? '到店' : orderDetail.service_type === 'home' ? '上门' : '未指定'}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">客户姓名</text>
+          <text class="detail-value">{{orderDetail.customer_name || orderDetail.nickname || '未知'}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">联系电话</text>
+          <text class="detail-value link" bindtap="makeCall" data-phone="{{orderDetail.phone}}">{{orderDetail.phone || '无'}}</text>
+        </view>
+        <view class="detail-row full">
+          <text class="detail-label">描述</text>
+          <!-- 回收订单：结构化展示 -->
+          <block wx:if="{{orderDetail.isRecycle && orderDetail.recycleDescItems.length > 0}}">
+            <view class="recycle-desc-cards">
+              <view class="recycle-desc-item" wx:for="{{orderDetail.recycleDescItems}}" wx:key="index">
+                <text class="recycle-desc-label">{{item.label}}</text>
+                <text class="recycle-desc-value">{{item.value}}</text>
+              </view>
+            </view>
+          </block>
+          <text class="detail-value desc" wx:else>{{orderDetail.problem_description || orderDetail.custom_description || '无'}}</text>
+        </view>
+      </view>
+
+      <!-- 价格信息 -->
+      <view class="detail-section">
+        <view class="detail-section-title">价格信息</view>
+        <view class="detail-row">
+          <text class="detail-label">预估价格</text>
+          <text class="detail-value">¥{{utils.formatPrice(orderDetail.estimated_price)}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">实际价格</text>
+          <view class="price-edit-wrapper">
+            <text class="detail-value highlight">¥{{utils.formatPrice(orderDetail.actual_price || orderDetail.estimated_price)}}</text>
+            <button class="edit-btn mini" size="mini" wx:if="{{orderDetail.status !== 'completed'}}" bindtap="showPriceEditor">修改</button>
+          </view>
+        </view>
+        <view class="detail-row" wx:if="{{orderDetail.order_type === 'recycle'}}">
+          <text class="detail-label">设备估值</text>
+          <text class="detail-value">¥{{utils.formatPrice(orderDetail.estimated_price)}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{orderDetail.status === 'completed' && orderDetail.actual_price}}">
+          <text class="detail-label">价格差异</text>
+          <text class="detail-value {{utils.getPriceDiffClass(orderDetail.estimated_price, orderDetail.actual_price)}}">
+            {{utils.formatPrice(orderDetail.actual_price - orderDetail.estimated_price)}}
+          </text>
+        </view>
+      </view>
+
+      <!-- 进度信息（处理中订单） -->
+      <view class="detail-section" wx:if="{{orderDetail.status === 'processing'}}">
+        <view class="detail-section-title">{{orderDetail.order_type === 'recycle' ? '回收进度' : '维修进度'}}</view>
+        <view class="progress-preview">
+          <text class="progress-label">当前进度</text>
+          <text class="progress-value">{{orderDetail.progress || 0}}%</text>
+        </view>
+        <view class="progress-bar-large">
+          <view class="progress-fill-large" style="width: {{orderDetail.progress || 0}}%"></view>
+        </view>
+        <view class="quick-progress">
+          <button class="quick-btn" size="mini" bindtap="updateProgress" data-progress="0">0%</button>
+          <button class="quick-btn" size="mini" bindtap="updateProgress" data-progress="25">25%</button>
+          <button class="quick-btn" size="mini" bindtap="updateProgress" data-progress="50">50%</button>
+          <button class="quick-btn" size="mini" bindtap="updateProgress" data-progress="75">75%</button>
+          <button class="quick-btn primary" size="mini" bindtap="updateProgress" data-progress="100">完成</button>
+        </view>
+      </view>
+
+      <!-- 分配信息 -->
+      <view class="detail-section" wx:if="{{orderDetail.assigned_to}}">
+        <view class="detail-section-title">分配信息</view>
+        <view class="detail-row">
+          <text class="detail-label">{{orderDetail.order_type === 'recycle' ? '处理人员' : '维修人员'}}</text>
+          <text class="detail-value">{{orderDetail.assigned_display_name || orderDetail.assigned_name || '未分配'}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{orderDetail.assigned_at}}">
+          <text class="detail-label">分配时间</text>
+          <text class="detail-value time">{{utils.formatDate(orderDetail.assigned_at)}}</text>
+        </view>
+      </view>
+
+      <!-- 产品照片 -->
+      <view wx:if="{{orderDetail.images && orderDetail.images.length > 0}}" class="detail-section">
+        <view class="detail-section-title">📷 产品照片（{{orderDetail.images.length}}）</view>
+        <view class="detail-images-grid">
+          <view wx:for="{{orderDetail.images}}" wx:key="index" class="detail-image-wrapper">
+            <image class="detail-image" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-url="{{item}}" data-urls="{{orderDetail.images}}"></image>
+          </view>
+        </view>
+        <view class="detail-image-tip" bindtap="previewImage" data-url="{{orderDetail.images[0]}}" data-urls="{{orderDetail.images}}">
+          <text class="tip-icon">🔍</text>
+          <text class="tip-text">点击查看大图</text>
+        </view>
+      </view>
+
+      <!-- 时间信息 -->
+      <view class="detail-section">
+        <view class="detail-section-title">时间信息</view>
+        <view class="detail-row">
+          <text class="detail-label">创建时间</text>
+          <text class="detail-value time">{{utils.formatDate(orderDetail.created_at)}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{orderDetail.assigned_at}}">
+          <text class="detail-label">分配时间</text>
+          <text class="detail-value time">{{utils.formatDate(orderDetail.assigned_at)}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{orderDetail.completed_at}}">
+          <text class="detail-label">完成时间</text>
+          <text class="detail-value time">{{utils.formatDate(orderDetail.completed_at)}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="detail-actions">
+      <button class="detail-btn success" size="default" wx:if="{{orderDetail.status === 'pending'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="quoted">提交报价</button>
+      <button class="detail-btn" size="default" wx:if="{{orderDetail.status === 'quoted'}}" style="background: #8b5cf6; color: #fff;">等待用户确认报价</button>
+      <button class="detail-btn success" size="default" wx:if="{{orderDetail.status === 'confirmed'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="processing">开始处理</button>
+      <button class="detail-btn feedback" size="default" wx:if="{{orderDetail.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{orderDetail.id}}">📹 进度反馈</button>
+      <button class="detail-btn success" size="default" wx:if="{{orderDetail.status === 'processing'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="completed">完成工单</button>
+      <button class="detail-btn danger" size="default" wx:if="{{orderDetail.status !== 'completed' && orderDetail.status !== 'quoted'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="cancelled">取消工单</button>
+    </view>
+  </view>
+</view>
+
+<!-- 报价弹窗 -->
+<view class="popup-overlay" wx:if="{{showQuoteModal}}">
+  <view class="popup-mask" bindtap="closeQuoteModal"></view>
+  <view class="popup-content">
+    <view class="popup-header">
+      <text class="popup-title">提交报价</text>
+      <text class="popup-close" bindtap="closeQuoteModal">✕</text>
+    </view>
+    <scroll-view class="popup-scroll" scroll-y>
+      <!-- 订单基本信息 -->
+      <view class="quote-order-info">
+        <view class="quote-info-row">
+          <text class="quote-info-label">订单编号</text>
+          <text class="quote-info-value">{{quoteOrderData.order_id || quoteOrderData.id}}</text>
+        </view>
+        <view class="quote-info-row">
+          <text class="quote-info-label">设备信息</text>
+          <text class="quote-info-value">{{quoteOrderData.device_model || '未知设备'}}</text>
+        </view>
+      </view>
+
+      <!-- 报价金额 -->
+      <view class="quote-section">
+        <text class="quote-section-title">报价金额 <text class="required">*</text></text>
+        <view class="price-input-wrapper">
+          <text class="currency-symbol">¥</text>
+          <input
+            class="price-input"
+            type="digit"
+            placeholder="0.00"
+            value="{{quoteFormData.price}}"
+            bindinput="onQuotePriceInput"
+          />
+        </view>
+      </view>
+
+      <!-- 报价说明 -->
+      <view class="quote-section">
+        <text class="quote-section-title">报价说明</text>
+        <textarea
+          class="quote-desc-input"
+          placeholder="请描述维修内容、更换配件等信息"
+          value="{{quoteFormData.description}}"
+          bindinput="onQuoteDescInput"
+        />
+        <text class="quote-desc-count">{{quoteFormData.description.length}}/500</text>
+      </view>
+    </scroll-view>
+
+    <view class="popup-footer">
+      <button class="popup-btn cancel" bindtap="closeQuoteModal">取消</button>
+      <button class="popup-btn primary" bindtap="submitQuote">确认报价</button>
+    </view>
+  </view>
+</view>
+
+<!-- 备件编辑弹窗 -->
+<view class="popup-overlay" wx:if="{{showPartEditor}}">
+  <view class="popup-mask" bindtap="closePartEditor"></view>
+  <view class="popup-content">
+    <view class="popup-header">
+      <text class="popup-title">{{editingPartId ? '编辑备件' : '添加备件'}}</text>
+      <text class="popup-close" bindtap="closePartEditor">✕</text>
+    </view>
+    <scroll-view class="popup-scroll" scroll-y>
+      <view class="form-section">
+        <view class="form-group">
+          <text class="form-label">备件名称 <text class="required">*</text></text>
+          <input class="form-input modern" placeholder="请输入备件名称" value="{{partForm.name}}" data-field="name" bindinput="onPartFormInput"></input>
+        </view>
+        <view class="form-group">
+          <text class="form-label">设备型号</text>
+          <input class="form-input modern" placeholder="请输入设备型号" value="{{partForm.model}}" data-field="model" bindinput="onPartFormInput"></input>
+        </view>
+        <view class="form-group">
+          <text class="form-label">分类</text>
+          <input class="form-input modern" placeholder="请输入分类" value="{{partForm.category}}" data-field="category" bindinput="onPartFormInput"></input>
+        </view>
+        <view class="form-row">
+          <view class="form-group half">
+            <text class="form-label">库存数量 <text class="required">*</text></text>
+            <input class="form-input modern" type="number" placeholder="0" value="{{partForm.quantity}}" data-field="quantity" bindinput="onPartFormInput"></input>
+          </view>
+          <view class="form-group half">
+            <text class="form-label">最低库存</text>
+            <input class="form-input modern" type="number" placeholder="5" value="{{partForm.min_quantity}}" data-field="min_quantity" bindinput="onPartFormInput"></input>
+          </view>
+        </view>
+        <view class="form-group">
+          <text class="form-label">单价（元） <text class="required">*</text></text>
+          <input class="form-input modern" type="digit" placeholder="0.00" value="{{partForm.unit_price}}" data-field="unit_price" bindinput="onPartFormInput"></input>
+        </view>
+        <view class="form-group">
+          <text class="form-label">供应商</text>
+          <input class="form-input modern" placeholder="请输入供应商名称" value="{{partForm.supplier}}" data-field="supplier" bindinput="onPartFormInput"></input>
+        </view>
+        <view class="form-group">
+          <text class="form-label">存放位置</text>
+          <input class="form-input modern" placeholder="请输入存放位置" value="{{partForm.location}}" data-field="location" bindinput="onPartFormInput"></input>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="popup-footer">
+      <button class="popup-btn cancel" bindtap="closePartEditor">取消</button>
+      <button class="popup-btn primary" bindtap="savePart">保存</button>
+    </view>
+  </view>
+</view>
+
+<!-- 价格编辑弹窗 -->
+<view class="popup-overlay" wx:if="{{showPriceEditor}}">
+  <view class="popup-mask" bindtap="closePriceEditor"></view>
+  <view class="popup-content">
+    <view class="popup-header">
+      <text class="popup-title">修改价格</text>
+      <text class="popup-close" bindtap="closePriceEditor">✕</text>
+    </view>
+    <scroll-view class="popup-scroll" scroll-y>
+      <view class="form-section">
+        <view class="form-group">
+          <text class="form-label">预估价格</text>
+          <view class="price-input-wrapper">
+            <text class="currency-symbol">¥</text>
+            <input class="price-input" type="digit" placeholder="0.00" value="{{priceForm.estimated_price}}" data-field="estimated_price" bindinput="onPriceFormInput" />
+          </view>
+        </view>
+        <view class="form-group">
+          <text class="form-label">实际价格</text>
+          <view class="price-input-wrapper">
+            <text class="currency-symbol">¥</text>
+            <input class="price-input" type="digit" placeholder="0.00" value="{{priceForm.actual_price}}" data-field="actual_price" bindinput="onPriceFormInput" />
+          </view>
+        </view>
+        <view class="form-group">
+          <text class="form-label">备注说明</text>
+          <input class="form-input" placeholder="价格调整原因" value="{{priceForm.remark}}" data-field="remark" bindinput="onPriceFormInput" />
+        </view>
+        <view class="price-reference" wx:if="{{orderDetail}}">
+          <text class="ref-label">当前预估价格:</text>
+          <text class="ref-value">¥{{utils.formatPrice(orderDetail.estimated_price)}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="popup-footer">
+      <button class="popup-btn cancel" bindtap="closePriceEditor">取消</button>
+      <button class="popup-btn primary" bindtap="savePrice">保存</button>
+    </view>
+  </view>
+</view>
+
+<!-- 确认弹窗 -->
+<view class="popup-overlay" wx:if="{{showConfirm}}">
+  <view class="popup-mask"></view>
+  <view class="confirm-dialog">
+    <text class="confirm-title">{{confirmTitle}}</text>
+    <text class="confirm-content">{{confirmContent}}</text>
+    <view class="confirm-actions">
+      <button class="confirm-btn cancel" bindtap="onConfirmCancel">取消</button>
+      <button class="confirm-btn ok" bindtap="onConfirmOk">确定</button>
+    </view>
+  </view>
+</view>
+
+<!-- 售后解决弹窗 -->
+<view wx:if="{{asShowResolveModal}}" class="pa-modal-overlay" bindtap="onAsCloseResolve">
+  <view class="pa-modal-content" catchtap="noop">
+    <view class="pa-modal-header">
+      <text class="pa-modal-title">解决售后</text>
+      <view class="pa-modal-close" bindtap="onAsCloseResolve">×</view>
+    </view>
+    <view class="pa-modal-body">
+      <view class="pa-modal-info">
+        <text class="pa-modal-info-label">售后单 #{{asCurrent.id}}</text>
+        <text class="pa-modal-info-label">产品: {{asCurrent.product_name}}</text>
+      </view>
+      <view class="pa-form-group">
+        <text class="pa-form-label">解决方案 / 处理说明 (选填)</text>
+        <textarea class="pa-form-textarea" placeholder="请输入解决方案..." value="{{asResolveRemark}}" bindinput="onAsResolveRemarkInput"/>
+      </view>
+    </view>
+    <view class="pa-modal-footer">
+      <view class="pa-modal-btn cancel" bindtap="onAsCloseResolve">取消</view>
+      <view class="pa-modal-btn primary" bindtap="onAsSubmitResolve">确认解决</view>
+    </view>
+  </view>
+</view>
+
+<!-- 售后拒绝弹窗 -->
+<view wx:if="{{asShowRejectModal}}" class="pa-modal-overlay" bindtap="onAsCloseReject">
+  <view class="pa-modal-content" catchtap="noop">
+    <view class="pa-modal-header">
+      <text class="pa-modal-title">拒绝售后</text>
+      <view class="pa-modal-close" bindtap="onAsCloseReject">×</view>
+    </view>
+    <view class="pa-modal-body">
+      <view class="pa-modal-info">
+        <text class="pa-modal-info-label">售后单 #{{asCurrent.id}}</text>
+        <text class="pa-modal-info-label">产品: {{asCurrent.product_name}}</text>
+      </view>
+      <view class="pa-form-group">
+        <text class="pa-form-label">拒绝原因 <text class="pa-required">*</text></text>
+        <textarea class="pa-form-textarea" placeholder="请填写拒绝原因..." value="{{asRejectRemark}}" bindinput="onAsRejectRemarkInput"/>
+      </view>
+    </view>
+    <view class="pa-modal-footer">
+      <view class="pa-modal-btn cancel" bindtap="onAsCloseReject">取消</view>
+      <view class="pa-modal-btn danger" bindtap="onAsSubmitReject">确认拒绝</view>
+    </view>
+  </view>
+</view>
+
+<!-- 加载中遮罩 -->
+<view class="loading-overlay" wx:if="{{loading}}">
+  <view class="loading-content">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">{{loadingText}}</text>
+  </view>
+</view>

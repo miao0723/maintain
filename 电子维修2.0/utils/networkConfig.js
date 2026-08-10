@@ -1,4 +1,4 @@
-const DEFAULT_BASE_URL = 'http://192.168.8.72:3001'
+const DEFAULT_BASE_URL = 'http://localhost:3001'
 
 function normalizeBaseUrl(url) {
   if (!url || typeof url !== 'string') return ''

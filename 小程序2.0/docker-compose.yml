@@ -1,0 +1,55 @@
+# 维修小程序后端 - 本地一键启动（含本地 MySQL）
+# 用法：
+#   Windows: 双击 start-docker.bat
+#   Linux/Mac: ./start-docker.sh
+# 或手动: docker compose up -d --build
+
+services:
+  # ===== 本地 MySQL（开箱即用）=====
+  mysql:
+    image: mysql:8.0
+    container_name: repair_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: repair
+      TZ: Asia/Shanghai
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ===== 后端 Node 服务（连接本地 MySQL）=====
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: repair_backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # 与 .env 保持一致，使用 docker 服务名 mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root123
+      DB_NAME: repair
+      PORT: 3001
+      HOST: http://localhost:3001
+      NODE_ENV: development
+    ports:
+      - "3001:3001"
+    volumes:
+      # 上传文件持久化到宿主机，避免重建容器后丢失
+      - ./uploads:/app/uploads
+
+volumes:
+  mysql_data:
