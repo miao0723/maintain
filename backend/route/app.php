@@ -1029,7 +1029,16 @@ Route::group('api', function () {
         });
     })->middleware([\app\middleware\MiniAdminJwtAuth::class, \app\middleware\MiniAdminPermissionCheck::class])->allowCrossDomain();
 
-    // 文件上传（公开路由，用于小程序图片上传）
+    // 附件管理（Docker 数据卷存储）
+    Route::group('attachments', function () {
+        Route::get('/', 'AttachmentController/index');
+        Route::post('upload', 'AttachmentController/upload');
+        Route::get('serve/:id', 'AttachmentController/serve');
+        Route::get('download/:id', 'AttachmentController/download');
+        Route::delete('/:id', 'AttachmentController/delete');
+    })->allowCrossDomain();
+
+    // 文件上传（公开路由，兼容旧版接口）
     Route::post('upload', 'UploadController/upload');
 
     // 批量重新处理文件（临时公开路由，用于测试）

@@ -11,7 +11,7 @@ WORKDIR /app
 
 # 先安装依赖，充分利用镜像层缓存
 COPY 电子维修2.0/backend/package.json 电子维修2.0/backend/package-lock.json* ./
-RUN npm config set registry https://mirrors.tuna.tsinghua.edu.cn/npm/ \
+RUN npm config set registry https://registry.npmmirror.com \
     && npm install --omit=dev
 
 # 复制业务代码（.env 已在 .dockerignore 中排除，配置一律由 env_file 注入）

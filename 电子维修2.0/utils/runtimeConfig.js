@@ -1,4 +1,4 @@
-const { getDefaultBaseUrl, normalizeBaseUrl } = require('./networkConfig.js')
+const { getDefaultBaseUrl, normalizeBaseUrl, isGatewayUrl } = require('./networkConfig.js')
 
 function getStoredBaseUrl() {
   try {
@@ -28,7 +28,12 @@ function getApiBaseCandidates() {
   const candidates = [storedBaseUrl, globalApiUrl, globalBaseUrl, defaultBaseUrl]
     .map(normalizeBaseUrl)
     .filter(Boolean)
-    .map(url => url.endsWith('/api') ? url : `${url}/api`)
+    // 直连地址追加 /api 前缀，网关地址（如 /mp-api）已含路由路径，不再追加
+    .map(url => {
+      if (isGatewayUrl(url)) return url  // https://域名/mp-api → 直接使用
+      if (url.endsWith('/api')) return url
+      return `${url}/api`  // http://IP:3001 → http://IP:3001/api
+    })
     .filter((url, index, arr) => arr.indexOf(url) === index)
 
   if (isDevtoolsEnvironment()) {

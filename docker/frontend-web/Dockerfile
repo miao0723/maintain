@@ -5,7 +5,7 @@ WORKDIR /app
 
 # 先复制依赖清单，利用 Docker 层缓存
 COPY frontend-web/package.json frontend-web/package-lock.json* ./
-RUN npm config set registry https://mirrors.tuna.tsinghua.edu.cn/npm/ \
+RUN npm config set registry https://registry.npmmirror.com \
     && npm install
 
 # 复制源码并构建

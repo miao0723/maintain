@@ -430,4 +430,62 @@ class RepairOrderService
             'completed' => $completed,
         ];
     }
+
+    /**
+     * 获取订单多维度分析数据
+     */
+    public function getAnalytics($filters = [])
+    {
+        $query = Db::connect('repair')->name('orders');
+
+        // 日期范围筛选
+        if (!empty($filters['date_start']) && !empty($filters['date_end'])) {
+            $query->whereBetween('created_at', [$filters['date_start'], $filters['date_end']]);
+        }
+
+        // 状态分布
+        $statusDistribution = (clone $query)->field('status, COUNT(*) as count')
+            ->group('status')->select()->toArray();
+
+        // 设备类型分布
+        $deviceTypeDistribution = (clone $query)->field('device_type, COUNT(*) as count')
+            ->group('device_type')->select()->toArray();
+
+        // 服务方式分布
+        $serviceTypeDistribution = (clone $query)->field('service_type, COUNT(*) as count')
+            ->group('service_type')->select()->toArray();
+
+        // 订单类型分布
+        $orderTypeDistribution = (clone $query)->field('order_type, COUNT(*) as count')
+            ->group('order_type')->select()->toArray();
+
+        // 优先级分布
+        $priorityDistribution = (clone $query)->field('priority, COUNT(*) as count')
+            ->group('priority')->select()->toArray();
+
+        // 每日趋势（最近30天）
+        $dailyTrend = (clone $query)->field("DATE(created_at) as date, COUNT(*) as count")
+            ->group('DATE(created_at)')
+            ->order('date', 'asc')
+            ->select()->toArray();
+
+        // 品牌排行 Top10
+        $topBrands = (clone $query)->alias('o')
+            ->leftJoin('brands b', 'o.brand_id = b.id')
+            ->field('COALESCE(b.name, "未知") as name, COUNT(*) as count')
+            ->group('o.brand_id')
+            ->order('count', 'desc')
+            ->limit(10)
+            ->select()->toArray();
+
+        return [
+            'status_distribution' => $statusDistribution,
+            'device_type_distribution' => $deviceTypeDistribution,
+            'service_type_distribution' => $serviceTypeDistribution,
+            'order_type_distribution' => $orderTypeDistribution,
+            'priority_distribution' => $priorityDistribution,
+            'daily_trend' => $dailyTrend,
+            'top_brands' => $topBrands,
+        ];
+    }
 }
