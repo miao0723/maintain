@@ -20,6 +20,10 @@
     <view class="tab-item {{currentStatus === 'review' ? 'active' : ''}}" bindtap="switchStatus" data-status="review">
       <text class="tab-text">待评价</text>
     </view>
+    <!-- 内部人员专属：免付款申请独立归类，不与普通待处理混在一起 -->
+    <view wx:if="{{isInternal}}" class="tab-item internal-tab {{currentStatus === 'internal_pending' ? 'active' : ''}}" bindtap="switchStatus" data-status="internal_pending">
+      <text class="tab-text">🏢 内部申请</text>
+    </view>
   </view>
 
   <!-- 订单列表 -->
@@ -36,6 +40,7 @@
         </view>
         <view class="order-status">
           <text class="status-text {{getStatusClass(item.status)}}">{{getStatusText(item.status)}}</text>
+          <text wx:if="{{item.isInternalOrder}}" class="internal-tag">🏢 内部免付款</text>
           <text wx:if="{{item.afterSalesLabel}}" class="as-tag" style="background: {{item.afterSalesBg}}; color: {{item.afterSalesColor}}">{{item.afterSalesIcon}} {{item.afterSalesLabel}}</text>
         </view>
       </view>
@@ -117,6 +122,11 @@
           <button class="action-btn after-sales" wx:if="{{item.status === 'review'}}" catchtap="openAfterSales" data-order="{{item}}">🛠 申请售后</button>
           <!-- 已取消 -->
           <button class="action-btn disabled" wx:if="{{item.status === 'cancelled'}}" disabled>已取消</button>
+          <!-- 内部免付款申请待确认：查看详情 + 撤回申请 -->
+          <block wx:if="{{item.status === 'internal_pending'}}">
+            <button class="action-btn detail" catchtap="viewDetail" data-order="{{item}}">查看详情</button>
+            <button class="action-btn cancel" catchtap="cancelOrder" data-id="{{item.id}}">撤回申请</button>
+          </block>
         </view>
       </view>
     </view>

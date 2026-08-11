@@ -413,17 +413,24 @@
 .contact-info {
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
+  gap: 0;
+  padding: 10rpx;
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1rpx solid rgba(255, 255, 255, 0.12);
 }
 
 .contact-item {
   display: flex;
   align-items: flex-start;
   gap: 14rpx;
-  padding: 16rpx;
-  border-radius: 22rpx;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1rpx solid rgba(255, 255, 255, 0.12);
+  padding: 16rpx 14rpx;
+}
+
+.contact-divider {
+  height: 1rpx;
+  margin: 0 14rpx;
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .contact-label {

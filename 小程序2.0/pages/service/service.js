@@ -133,6 +133,17 @@ Page({
     voiceHint: '',
     voiceDraft: '',
     showQuickPhrases: false,
+
+    // 快捷入口小按钮（显示在底部输入框上方，横向可滑动）
+    quickEntries: [
+      { label: '问故障', phrase: '手机屏幕碎了怎么修？' },
+      { label: '问价格', phrase: '维修费用大概是多少？' },
+      { label: '问时效', phrase: '一般维修需要多长时间？' },
+      { label: '问服务方式', phrase: '支持上门取件吗？' },
+      { label: '问回收', phrase: '旧手机能回收多少钱？', strong: true },
+      { label: '查进度', phrase: '我的订单现在处理到哪一步了？' }
+    ],
+
     quickPhrases: [
       // === 维修类 ===
       '营业时间是什么时候？',

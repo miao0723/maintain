@@ -295,6 +295,8 @@ Page({
       }
 
       wx.setStorageSync('userInfo', mergedUser)
+      console.log('[登录-资料保存] 原始 avatar_url:', updatedUser.avatar_url || updatedUser.avatarUrl || finalAvatarUrl)
+      console.log('[登录-资料保存] 最终可访问 avatarUrl:', mergedUser.avatarUrl)
       const app = getApp()
       if (app.globalData) {
         app.globalData.userInfo = mergedUser

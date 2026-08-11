@@ -14,7 +14,15 @@ Page({
     currentConversation: null,
     humanConnected: false,
     customerSummary: null,
-    showAfterSales: false
+    showAfterSales: false,
+    quickReplies: [
+      '您好，很高兴为您服务～',
+      '请描述一下设备的具体故障现象',
+      '已为您安排工程师，请稍候',
+      '方便提供一下设备型号吗？',
+      '报价已确认，可点击下方链接支付',
+      '维修进度可在「我的订单」查看'
+    ]
   },
 
   onLoad(options) {
@@ -249,6 +257,14 @@ Page({
 
   onInputChange(e) {
     this.setData({ inputText: e.detail.value });
+  },
+
+  // 点击快捷问题：填入输入框并直接发送
+  tapQuickReply(e) {
+    const text = (e.currentTarget.dataset.text || '').trim();
+    if (!text) return;
+    this.setData({ inputText: text });
+    this.sendMessage();
   },
 
   async toggleVoiceInput() {

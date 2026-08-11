@@ -12,6 +12,15 @@
 
   <!-- 维修服务内容 -->
   <view class="tab-content" wx:if="{{currentTab === 'repair'}}">
+    <!-- 内部人员免付款申请提示 -->
+    <view class="internal-banner" wx:if="{{isInternal}}">
+      <text class="internal-banner-icon">🏢</text>
+      <view class="internal-banner-text">
+        <text class="internal-banner-title">内部免付款维修申请</text>
+        <text class="internal-banner-desc">您填写信息提交后即为内部申请，无需支付，由管理员确认后安排维修</text>
+      </view>
+    </view>
+
     <view class="repair-wizard">
       <view class="repair-hero">
         <view class="repair-hero-copy">
@@ -441,7 +450,7 @@
           </view>
         </view>
 
-        <view class="section price-section wizard-price-section">
+        <view class="section price-section wizard-price-section" wx:if="{{!isInternal}}">
           <view class="price-title">{{isWaitingPrice ? '提交后人工报价' : '预估维修价格'}}</view>
           <view class="price-display">
             <text class="price-value waiting-price" wx:if="{{isWaitingPrice}}">等待报价</text>
@@ -453,9 +462,14 @@
           </view>
         </view>
 
+        <view class="section internal-note-section" wx:if="{{isInternal}}">
+          <view class="internal-note-icon">🏢</view>
+          <view class="internal-note-text">内部免付款申请 · 提交后由管理员确认并安排维修，全程无需支付</view>
+        </view>
+
         <view class="section submit-callout">
           <button class="confirm-submit-btn" bindtap="submitRepairOrder" disabled="{{!repairStepSubmitReady || repairSubmitting}}" loading="{{repairSubmitting}}">
-            {{isWaitingPrice ? '确认并提交待报价订单' : '确认并提交维修订单'}}
+            {{isInternal ? '提交内部维修申请' : (isWaitingPrice ? '确认并提交待报价订单' : '确认并提交维修订单')}}
           </button>
         </view>
       </view>
@@ -473,6 +487,15 @@
 
     <!-- 物品回收内容 -->
   <view class="tab-content" wx:if="{{currentTab === 'recycle'}}">
+    <!-- 内部人员免付款回收申请提示 -->
+    <view class="internal-banner" wx:if="{{isInternal}}">
+      <text class="internal-banner-icon">🏢</text>
+      <view class="internal-banner-text">
+        <text class="internal-banner-title">内部免付款回收申请</text>
+        <text class="internal-banner-desc">您填写信息提交后即为内部申请，无需支付，由管理员确认后安排回收</text>
+      </view>
+    </view>
+
     <view class="recycle-overview" wx:if="{{recycleType || isCustomRecycleType}}">
       <view class="overview-header">
         <view>
@@ -735,15 +758,16 @@
     <view class="section">
       <button class="create-recycle-btn {{canSubmitRecycle ? 'active' : 'disabled'}}" bindtap="showRecycleConfirm" disabled="{{!canSubmitRecycle || recycleSubmitting}}" loading="{{recycleSubmitting}}">
         <text class="btn-icon">📦</text>
-        <text class="btn-text">{{canSubmitRecycle ? '创建回收订单' : '请完善回收信息'}}</text>
-        <text class="btn-hint" wx:if="{{canSubmitRecycle && !isRecycleWaitingPrice}}">预估价：¥{{recyclablePrice}}</text>
-        <text class="btn-hint waiting" wx:if="{{canSubmitRecycle && isRecycleWaitingPrice}}">等待管理员报价</text>
+        <text class="btn-text">{{isInternal ? '提交内部回收申请' : (canSubmitRecycle ? '创建回收订单' : '请完善回收信息')}}</text>
+        <text class="btn-hint" wx:if="{{isInternal && canSubmitRecycle}}">内部免付款申请</text>
+        <text class="btn-hint" wx:if="{{!isInternal && canSubmitRecycle && !isRecycleWaitingPrice}}">预估价：¥{{recyclablePrice}}</text>
+        <text class="btn-hint waiting" wx:if="{{!isInternal && canSubmitRecycle && isRecycleWaitingPrice}}">等待管理员报价</text>
       </button>
       <text class="create-hint" wx:if="{{!canSubmitRecycle}}">请依次选择：回收类型、品牌、型号、成色</text>
     </view>
 
-    <!-- 估价结果 -->
-    <view class="section price-section" wx:if="{{recyclablePrice > 0 && !isRecycleWaitingPrice}}">
+    <!-- 估价结果（内部人员不展示金额） -->
+    <view class="section price-section" wx:if="{{!isInternal && recyclablePrice > 0 && !isRecycleWaitingPrice}}">
       <view class="price-title">预估回收价</view>
       <view class="price-display">
         <text class="price-symbol">¥</text>
@@ -752,8 +776,8 @@
       <text class="price-note">最终价格以检测后实际报价为准</text>
     </view>
 
-    <!-- 等待报价提示 -->
-    <view class="section price-section waiting-section" wx:if="{{isRecycleWaitingPrice}}">
+    <!-- 等待报价提示（内部人员不展示） -->
+    <view class="section price-section waiting-section" wx:if="{{!isInternal && isRecycleWaitingPrice}}">
       <view class="price-title">等待报价</view>
       <view class="price-display waiting-display">
         <text class="price-icon">⏰</text>
@@ -762,16 +786,26 @@
       <text class="price-note">自定义类型或品牌需要管理员评估后报价</text>
     </view>
 
+    <!-- 内部人员免付款提示 -->
+    <view class="section internal-note-section" wx:if="{{isInternal}}">
+      <view class="internal-note-icon">🏢</view>
+      <view class="internal-note-text">内部免付款申请 · 提交后由管理员确认并安排回收，全程无需支付</view>
+    </view>
+
     <!-- 提交回收 -->
-    <view class="bottom-action recycle-action" wx:if="{{canSubmitRecycle}}">
+    <view class="bottom-action recycle-action {{isInternal ? 'internal' : ''}}" wx:if="{{canSubmitRecycle}}">
       <view class="price-info">
-        <text class="price-label">{{isRecycleWaitingPrice ? '状态：' : '预估价：'}}</text>
-        <text class="price-value {{isRecycleWaitingPrice ? 'waiting' : ''}}" wx:if="{{isRecycleWaitingPrice}}">等待报价</text>
+        <text class="price-label" wx:if="{{isInternal}}">状态：</text>
+        <text class="price-label" wx:elif="{{isRecycleWaitingPrice}}">状态：</text>
+        <text class="price-label" wx:else>预估价：</text>
+        <text class="price-value" wx:if="{{isInternal}}">内部免付款申请</text>
+        <text class="price-value waiting" wx:elif="{{isRecycleWaitingPrice}}">等待报价</text>
         <text class="price-value" wx:else>¥{{recyclablePrice}}</text>
       </view>
-      <button class="submit-btn recycle-btn {{isRecycleWaitingPrice ? 'waiting' : ''}}" bindtap="submitRecycleOrder" disabled="{{recycleSubmitting}}" loading="{{recycleSubmitting}}">
-        <text class="btn-icon" wx:if="{{isRecycleWaitingPrice}}">📤</text>
-        <text>{{isRecycleWaitingPrice ? '提交申请' : '提交回收申请'}}</text>
+      <button class="submit-btn recycle-btn {{isInternal ? 'internal' : (isRecycleWaitingPrice ? 'waiting' : '')}}" bindtap="submitRecycleOrder" disabled="{{recycleSubmitting}}" loading="{{recycleSubmitting}}">
+        <text class="btn-icon" wx:if="{{isInternal}}">🏢</text>
+        <text class="btn-icon" wx:elif="{{isRecycleWaitingPrice}}">📤</text>
+        <text>{{isInternal ? '提交内部回收申请' : (isRecycleWaitingPrice ? '提交申请' : '提交回收申请')}}</text>
       </button>
     </view>
   </view>

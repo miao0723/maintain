@@ -144,6 +144,34 @@
   color: #999999;
 }
 
+.status-text.internal_pending {
+  color: #d97706;
+}
+
+/* 内部人员免付款专属徽标 */
+.internal-tag {
+  font-size: 20rpx;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+  padding: 4rpx 12rpx;
+  border-radius: 16rpx;
+  line-height: 1;
+}
+
+/* 内部申请专属 tab */
+.tab-item.internal-tab .tab-text {
+  color: #d97706;
+}
+
+.tab-item.internal-tab.active {
+  background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+}
+
+.tab-item.internal-tab.active .tab-text {
+  color: #ffffff;
+}
+
 /* 订单内容 */
 .order-content {
   display: flex;

@@ -26,6 +26,7 @@
   .unit-item,
   .address-item,
   .bottom-action,
+  .bottom-dock,
   .input-area {
     background-color: var(--ui-surface) !important;
     box-shadow: 0 2px 12rpx var(--ui-shadow) !important;

@@ -25,19 +25,28 @@
   <!-- 资料补全弹层：读取微信头像与昵称 -->
   <view class="fill-mask" wx:if="{{showProfileFill}}">
     <view class="fill-card">
-      <view class="fill-title">完善微信资料</view>
-      <view class="fill-sub">点击下方按钮，一键获取您的微信头像和昵称</view>
-
-      <!-- 头像预览 -->
-      <view class="fill-preview">
-        <image
-          wx:if="{{fillAvatarUrl}}"
-          class="fill-preview-img"
-          src="{{fillAvatarUrl}}"
-          mode="aspectFill"></image>
-        <view wx:else class="fill-preview-default">👤</view>
-        <text class="fill-preview-name">{{fillNickName || '微信用户'}}</text>
+      <view class="fill-head">
+        <text class="fill-title">完善微信资料</text>
+        <text class="fill-sub">一键获取您的微信头像与昵称，让服务更贴心</text>
       </view>
+
+      <!-- 圆形头像框：点击选择微信头像或从相册上传 -->
+      <button
+        class="avatar-pick"
+        open-type="chooseAvatar"
+        bindchooseavatar="onChooseAvatarAndSave"
+        loading="{{isFilling}}"
+        disabled="{{isFilling}}"
+      >
+        <view class="avatar-circle {{fillAvatarUrl ? 'has-img' : ''}}">
+          <image wx:if="{{fillAvatarUrl}}" class="avatar-img" src="{{fillAvatarUrl}}" mode="aspectFill"></image>
+          <view wx:else class="avatar-placeholder">
+            <text class="avatar-camera-icon">📷</text>
+            <text class="avatar-camera-text">点击上传头像</text>
+          </view>
+        </view>
+      </button>
+      <text class="avatar-hint">{{fillAvatarUrl ? '已选择，可点击更换' : '读取微信头像或从相册上传'}}</text>
 
       <!-- 昵称 input：隐藏，仅用于接收微信一键填入的昵称 -->
       <input
@@ -48,14 +57,31 @@
         bindinput="onFillNickNameInput"
         maxlength="20"/>
 
-      <!-- 一步到位：点一次同时获取头像 + 昵称并自动保存 -->
+      <!-- 现代风格昵称输入框 -->
+      <view class="nick-field">
+        <view class="nick-label">
+          <text class="nick-label-text">昵称</text>
+          <text class="nick-label-sub">将展示在订单与聊天中</text>
+        </view>
+        <view class="nick-input-box">
+          <input
+            class="nick-input"
+            type="nickname"
+            placeholder="点击一键填入微信昵称"
+            placeholder-class="nick-input-ph"
+            value="{{fillNickName}}"
+            bindinput="onFillNickNameInput"
+            maxlength="20"/>
+          <text class="nick-count {{fillNickName.length >= 18 ? 'near' : ''}}">{{fillNickName.length}}/20</text>
+        </view>
+      </view>
+
       <button
-        class="fill-oneshot"
-        open-type="chooseAvatar"
-        bindchooseavatar="onChooseAvatarAndSave"
+        class="fill-save-btn"
+        bindtap="saveProfileFill"
         loading="{{isFilling}}"
         disabled="{{isFilling}}"
-      >{{isFilling ? '保存中...' : '获取微信头像和昵称'}}</button>
+      >{{isFilling ? '保存中...' : '保存并进入'}}</button>
 
       <view class="fill-skip" bindtap="skipProfileFill">暂不设置，直接进入</view>
     </view>

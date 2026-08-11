@@ -414,6 +414,7 @@
   <view class="footer">
     <view wx:if="{{isAdminCreated}}" class="footer-btn primary" bindtap="openAddressModal">📝 填写地址并确认</view>
     <view wx:if="{{orderType === 'repair' && (orderStatus === 'processing' || (orderStatus === 'confirmed' && paymentStatus === 'paid'))}}" class="footer-btn primary" bindtap="goToProgressApply">📝 申请进度</view>
+    <view wx:if="{{orderStatus === 'internal_pending'}}" class="footer-btn default" bindtap="withdrawInternalOrder">撤回内部申请</view>
     <view class="footer-btn default" bindtap="backToList">返回列表</view>
   </view>
 

@@ -4,6 +4,7 @@ const deviceData = require('../../utils/deviceData.js');
 Page({
   data: {
     currentTab: 'repair', // repair 或 recycle
+    isInternal: false, // 是否为公司内部人员（免付款申请）
     repairSubmitting: false,
     recycleSubmitting: false,
     repairStepIndex: 0,
@@ -351,6 +352,16 @@ Page({
     if (options && options.refreshAddress === 'true') {
       this.loadAddressList();
     }
+
+    // 检测内部人员身份：公司内部人员发起维修/回收仅作为免付款申请，无需支付
+    const userInfo = wx.getStorageSync('userInfo') || {};
+    const fromInternalEntry = !!(options && options.internal === '1');
+    const targetTab = options && options.tab === 'recycle' ? 'recycle' : this.data.currentTab;
+    this.setData({
+      isInternal: userInfo.role === 'internal',
+      // 从内部申请入口进入时，按入口类型强制打开对应 tab
+      currentTab: fromInternalEntry ? targetTab : this.data.currentTab
+    });
   },
 
   onShow() {
@@ -1790,25 +1801,40 @@ Page({
 
     console.log('提交维修订单:', orderData);
 
-    // 金额确认弹窗：核对维修报价/待报价是否合理后再提交
-    const confirmed = await new Promise((resolve) => {
-      const isWaiting = this.data.isWaitingPrice;
-      const priceText = isWaiting
-        ? '待报价（提交后由维修管理员评估报价）'
-        : '¥' + (Number(this.data.estimatedPrice) || 0).toFixed(2);
-      const content = isWaiting
-        ? '您选择"等待报价"。提交后维修管理员会先评估故障并给出报价，确认后再维修。是否提交？'
-        : `维修预估金额：${priceText}\n（最终以维修管理员报价为准）\n请确认金额是否合理。`;
-      wx.showModal({
-        title: '确认维修金额',
-        content,
-        confirmText: '确认提交',
-        confirmColor: '#5a6e8a',
-        cancelText: '再看看',
-        success: (r) => resolve(!!r.confirm)
+    // 内部人员：免付款申请，无需核对金额，仅确认提交
+    if (this.data.isInternal) {
+      const confirmed = await new Promise((resolve) => {
+        wx.showModal({
+          title: '提交内部维修申请',
+          content: '您是公司内部人员，本次提交仅作为免付款维修申请，无需支付。提交后由管理员确认并安排维修。是否提交？',
+          confirmText: '确认提交',
+          confirmColor: '#5a6e8a',
+          cancelText: '再看看',
+          success: (r) => resolve(!!r.confirm)
+        });
       });
-    });
-    if (!confirmed) return;
+      if (!confirmed) return;
+    } else {
+      // 金额确认弹窗：核对维修报价/待报价是否合理后再提交
+      const confirmed = await new Promise((resolve) => {
+        const isWaiting = this.data.isWaitingPrice;
+        const priceText = isWaiting
+          ? '待报价（提交后由维修管理员评估报价）'
+          : '¥' + (Number(this.data.estimatedPrice) || 0).toFixed(2);
+        const content = isWaiting
+          ? '您选择"等待报价"。提交后维修管理员会先评估故障并给出报价，确认后再维修。是否提交？'
+          : `维修预估金额：${priceText}\n（最终以维修管理员报价为准）\n请确认金额是否合理。`;
+        wx.showModal({
+          title: '确认维修金额',
+          content,
+          confirmText: '确认提交',
+          confirmColor: '#5a6e8a',
+          cancelText: '再看看',
+          success: (r) => resolve(!!r.confirm)
+        });
+      });
+      if (!confirmed) return;
+    }
 
     // 先上传图片，获取永久URL
     this.setData({ repairSubmitting: true });
@@ -1825,8 +1851,24 @@ Page({
         wx.hideLoading();
         console.log('订单创建响应:', res);
         if (res.success && res.data) {
-          // 如果是等待报价的订单
-          if (this.data.isWaitingPrice) {
+          // 内部人员：免付款申请，提示待管理员确认
+          if (this.data.isInternal) {
+            wx.showModal({
+              title: '内部申请已提交',
+              content: '您的免付款维修申请已提交，等待管理员确认后将安排维修。',
+              showCancel: false,
+              confirmText: '查看申请',
+              success: () => {
+                this.resetRepairForm();
+                setTimeout(() => {
+                  wx.switchTab({
+                    url: '/pages/mine/mine'
+                  });
+                }, 100);
+              }
+            });
+          } else if (this.data.isWaitingPrice) {
+            // 普通用户：等待报价的订单
             wx.showModal({
               title: '订单提交成功',
               content: '您的订单已提交，维修管理员会尽快为您报价。报价完成后会通知您。',
@@ -2161,8 +2203,10 @@ Page({
       return;
     }
 
-    // 判断是否需要等待报价
-    const isRecycleWaitingPrice = isCustomRecycleType || isCustomRecycleBrand || !this.data.selectedRecycleModel;
+    // 内部人员：免付款申请，永不进入报价流程
+    const isRecycleWaitingPrice = this.data.isInternal
+      ? false
+      : (isCustomRecycleType || isCustomRecycleBrand || !this.data.selectedRecycleModel);
 
     this.setData({
       canSubmitRecycle: true,
@@ -2204,6 +2248,12 @@ Page({
   },
 
   calculateRecyclePrice() {
+    // 内部人员：免付款申请，不计算任何价格，避免出现金额提示
+    if (this.data.isInternal) {
+      this.setData({ recyclablePrice: 0, isRecycleWaitingPrice: false });
+      return;
+    }
+
     if (!this.data.recycleType || !this.data.selectedRecycleBrand || !this.data.deviceModel || !this.data.deviceCondition) {
       this.setData({ recyclablePrice: 0, canSubmitRecycle: false });
       return;
@@ -2285,6 +2335,16 @@ Page({
   submitRecycleOrder() {
     if (this.data.recycleSubmitting) {
       return;
+    }
+
+    // 内部人员：未经过确认弹窗时，先走内部免付款确认流程
+    if (this.data.isInternal && !this.data._internalRecycleConfirmed) {
+      this.showRecycleConfirm();
+      return;
+    }
+    // 重置确认标志，避免影响下次提交
+    if (this.data._internalRecycleConfirmed) {
+      this.setData({ _internalRecycleConfirmed: false });
     }
 
     // 验证回收类型
@@ -2376,7 +2436,11 @@ Page({
       deviceCondition: this.data.deviceCondition,
       condition: this.data.deviceCondition,
       estimatedPrice: this.data.isRecycleWaitingPrice ? 0 : this.data.recyclablePrice,
-      isWaitingPrice: this.data.isRecycleWaitingPrice
+      isWaitingPrice: this.data.isRecycleWaitingPrice,
+      // 内部人员：标记为免付款内部订单，由后端走 internal_pending 流程
+      isInternal: this.data.isInternal,
+      is_internal: this.data.isInternal ? 1 : 0,
+      paymentStatus: this.data.isInternal ? 'waived' : 'unpaid'
     };
 
     console.log('提交回收订单数据:', recycleData);
@@ -2400,6 +2464,25 @@ Page({
         console.log('回收订单创建响应:', res);
 
         if (res.success && res.data) {
+          // 内部人员：免付款申请，提示待管理员确认
+          if (this.data.isInternal) {
+            wx.showModal({
+              title: '内部回收申请已提交',
+              content: '您的免付款回收申请已提交，等待管理员确认后将安排回收。',
+              showCancel: false,
+              confirmText: '查看申请',
+              success: () => {
+                this.resetRecycleForm();
+                setTimeout(() => {
+                  wx.switchTab({
+                    url: '/pages/mine/mine'
+                  });
+                }, 100);
+              }
+            });
+            return;
+          }
+
           // 显示成功动画
           wx.showToast({
             title: '回收申请提交成功',
@@ -2527,6 +2610,35 @@ Page({
 
     const typeDisplay = isCustomRecycleType ? customRecycleType : (recycleType ? recycleType.name : '');
     const brandDisplay = isCustomRecycleBrand ? customRecycleBrand : (selectedRecycleBrand ? selectedRecycleBrand.name : '');
+
+    // 内部人员：免付款申请，无需核对金额，仅确认提交
+    if (this.data.isInternal) {
+      const internalContent = `
+回收类型：${typeDisplay}
+设备品牌：${brandDisplay}
+设备型号：${deviceModel}
+设备成色：${deviceCondition}
+${recycleDescription ? '\n设备描述：' + recycleDescription : ''}
+${recycleImageList.length > 0 ? '\n已上传' + recycleImageList.length + '张照片' : ''}
+
+您是公司内部人员，本次提交仅作为免付款回收申请，无需支付。提交后由管理员确认并安排回收。是否提交？
+      `;
+      wx.showModal({
+        title: '提交内部回收申请',
+        content: internalContent.trim(),
+        confirmText: '确认提交',
+        cancelText: '再看看',
+        confirmColor: '#5a6e8a',
+        success: (res) => {
+          if (res.confirm) {
+            // 标记已确认，避免 submitRecycleOrder 再次弹窗
+            this.setData({ _internalRecycleConfirmed: true });
+            this.submitRecycleOrder();
+          }
+        }
+      });
+      return;
+    }
 
     const confirmContent = `
 回收类型：${typeDisplay}

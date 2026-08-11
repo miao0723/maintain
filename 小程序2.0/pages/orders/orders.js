@@ -11,7 +11,9 @@ const STATUS_CONFIG = {
   completed: { label: '已完成', color: '#10b981', bg: '#d1fae5', icon: '✅' },
   cancelled: { label: '已取消', color: '#ef4444', bg: '#fee2e2', icon: '❌' },
   review: { label: '待评价', color: '#f97316', bg: '#ffedd5', icon: '⭐' },
-  admin_created: { label: '待填写地址', color: '#0891b2', bg: '#cffafe', icon: '📝' }
+  admin_created: { label: '待填写地址', color: '#0891b2', bg: '#cffafe', icon: '📝' },
+  // 内部人员免付款申请：与普通待处理区分，单独归类
+  internal_pending: { label: '内部申请待确认', color: '#d97706', bg: '#fef3c7', icon: '🏢' }
 };
 
 Page({
@@ -21,6 +23,7 @@ Page({
     focusLatestFeedback: false,
     orders: [],
     filteredOrders: [],
+    isInternal: false, // 是否为公司内部人员（免付款申请）
     isLoading: false,
     showOrderDetailModal: false,
     modalOrderDetail: null,
@@ -112,10 +115,17 @@ Page({
       this.setData(nextData);
     }
 
+    // 同步内部人员身份
+    const userInfo = wx.getStorageSync('userInfo') || {};
+    this.setData({ isInternal: userInfo.role === 'internal' });
+
     this.loadOrders()
   },
 
   onShow() {
+    // 每次进入刷新内部人员身份（可能在其他页面登录/切换）
+    const userInfo = wx.getStorageSync('userInfo') || {};
+    this.setData({ isInternal: userInfo.role === 'internal' });
     this.loadOrders()
     this.loadMyAfterSales()
   },
@@ -213,6 +223,10 @@ Page({
     if (unreadType === 'quote') {
       return orders.filter(order => Number(order.quoteUnread || order.quote_unread) === 1);
     }
+    // 内部申请独立 tab：仅展示待管理员确认的内部免付款申请
+    if (this.data.currentStatus === 'internal_pending') {
+      return orders.filter(order => order.status === 'internal_pending');
+    }
     return orders;
   },
 
@@ -296,7 +310,8 @@ Page({
     wx.showLoading({ title: '加载中...' });
 
     const params = {};
-    if (this.data.currentStatus !== 'all') {
+    // 内部申请走前端过滤（普通订单列表接口不按 internal_pending 过滤）
+    if (this.data.currentStatus !== 'all' && this.data.currentStatus !== 'internal_pending') {
       params.status = this.data.currentStatus;
     }
 
@@ -373,6 +388,9 @@ Page({
             price: price ? parseFloat(price).toFixed(1) : '',
             statusLabel: statusLabel,
             statusColor: statusColor,
+            statusBg: config.bg,
+            statusIcon: config.icon,
+            isInternalOrder: status === 'internal_pending',
             progressSteps: progressInfo.steps,
             progressPercentText: progressInfo.percentText,
             progressPercent: progressInfo.percent,
@@ -413,7 +431,10 @@ Page({
             progressPercentText: progressInfo.percentText,
             progressPercent: progressInfo.percent,
             statusColor: config.color,
-            statusLabel: statusLabel
+            statusLabel: statusLabel,
+            statusBg: config.bg,
+            statusIcon: config.icon,
+            isInternalOrder: status === 'internal_pending'
           }
         });
         this.setData({
@@ -527,8 +548,15 @@ Page({
    */
   getStatusText(status) {
     const statusMap = {
-      pending: '待处理', processing: '处理中', completed: '已完成',
-      review: '待评价', cancelled: '已取消'
+      pending: '待处理',
+      quoted: '待确认报价',
+      confirmed: '已确认报价',
+      processing: '处理中',
+      completed: '已完成',
+      review: '待评价',
+      cancelled: '已取消',
+      admin_created: '待填写地址',
+      internal_pending: '内部申请待确认'
     }
     return statusMap[status] || '未知'
   },

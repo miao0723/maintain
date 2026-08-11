@@ -879,6 +879,39 @@ Page({
     }
   },
 
+  /**
+   * 撤回内部免付款申请（管理员尚未确认前可撤回）
+   */
+  async withdrawInternalOrder() {
+    const orderId = this.data.orderId
+    if (!orderId) return
+
+    wx.showModal({
+      title: '撤回内部申请',
+      content: '确定要撤回该内部免付款申请吗？撤回后需重新提交。',
+      confirmText: '撤回',
+      cancelText: '再想想',
+      success: async (res) => {
+        if (!res.confirm) return
+        wx.showLoading({ title: '撤回中...', mask: true })
+        try {
+          const response = await orderApi.cancelOrder(orderId)
+          wx.hideLoading()
+          if (response && response.success) {
+            wx.showToast({ title: '已撤回申请', icon: 'success' })
+            this.loadOrderDetail()
+          } else {
+            wx.showToast({ title: response?.message || '撤回失败', icon: 'none' })
+          }
+        } catch (e) {
+          wx.hideLoading()
+          console.error('撤回内部申请失败:', e)
+          wx.showToast({ title: '撤回失败', icon: 'none' })
+        }
+      }
+    })
+  },
+
   async refreshPaymentStatus(showSuccessToast) {
     try {
       const response = await orderApi.queryPaymentStatus(this.data.orderId)

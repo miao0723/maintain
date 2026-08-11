@@ -105,177 +105,181 @@
 }
 
 .fill-card {
-  width: 600rpx;
+  width: 620rpx;
   background: #ffffff;
-  border-radius: 28rpx;
-  padding: 40rpx 36rpx 32rpx;
+  border-radius: 32rpx;
+  padding: 48rpx 44rpx 36rpx;
   box-sizing: border-box;
-  box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.2);
+  box-shadow: 0 24rpx 70rpx rgba(13, 25, 40, 0.28);
+  animation: fillPop 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes fillPop {
+  from { opacity: 0; transform: translateY(40rpx) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.fill-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .fill-title {
-  font-size: 34rpx;
+  font-size: 36rpx;
   font-weight: 800;
-  color: #213449;
-  text-align: center;
+  color: #1f2f3d;
+  letter-spacing: 1rpx;
 }
 
 .fill-sub {
-  margin-top: 14rpx;
+  margin-top: 12rpx;
   font-size: 23rpx;
-  line-height: 1.55;
-  color: #6a7888;
+  line-height: 1.5;
+  color: #7a8a9a;
   text-align: center;
 }
 
-.fill-avatar-row {
-  margin-top: 30rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.fill-avatar-btn {
-  width: 150rpx;
-  height: 150rpx;
+/* 圆形头像框 */
+.avatar-pick {
+  margin-top: 40rpx;
+  width: 200rpx;
+  height: 200rpx;
   padding: 0;
-  border-radius: 50%;
-  overflow: hidden;
-  background: #eef3f8;
+  border: none;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2rpx dashed #c2d0de;
+  line-height: normal;
 }
 
-.fill-avatar-btn::after {
+.avatar-pick::after {
   border: none;
 }
 
-.fill-avatar-img {
-  width: 150rpx;
-  height: 150rpx;
+.avatar-circle {
+  position: relative;
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #eef3f8 0%, #e2ebf3 100%);
+  border: 2rpx dashed #c2d0de;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.avatar-circle.has-img {
+  border: none;
+  box-shadow: 0 8rpx 24rpx rgba(40, 62, 86, 0.18);
+}
+
+.avatar-pick:active .avatar-circle {
+  transform: scale(0.96);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
 }
 
-.fill-avatar-placeholder {
+.avatar-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 
-.fill-avatar-icon {
-  font-size: 48rpx;
+.avatar-camera-icon {
+  font-size: 56rpx;
   color: #8aa0b6;
-  line-height: 1;
 }
 
-.fill-avatar-tip {
-  margin-top: 6rpx;
+.avatar-camera-text {
+  margin-top: 8rpx;
   font-size: 20rpx;
   color: #8aa0b6;
 }
 
-.fill-avatar-label {
-  margin-top: 14rpx;
+.avatar-hint {
+  margin-top: 18rpx;
   font-size: 22rpx;
-  color: #7a8a9a;
+  color: #9aa8b6;
+  text-align: center;
 }
 
-.fill-nick-row {
-  margin-top: 26rpx;
-  display: flex;
-  align-items: center;
-  background: #f3f6fa;
-  border-radius: 16rpx;
-  padding: 18rpx 22rpx;
-}
-
-.fill-nick-label {
-  font-size: 26rpx;
-  color: #41576f;
-  margin-right: 18rpx;
-  flex-shrink: 0;
-}
-
-.fill-nick-input {
-  flex: 1;
-  font-size: 28rpx;
-  color: #213449;
-}
-
-.fill-actions {
-  margin-top: 34rpx;
-  display: flex;
-  gap: 20rpx;
-}
-
-.fill-skip,
-.fill-save {
-  flex: 1;
-  height: 82rpx;
-  line-height: 82rpx;
-  border-radius: 20rpx;
-  font-size: 28rpx;
-  font-weight: 700;
-  border: none;
-}
-
-.fill-skip {
-  background: #eef3f8;
-  color: #5a6e8a;
-}
-
-.fill-save {
-  background: linear-gradient(145deg, #213449 0%, #446786 100%);
-  color: #ffffff;
-}
-
-.fill-skip::after,
-.fill-save::after {
-  border: none;
-}
-
-.fill-save:active {
-  transform: translateY(2rpx);
-}
-
-/* 资料层：一步获取头像+昵称 */
-.fill-preview {
-  margin-top: 30rpx;
+/* 现代风格昵称输入框 */
+.nick-field {
+  margin-top: 40rpx;
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
-.fill-preview-img {
-  width: 140rpx;
-  height: 140rpx;
-  border-radius: 50%;
-  border: 4rpx solid #e3ebf3;
-  background: #eef3f8;
+.nick-label {
+  margin-bottom: 14rpx;
+  display: flex;
+  align-items: baseline;
 }
 
-.fill-preview-default {
-  width: 140rpx;
-  height: 140rpx;
-  border-radius: 50%;
-  background: #eef3f8;
+.nick-label-text {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #1f2f3d;
+}
+
+.nick-label-sub {
+  margin-left: 14rpx;
+  font-size: 21rpx;
+  color: #9aa8b6;
+}
+
+.nick-input-box {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 72rpx;
-  color: #b6c4d3;
+  background: #f5f8fb;
+  border: 2rpx solid #e2eaf2;
+  border-radius: 18rpx;
+  padding: 0 24rpx;
+  height: 92rpx;
+  box-sizing: border-box;
+  transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
 }
 
-.fill-preview-name {
-  margin-top: 16rpx;
+.nick-input-box:focus-within {
+  border-color: #4f6b84;
+  background: #ffffff;
+  box-shadow: 0 0 0 6rpx rgba(79, 107, 132, 0.08);
+}
+
+.nick-input {
+  flex: 1;
+  font-size: 30rpx;
+  color: #1f2f3d;
+  height: 100%;
+}
+
+.nick-input-ph {
+  color: #b3c0cd;
   font-size: 28rpx;
-  font-weight: 700;
-  color: #213449;
 }
 
+.nick-count {
+  font-size: 22rpx;
+  color: #b3c0cd;
+  margin-left: 16rpx;
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.nick-count.near {
+  color: #d97757;
+}
+
+/* 隐藏的昵称 input（接收微信一键填入） */
 .fill-nick-hidden {
   position: absolute;
   width: 1rpx;
@@ -285,30 +289,38 @@
   left: -9999rpx;
 }
 
-.fill-oneshot {
+/* 保存按钮 */
+.fill-save-btn {
   width: 100%;
-  height: 88rpx;
-  margin-top: 30rpx;
-  border-radius: 22rpx;
+  height: 92rpx;
+  margin-top: 36rpx;
   border: none;
+  border-radius: 24rpx;
   background: linear-gradient(145deg, #213449 0%, #446786 100%);
   color: #ffffff;
-  font-size: 30rpx;
+  font-size: 31rpx;
   font-weight: 700;
   box-shadow: 0 12rpx 28rpx rgba(40, 62, 86, 0.24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.fill-oneshot::after {
+.fill-save-btn::after {
   border: none;
 }
 
-.fill-oneshot:active {
+.fill-save-btn:active {
   transform: translateY(2rpx);
 }
 
 .fill-skip {
-  margin-top: 20rpx;
+  margin-top: 22rpx;
   text-align: center;
   font-size: 24rpx;
   color: #9aa8b6;
+}
+
+.fill-skip:active {
+  color: #6a7888;
 }

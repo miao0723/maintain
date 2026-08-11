@@ -4,17 +4,16 @@
   <view class="avatar-section">
     <view class="avatar-wrapper">
       <button class="avatar-container" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" style="padding:0;border:none;background:transparent;">
-        <image class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
-        <view class="avatar-overlay">
-          <text class="overlay-icon">📷</text>
-          <text class="overlay-text">点击更换</text>
-        </view>
-        <view class="edit-badge">
-          <text class="badge-text">✎</text>
+        <view class="avatar-circle {{userInfo.avatarUrl ? 'has-img' : ''}}">
+          <image wx:if="{{userInfo.avatarUrl}}" class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
+          <view wx:else class="avatar-placeholder">
+            <text class="avatar-camera-icon">📷</text>
+            <text class="avatar-camera-text">点击上传头像</text>
+          </view>
         </view>
       </button>
       <view class="avatar-tip">
-        <text class="tip-text">点击一键获取微信头像，或相册/拍照</text>
+        <text class="tip-text">读取微信头像或从相册上传</text>
       </view>
     </view>
   </view>
@@ -26,11 +25,12 @@
       <input
         class="form-input"
         type="nickname"
-        placeholder="请输入昵称"
+        placeholder="点击一键填入微信昵称"
+        placeholder-class="form-input-ph"
         value="{{userInfo.nickName}}"
         bindinput="onNicknameInput"
         maxlength="20"/>
-      <text class="char-count">{{userInfo.nickName.length}}/20</text>
+      <text class="char-count {{userInfo.nickName.length >= 18 ? 'near' : ''}}">{{userInfo.nickName.length}}/20</text>
     </view>
 
     <view class="form-item">

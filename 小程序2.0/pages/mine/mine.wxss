@@ -631,6 +631,29 @@
   font-weight: 500;
 }
 
+/* 内部人员免付款维修申请入口 */
+.internal-entry {
+  background: linear-gradient(135deg, #eef6ff 0%, #e3f0ff 100%);
+  border: 1rpx solid #bcd9ff;
+}
+
+.internal-icon {
+  background: #d6e8ff !important;
+  color: #1d4ed8;
+  font-size: 40rpx;
+}
+
+.menu-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.menu-subtitle {
+  font-size: 21rpx;
+  color: #4b6cb7;
+}
+
 .menu-item-right {
   display: flex;
   align-items: center;

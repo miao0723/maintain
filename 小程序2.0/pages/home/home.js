@@ -165,12 +165,19 @@ Page({
   },
 
   getUserPresentation(userInfo) {
+    const role = userInfo && userInfo.role
+    let roleText = '普通用户'
+    if (role === 'super_admin') {
+      roleText = '超级管理员'
+    } else if (role === 'admin') {
+      roleText = '管理员'
+    } else if (role === 'internal') {
+      roleText = '内部人员'
+    }
     return {
       greetingText: userInfo && userInfo.nickName ? `你好，${userInfo.nickName}` : '欢迎回来',
       summaryTipText: this.data.loadingUserInfo ? '正在同步最新资料...' : '已接入微信授权登录资料',
-      roleText: userInfo && userInfo.role === 'super_admin'
-        ? '超级管理员'
-        : (userInfo && userInfo.role === 'admin' ? '管理员' : '普通用户')
+      roleText
     }
   },
 

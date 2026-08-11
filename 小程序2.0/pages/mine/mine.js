@@ -33,6 +33,7 @@ Page({
     menuCountsLoading: true,
     recentOrdersLoading: true,
     isAdmin: false,  // 是否为超级管理员
+    isInternal: false,  // 是否为公司内部人员（免付款申请）
     quotedCount: 0,   // 待确认报价的订单数
     progressUnreadCount: 0,  // 未读进度更新的订单数
     showSettingsPanel: false,
@@ -73,6 +74,7 @@ Page({
     if (userCache.hasCache && userCache.data) {
       nextData.userInfo = userCache.data.userInfo || this.data.userInfo
       nextData.isAdmin = !!userCache.data.isAdmin
+      nextData.isInternal = !!userCache.data.isInternal
     } else {
       const localUserInfo = wx.getStorageSync('userInfo')
       if (localUserInfo) {
@@ -81,6 +83,7 @@ Page({
           nickName: localUserInfo.nickname || localUserInfo.nickName || '微信用户'
         }
         nextData.isAdmin = localUserInfo.role === 'super_admin' || localUserInfo.role === 'admin'
+        nextData.isInternal = localUserInfo.role === 'internal'
       }
     }
 
@@ -214,6 +217,7 @@ Page({
               nickName: profile.nickname || '微信用户'
             },
             isAdmin: profile.role === 'super_admin' || profile.role === 'admin',
+            isInternal: profile.role === 'internal',
             raw: profile
           }
         }
@@ -227,7 +231,8 @@ Page({
 
         this.setData({
           userInfo: userInfo.userInfo,
-          isAdmin: !!userInfo.isAdmin
+          isAdmin: !!userInfo.isAdmin,
+          isInternal: !!userInfo.isInternal
         })
       }
     } catch (error) {
@@ -240,7 +245,8 @@ Page({
             avatarUrl: normalizeAvatarUrl(localUserInfo.avatar_url || localUserInfo.avatarUrl),
             nickName: localUserInfo.nickname || localUserInfo.nickName || '游客'
           },
-          isAdmin: localUserInfo.role === 'super_admin' || localUserInfo.role === 'admin'
+          isAdmin: localUserInfo.role === 'super_admin' || localUserInfo.role === 'admin',
+          isInternal: localUserInfo.role === 'internal'
         })
       }
     } finally {
@@ -781,6 +787,34 @@ Page({
     }
     wx.navigateTo({
       url: '/pages/progress-apply-list/progress-apply-list'
+    })
+  },
+
+  /**
+   * 内部人员：跳转到维修申请页（免付款）
+   */
+  goToInternalRepair() {
+    const app = getApp()
+    if (!app.globalData.isLoggedIn) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    wx.navigateTo({
+      url: '/pages/repair/repair?internal=1'
+    })
+  },
+
+  /**
+   * 内部人员：跳转到回收申请页（免付款）
+   */
+  goToInternalRecycle() {
+    const app = getApp()
+    if (!app.globalData.isLoggedIn) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    wx.navigateTo({
+      url: '/pages/repair/repair?internal=1&tab=recycle'
     })
   },
 

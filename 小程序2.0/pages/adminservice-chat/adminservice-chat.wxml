@@ -1,10 +1,7 @@
 <view class="chat-page">
-  <scroll-view class="message-list" scroll-y>
-    <view class="status-banner" wx:if="{{humanConnected}}">
-      <text class="status-text">人工客服服务中</text>
-    </view>
-    <view class="status-banner ended" wx:else>
-      <text class="status-text">人工会话已结束，用户将恢复智能客服</text>
+  <scroll-view class="message-list" scroll-y enhanced show-Scrollbar="{{false}}">
+    <view class="status-banner {{humanConnected ? '' : 'ended'}}">
+      <text class="status-text">{{humanConnected ? '人工客服服务中' : '人工会话已结束，用户将恢复智能客服'}}</text>
     </view>
 
     <!-- 客服侧：该用户售后信息 -->
@@ -34,16 +31,29 @@
         <text class="message-text">{{item.content}}</text>
       </view>
     </view>
+    <view class="list-bottom-pad"></view>
   </scroll-view>
 
-  <view class="composer" wx:if="{{humanConnected}}">
-    <input class="composer-input" placeholder="输入回复内容" value="{{inputText}}" bindinput="onInputChange" confirm-type="send" bindconfirm="sendMessage" />
-    <view class="voice-trigger {{voiceRecording ? 'recording' : ''}}" bindtap="toggleVoiceInput">
-      <text class="voice-trigger-icon">{{voiceRecording ? '■' : '🎤'}}</text>
+  <view class="composer-bar {{humanConnected ? '' : 'hidden'}}">
+    <scroll-view class="quick-scroll" scroll-x enable-flex wx:if="{{quickReplies.length}}">
+      <view class="quick-list">
+        <view
+          class="quick-chip"
+          wx:for="{{quickReplies}}"
+          wx:key="*this"
+          bindtap="tapQuickReply"
+          data-text="{{item}}"
+        >{{item}}</view>
+      </view>
+    </scroll-view>
+    <view class="composer">
+      <input class="composer-input" placeholder="输入回复内容" value="{{inputText}}" bindinput="onInputChange" confirm-type="send" bindconfirm="sendMessage" adjust-position="{{true}}" cursor-spacing="20" />
+      <view class="voice-trigger {{voiceRecording ? 'recording' : ''}}" bindtap="toggleVoiceInput">
+        <text class="voice-trigger-icon">{{voiceRecording ? '■' : '🎤'}}</text>
+      </view>
+      <button class="composer-btn" bindtap="sendMessage">发送</button>
     </view>
-    <button class="composer-btn" bindtap="sendMessage">发送</button>
+    <text class="voice-hint {{voiceRecognizing || voiceRecording ? 'active' : ''}}" wx:if="{{voiceHint}}">{{voiceHint}}</text>
+    <button class="complete-btn" bindtap="completeConversation">结束人工对话</button>
   </view>
-  <text class="voice-hint {{voiceRecognizing || voiceRecording ? 'active' : ''}}" wx:if="{{humanConnected && voiceHint}}">{{voiceHint}}</text>
-
-  <button class="complete-btn" wx:if="{{humanConnected}}" bindtap="completeConversation">结束人工对话</button>
 </view>

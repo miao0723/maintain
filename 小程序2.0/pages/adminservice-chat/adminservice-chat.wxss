@@ -1,12 +1,23 @@
 .chat-page {
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: linear-gradient(180deg, #eef3f8 0%, #e4ebf3 100%);
-  padding: 20rpx 20rpx 40rpx;
   box-sizing: border-box;
+  padding-top: env(safe-area-inset-top);
+  overflow: hidden;
 }
 
 .message-list {
-  height: calc(100vh - 220rpx);
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20rpx 20rpx 0;
+}
+
+.list-bottom-pad {
+  height: 20rpx;
 }
 
 .status-banner {
@@ -77,15 +88,66 @@
   word-break: break-word;
 }
 
+/* 底部输入栏：正常文档流，绝不浮于消息列表之上，避免机型遮挡 */
+.composer-bar {
+  flex-shrink: 0;
+  width: 100%;
+  padding: 12rpx 20rpx calc(env(safe-area-inset-bottom) + 20rpx);
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1rpx solid #e6edf4;
+  box-sizing: border-box;
+}
+
+.composer-bar.hidden {
+  display: none;
+}
+
+/* 快捷问题：输入框上方的横向胶囊按钮 */
+.quick-scroll {
+  width: 100%;
+  white-space: nowrap;
+  margin-bottom: 12rpx;
+}
+
+.quick-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 2rpx 0;
+}
+
+.quick-chip {
+  flex-shrink: 0;
+  max-width: 360rpx;
+  padding: 12rpx 24rpx;
+  border-radius: 999rpx;
+  background: #eef3f8;
+  border: 1rpx solid #dde6ef;
+  color: #3d5670;
+  font-size: 24rpx;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.quick-chip:active {
+  background: #5a6e8a;
+  color: #ffffff;
+  border-color: #5a6e8a;
+  transform: scale(0.96);
+}
+
 .composer {
   display: flex;
   gap: 12rpx;
-  margin-top: 16rpx;
   align-items: center;
 }
 
 .composer-input {
   flex: 1;
+  min-width: 0;
   height: 84rpx;
   background: #ffffff;
   border-radius: 18rpx;
@@ -129,9 +191,9 @@
 }
 
 .complete-btn {
-  margin-top: 16rpx;
-  height: 84rpx;
-  line-height: 84rpx;
+  margin-top: 10rpx;
+  height: 80rpx;
+  line-height: 80rpx;
   color: #ffffff;
   font-size: 26rpx;
 }
@@ -143,7 +205,7 @@
 
 .voice-hint {
   display: block;
-  margin-top: 12rpx;
+  margin: 10rpx 4rpx 0;
   font-size: 22rpx;
   line-height: 1.5;
   color: #64748b;

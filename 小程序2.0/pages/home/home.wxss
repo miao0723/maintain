@@ -633,7 +633,7 @@
 
 .contact-info {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12rpx;
 }
 
@@ -648,8 +648,9 @@
   border: 1rpx solid rgba(255, 255, 255, 0.14);
 }
 
+/* 兼容旧标记：所有联系项统一占满整行，不再区分宽窄 */
 .contact-item-wide {
-  grid-column: span 2;
+  grid-column: span 1;
 }
 
 .contact-label {
@@ -685,14 +686,6 @@
   .hero-highlights,
   .company-highlight-list {
     grid-template-columns: 1fr;
-  }
-
-  .contact-info {
-    grid-template-columns: 1fr;
-  }
-
-  .contact-item-wide {
-    grid-column: span 1;
   }
 
   .hero-title {

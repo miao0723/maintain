@@ -14,8 +14,13 @@ const app = express();
 const db = require('./database');
 const server = http.createServer(app);
 
-// 统一静态文件服务到小程序项目根目录 uploads，供小程序与 PHP 后台共用
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// 统一静态文件服务：uploads 目录必须与上传写入目录保持一致
+// 路由里写文件用的是 routes/ 下的 ../uploads（即 backend/uploads），
+// 这里必须指向同一个目录，否则文件落盘在 backend/uploads 而静态从项目根/uploads 取，必然 404。
+const uploadsRoot = path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(uploadsRoot));
+// 冗余兜底：同时通过 API 前缀暴露，避免 nginx 仅反代 /mp-api 时根路径 /uploads 取不到文件
+app.use('/api/uploads', express.static(uploadsRoot));
 
 // 中间件
 app.use(cors());
