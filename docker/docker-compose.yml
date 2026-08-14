@@ -5,12 +5,16 @@ services:
 
   redis:
     image: redis:7.0-alpine
+    env_file:
+      - .env.docker
+    command: ["sh", "-c", "redis-server --requirepass \"$$REDIS_PASSWORD\""]
     ports:
-      - "6379:6379"
+      # 仅本机可访问，外部服务一律走容器网络（redis:6379）
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -50,7 +54,8 @@ services:
     expose:
       - "80"
     ports:
-      - "8081:80"
+      # 仅本机可访问，外部访问统一走 443 nginx 网关
+      - "127.0.0.1:8081:80"
     restart: unless-stopped
     networks:
       - cmms-network
@@ -72,7 +77,8 @@ services:
       # 与 PHP 后台、Nginx 共享同一份上传目录
       - ../电子维修2.0/uploads:/uploads
     ports:
-      - "3001:3001"
+      # 仅本机可访问，小程序请求统一走 443 nginx 网关 /mp-api
+      - "127.0.0.1:3001:3001"
     restart: unless-stopped
     networks:
       - cmms-network
@@ -88,7 +94,8 @@ services:
     environment:
       AGENT_SERVICE_PORT: 8001
     ports:
-      - "8002:8001"
+      # 仅本机可访问，PHP 后台通过容器网络 agent-service:8001 调用
+      - "127.0.0.1:8002:8001"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=5)"]
       interval: 15s
@@ -191,7 +198,8 @@ services:
     image: nginx:1.24-alpine
     ports:
       - "443:443"
-      - "8080:80"
+      # HTTP->HTTPS 跳转端口，仅本机
+      - "127.0.0.1:8080:80"
     volumes:
       - ../backend:/var/www/html
       - ../电子维修2.0/uploads:/var/www/html/miniprogram-uploads
