@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>确认弹窗美化预览</title>
+<style>
+  :root {
+    --bg: #f6f8fb;
+    --surface: #ffffff;
+    --text: #1f2937;
+    --text-2: #6b7280;
+    --primary: #4f6b84;
+    --danger: #ef4444;
+    --cancel-bg: #f1f5f9;
+    --cancel-text: #475569;
+    --mask: rgba(15, 23, 42, 0.5);
+    --shadow: 0 24rpx 70rpx rgba(31, 41, 55, 0.22);
+  }
+  body.dark {
+    --bg: #0b0f17;
+    --surface: #1f2937;
+    --text: #f3f4f6;
+    --text-2: #9ca3af;
+    --primary: #7c8ff0;
+    --danger: #ff6b78;
+    --cancel-bg: #374151;
+    --cancel-text: #d1d5db;
+    --mask: rgba(0, 0, 0, 0.6);
+    --shadow: 0 24rpx 70rpx rgba(0, 0, 0, 0.55);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    transition: background 300ms ease, color 300ms ease;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--text-2); font-size: 14px; margin-bottom: 24px; }
+  .toolbar { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; justify-content: center; }
+  .toolbar button {
+    border: none; cursor: pointer; padding: 10px 18px; border-radius: 12px;
+    font-size: 14px; font-weight: 600; background: var(--primary); color: #fff;
+    transition: transform .12s ease, opacity .16s ease;
+  }
+  .toolbar button.ghost { background: var(--cancel-bg); color: var(--cancel-text); }
+  .toolbar button:active { transform: scale(.97); opacity: .9; }
+  .stage {
+    position: relative; width: 360px; height: 520px; max-width: 92vw;
+    background: var(--bg); border-radius: 24px; overflow: hidden;
+    border: 1px solid rgba(127,127,127,.15);
+    box-shadow: 0 12px 40px rgba(0,0,0,.12);
+  }
+  /* 模拟页面内容 */
+  .fake-page { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+  .fake-card { background: var(--surface); border-radius: 18px; height: 64px; box-shadow: 0 6px 18px rgba(102,118,138,.08); }
+  .fake-card.s { height: 44px; }
+
+  /* ===== 弹窗 ===== */
+  .mask {
+    position: absolute; inset: 0; background: var(--mask);
+    display: flex; align-items: center; justify-content: center; padding: 0 40rpx;
+    animation: fadeIn .22s ease-out;
+  }
+  .card {
+    width: 300px; max-width: 86%; background: var(--surface); border-radius: 28rpx;
+    padding: 40px 28px 22px; display: flex; flex-direction: column; align-items: center;
+    box-shadow: var(--shadow); animation: popIn .28s cubic-bezier(.18,.89,.32,1.28);
+  }
+  .icon {
+    width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 16px;
+    display: flex; align-items: center; justify-content: center; color: #fff;
+    font-size: 38px; font-weight: 700; box-shadow: 0 10rpx 24rpx rgba(0,0,0,.12);
+  }
+  .icon.warning { background: #f59e0b; }
+  .icon.success { background: #22c55e; }
+  .icon.error { background: #ef4444; }
+  .icon.question { background: var(--primary); }
+  .title { font-size: 19px; font-weight: 700; text-align: center; margin-bottom: 10px; }
+  .content { font-size: 15px; color: var(--text-2); text-align: center; line-height: 1.6;
+    white-space: pre-wrap; word-break: break-word; margin-bottom: 26px; max-height: 50vh; overflow-y: auto; }
+  .actions { display: flex; width: 100%; gap: 14px; }
+  .btn {
+    flex: 1; height: 50px; min-width: 50px; border-radius: 14px; display: flex;
+    align-items: center; justify-content: center; font-size: 17px; font-weight: 600;
+    cursor: pointer; transition: transform .12s ease, opacity .16s ease, background .16s ease;
+    user-select: none;
+  }
+  .btn:active { transform: scale(.98); opacity: .9; }
+  .btn.cancel { background: var(--cancel-bg); color: var(--cancel-text); }
+  .btn.confirm { color: #fff; }
+  .hint { margin-top: 22px; color: var(--text-2); font-size: 12px; max-width: 360px; text-align: center; line-height: 1.6; }
+
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes popIn { from { opacity: 0; transform: translateY(16px) scale(.92) } to { opacity: 1; transform: none } }
+</style>
+</head>
+<body>
+  <h1>确认弹窗美化预览</h1>
+  <div class="sub">统一接管 wx.showModal · 与原生回调完全兼容 · 支持暗黑模式</div>
+
+  <div class="toolbar">
+    <button onclick="show('default')">默认确认</button>
+    <button onclick="show('danger')">删除/危险</button>
+    <button onclick="show('alert')">仅提示</button>
+    <button class="ghost" onclick="toggleDark()">切换暗黑模式</button>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="fake-page">
+      <div class="fake-card"></div>
+      <div class="fake-card s"></div>
+      <div class="fake-card"></div>
+      <div class="fake-card s"></div>
+      <div class="fake-card"></div>
+    </div>
+  </div>
+
+  <div class="hint">真实运行效果：微信开发者工具中点击任意「确定 / 拒绝」类按钮即可看到此弹窗；删除类操作自动显示红色警示样式。</div>
+
+<script>
+  const presets = {
+    default: { icon: '', title: '提交维修申请', content: '确认要提交本次维修申请吗？\n提交后工程师将尽快与您联系。', cancel: '再想想', confirm: '确定提交', danger: false },
+    danger:  { icon: 'warning', title: '删除该设备', content: '删除后该设备信息将无法恢复，\n确定要删除吗？', cancel: '取消', confirm: '删除', danger: true },
+    alert:   { icon: 'success', title: '操作成功', content: '您的维修进度已更新。', cancel: '', confirm: '知道了', danger: false, single: true }
+  };
+
+  function render(key) {
+    const p = presets[key] || presets.default;
+    const confirmBg = p.danger ? 'var(--danger)' : 'var(--primary)';
+    const iconHtml = p.icon ? `<div class="icon ${p.icon}">${p.icon === 'warning' ? '!' : p.icon === 'success' ? '✓' : p.icon === 'error' ? '✕' : '?'}</div>` : '';
+    const cancelHtml = (!p.single && p.cancel) ? `<div class="btn cancel" onclick="close()">${p.cancel}</div>` : '';
+    return `<div class="mask" onclick="close()">
+      <div class="card" onclick="event.stopPropagation()">
+        ${iconHtml}
+        <div class="title">${p.title}</div>
+        <div class="content">${p.content.replace(/\n/g, '<br>')}</div>
+        <div class="actions">
+          ${cancelHtml}
+          <div class="btn confirm" style="background:${confirmBg}" onclick="close()">${p.confirm}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function show(key) {
+    document.getElementById('stage').insertAdjacentHTML('beforeend', render(key));
+  }
+  function close() {
+    const m = document.querySelector('.mask');
+    if (m) m.remove();
+  }
+  function toggleDark() {
+    document.body.classList.toggle('dark');
+  }
+  // 默认展示一个示例
+  show('default');
+</script>
+</body>
+</html>

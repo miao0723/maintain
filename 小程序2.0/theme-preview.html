@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>管理员页面配色优化预览 · 旧紫色 → 新清爽蓝</title>
+<style>
+  :root{
+    --brand:#436f95; --brand-deep:#3a6386; --brand-light:#6a9abb;
+    --page:#f6f8fb; --card:#fff; --ink:#1f2937; --muted:#8a96a3;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",Roboto,sans-serif;
+       background:#eef2f6;color:var(--ink);padding:32px 16px;}
+  h1{font-size:24px;margin:0 0 4px;}
+  .sub{color:var(--muted);margin:0 0 24px;font-size:14px;}
+  .wrap{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;}
+  .col{flex:1;min-width:300px;}
+  .tag{display:inline-block;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:600;margin-bottom:12px;}
+  .tag.old{background:#f3e8ff;color:#7c3aed;}
+  .tag.new{background:#e8f1f8;color:var(--brand);}
+
+  /* ---- 模拟管理员页 ---- */
+  .mock{min-height:520px;border-radius:24px;overflow:hidden;box-shadow:0 12px 30px rgba(40,60,90,.12);}
+  /* OLD */
+  .old .admin{background:linear-gradient(180deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);padding-bottom:24px;}
+  .old .head{background:linear-gradient(135deg,#5a6e8a,#6e85a5);padding:28px 20px 40px;color:#fff;}
+  .old .head h2{margin:0;font-size:20px;}
+  .old .head p{margin:6px 0 0;font-size:13px;opacity:.85;}
+  .old .stats{margin:-24px 16px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .old .stat{background:#fff;border-radius:16px;padding:16px;box-shadow:0 8px 20px rgba(0,0,0,.25);}
+  .old .stat .ic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;margin-bottom:10px;}
+  .old .stat .v{font-size:22px;font-weight:700;}
+  .old .stat .l{font-size:12px;color:#999;}
+  .old .c1{background:linear-gradient(135deg,#5a6e8a,#6e85a5);}
+  .old .c2{background:linear-gradient(135deg,#f093fb,#f5576c);}
+  .old .c3{background:linear-gradient(135deg,#4facfe,#00f2fe);}
+  .old .c4{background:linear-gradient(135deg,#43e97b,#38f9d7);}
+  .old .hl{margin:0 16px 16px;background:linear-gradient(135deg,#eef2ff,#e0e7ff);border:2px solid #a5b4fc;border-radius:16px;padding:14px;display:flex;align-items:center;gap:12px;}
+  .old .hl .ic{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .old .hl .t{font-weight:700;color:#4338ca;font-size:14px;}
+  .old .btn{margin:0 16px;background:linear-gradient(135deg,#43e97b,#38f9d7);color:#fff;text-align:center;padding:14px;border-radius:28px;font-weight:700;}
+
+  /* NEW */
+  .new .admin{background:linear-gradient(180deg,#eaf1f7 0%,#f6f8fb 100%);padding-bottom:24px;}
+  .new .head{background:linear-gradient(135deg,#5a6e8a,#6e85a5);padding:28px 20px 40px;color:#fff;}
+  .new .head h2{margin:0;font-size:20px;}
+  .new .head p{margin:6px 0 0;font-size:13px;opacity:.85;}
+  .new .stats{margin:-24px 16px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .new .stat{background:#fff;border-radius:16px;padding:16px;box-shadow:0 8px 20px rgba(40,60,90,.08);}
+  .new .stat .ic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;margin-bottom:10px;}
+  .new .stat .v{font-size:22px;font-weight:700;}
+  .new .stat .l{font-size:12px;color:#8a96a3;}
+  .new .c1{background:linear-gradient(135deg,#4f7da6,#6fa3c4);}
+  .new .c2{background:linear-gradient(135deg,#d99a4e,#ecc183);}
+  .new .c3{background:linear-gradient(135deg,#57a37c,#83c69c);}
+  .new .c4{background:linear-gradient(135deg,#4f9aa0,#7cc0c4);}
+  .new .hl{margin:0 16px 16px;background:linear-gradient(135deg,#eaf2f8,#dcebf5);border:2px solid #9cc3d8;border-radius:16px;padding:14px;display:flex;align-items:center;gap:12px;}
+  .new .hl .ic{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#436f95,#6a9abb);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .new .hl .t{font-weight:700;color:#3a6386;font-size:14px;}
+  .new .btn{margin:0 16px;background:linear-gradient(135deg,#436f95,#6a9abb);color:#fff;text-align:center;padding:14px;border-radius:28px;font-weight:700;}
+
+  /* ---- 调色板 ---- */
+  .palette{margin-top:36px;background:#fff;border-radius:20px;padding:24px;box-shadow:0 8px 24px rgba(40,60,90,.08);}
+  .palette h3{margin:0 0 16px;font-size:18px;}
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}
+  .sw{height:78px;border-radius:14px;display:flex;align-items:flex-end;padding:10px;color:#fff;font-size:12px;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.25);}
+  .sw small{opacity:.85;font-weight:400;}
+  .note{margin-top:18px;font-size:13px;color:var(--muted);line-height:1.7;}
+  .note b{color:var(--brand-deep);}
+</style>
+</head>
+<body>
+  <h1>管理员页面配色优化预览</h1>
+  <p class="sub">左侧为原来的鲜艳紫 / 深色背景，右侧为新的清爽蓝（清晰、简洁、有呼吸感）。</p>
+
+  <div class="wrap">
+    <div class="col">
+      <span class="tag old">旧版 · 鲜艳紫 / 深色背景</span>
+      <div class="mock old">
+        <div class="admin">
+          <div class="head"><h2>管理后台</h2><p>订单 · 维修 · 用户</p></div>
+          <div class="stats">
+            <div class="stat"><div class="ic c1">📦</div><div class="v">128</div><div class="l">订单总数</div></div>
+            <div class="stat"><div class="ic c2">⏳</div><div class="v">12</div><div class="l">处理中</div></div>
+            <div class="stat"><div class="ic c3">✅</div><div class="v">96</div><div class="l">已完成</div></div>
+            <div class="stat"><div class="ic c4">👤</div><div class="v">54</div><div class="l">用户数</div></div>
+          </div>
+          <div class="hl"><div class="ic">🛎️</div><div class="t">进度申请入口</div></div>
+          <div class="btn">返回</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <span class="tag new">新版 · 清爽蓝 / 浅色背景</span>
+      <div class="mock new">
+        <div class="admin">
+          <div class="head"><h2>管理后台</h2><p>订单 · 维修 · 用户</p></div>
+          <div class="stats">
+            <div class="stat"><div class="ic c1">📦</div><div class="v">128</div><div class="l">订单总数</div></div>
+            <div class="stat"><div class="ic c2">⏳</div><div class="v">12</div><div class="l">处理中</div></div>
+            <div class="stat"><div class="ic c3">✅</div><div class="v">96</div><div class="l">已完成</div></div>
+            <div class="stat"><div class="ic c4">👤</div><div class="v">54</div><div class="l">用户数</div></div>
+          </div>
+          <div class="hl"><div class="ic">🛎️</div><div class="t">进度申请入口</div></div>
+          <div class="btn">返回</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="palette">
+    <h3>新配色体系（统一钢蓝调，低饱和、舒适）</h3>
+    <div class="swatches">
+      <div class="sw" style="background:linear-gradient(135deg,#436f95,#6a9abb)">品牌主渐变<br><small>#436f95 → #6a9abb</small></div>
+      <div class="sw" style="background:linear-gradient(135deg,#4f7da6,#6fa3c4)">统计·蓝<br><small>#4f7da6 → #6fa3c4</small></div>
+      <div class="sw" style="background:linear-gradient(135deg,#d99a4e,#ecc183);color:#5a3c12;text-shadow:none">统计·暖<br><small>#d99a4e → #ecc183</small></div>
+      <div class="sw" style="background:linear-gradient(135deg,#57a37c,#83c69c)">统计·绿<br><small>#57a37c → #83c69c</small></div>
+      <div class="sw" style="background:linear-gradient(135deg,#4f9aa0,#7cc0c4)">统计·青<br><small>#4f9aa0 → #7cc0c4</small></div>
+      <div class="sw" style="background:linear-gradient(135deg,#d9a441,#ecc879);color:#5a3c12;text-shadow:none">收入·金<br><small>#d9a441 → #ecc879</small></div>
+      <div class="sw" style="background:#e8f1f8;color:#3a6386;text-shadow:none">浅色底色<br><small>#eaf2f8 → #e8f1f8</small></div>
+      <div class="sw" style="background:#f6f8fb;color:#8a96a3;text-shadow:none">页面底色<br><small>#f6f8fb</small></div>
+    </div>
+    <p class="note">
+      <b>优化要点：</b>原本全站刺眼的紫色渐变 <code>#667eea→#764ba2</code> 与紫罗兰 <code>#6366f1→#8b5cf6 / #4f46e5→#7c3aed</code>
+      已统一替换为清爽的钢蓝品牌色；管理员页深色背景改为浅色呼吸感背景；四宫格统计卡由"彩虹高饱和"降为"蓝/暖/绿/青"的低饱和组合，
+      "待确认报价"状态标签也由紫罗兰改为钢蓝。订单状态语义色（待处理黄、处理中蓝、完成绿、取消红）保持不变以保清晰。
+    </p>
+  </div>
+</body>
+</html>

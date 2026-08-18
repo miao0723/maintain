@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>资料补全弹窗 · 美化预览</title>
+<style>
+  :root{
+    --brand-a:#436f95; --brand-b:#6a9abb;
+    --ink:#1f2f3d; --sub:#8a99a8; --line:#e2eaf2;
+    --page:#eef2f7; --card:#ffffff;
+  }
+  body.dark{
+    --ink:#eef3f8; --sub:#9aa8b6; --line:#3a4654;
+    --page:#161c22; --card:#1f2730;
+  }
+  *{box-sizing:border-box;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
+  body{margin:0;min-height:100vh;background:var(--page);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:32px;transition:background .3s;}
+  .toolbar{display:flex;gap:12px;align-items:center;color:var(--sub);font-size:14px;}
+  .toolbar button{cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 16px;border-radius:999px;font-size:14px;}
+  .phone{width:380px;height:760px;border-radius:44px;background:#0e1116;padding:14px;box-shadow:0 40px 90px rgba(0,0,0,.28);position:relative;}
+  .screen{width:100%;height:100%;border-radius:32px;overflow:hidden;position:relative;background:var(--page);}
+
+  /* 弹层 */
+  .fill-mask{position:absolute;inset:0;background:rgba(23,38,54,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:0 44px;}
+  .fill-card{position:relative;width:100%;max-width:600px;background:var(--card);border-radius:36px;padding:56px 44px 40px;box-shadow:0 30px 80px rgba(20,40,60,.22);display:flex;flex-direction:column;align-items:center;overflow:hidden;animation:fillPop .34s cubic-bezier(.22,1,.36,1);}
+  .fill-glow{position:absolute;top:-130px;left:50%;transform:translateX(-50%);width:440px;height:250px;background:radial-gradient(circle,rgba(106,154,187,.26),rgba(106,154,187,0) 70%);pointer-events:none;}
+  @keyframes fillPop{from{opacity:0;transform:translateY(36px) scale(.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+  .fill-emoji{position:relative;z-index:1;width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,var(--brand-a),var(--brand-b));color:#fff;font-size:48px;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 30px rgba(67,111,149,.28);}
+  .fill-title{position:relative;z-index:1;margin-top:22px;font-size:22px;font-weight:800;color:var(--ink);letter-spacing:1px;}
+  .fill-sub{position:relative;z-index:1;margin-top:10px;font-size:14px;line-height:1.5;color:var(--sub);text-align:center;max-width:280px;}
+  .fill-avatar{position:relative;z-index:1;margin-top:30px;width:180px;height:180px;padding:0;border:none;background:transparent;line-height:normal;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .fill-avatar-img{width:180px;height:180px;border-radius:50%;border:4px solid #fff;box-shadow:0 10px 26px rgba(40,62,86,.18);object-fit:cover;}
+  .fill-avatar-ph{width:180px;height:180px;border-radius:50%;background:linear-gradient(145deg,#eef3f8,#e2ebf3);border:2px dashed #c2d0de;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8aa0b6;}
+  .fill-avatar-ico{font-size:52px;}
+  .fill-avatar-tx{margin-top:6px;font-size:13px;}
+  .fill-nick{position:relative;z-index:1;margin-top:28px;width:100%;display:flex;flex-direction:column;align-items:flex-start;}
+  .fill-nick-label{margin-bottom:10px;font-size:14px;font-weight:700;color:var(--ink);}
+  .fill-nick-input{width:100%;height:54px;background:#f5f8fb;border:2px solid var(--line);border-radius:18px;padding:0 16px;font-size:17px;color:var(--ink);outline:none;transition:.25s;}
+  .fill-nick-input:focus{border-color:var(--brand-a);background:#fff;box-shadow:0 0 0 6px rgba(79,107,132,.08);}
+  .fill-save{position:relative;z-index:1;margin-top:26px;width:100%;height:54px;border-radius:46px;background:linear-gradient(135deg,var(--brand-a),var(--brand-b));color:#fff;font-size:18px;font-weight:700;border:none;cursor:pointer;box-shadow:0 14px 30px rgba(67,111,149,.28);transition:.15s;}
+  .fill-save:active{transform:scale(.98);}
+  .fill-skip{position:relative;z-index:1;margin-top:18px;font-size:15px;color:var(--sub);cursor:pointer;}
+  .fill-skip:active{color:var(--brand-b);}
+  .old-note{color:var(--sub);font-size:13px;max-width:380px;text-align:center;line-height:1.6;}
+  body.dark .fill-nick-input{background:#2a333d;border-color:#3a4654;color:var(--ink);}
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="document.body.classList.toggle('dark')">切换 暗黑 / 浅色</button>
+    <span>新弹窗：清晰简洁 · 钢蓝风</span>
+  </div>
+
+  <div class="phone">
+    <div class="screen">
+      <div class="fill-mask">
+        <div class="fill-card">
+          <div class="fill-glow"></div>
+          <div class="fill-emoji">🙂</div>
+          <div class="fill-title">完善微信资料</div>
+          <div class="fill-sub">点击下方头像获取微信头像，昵称可一键填入</div>
+
+          <button class="fill-avatar">
+            <div class="fill-avatar-ph">
+              <div class="fill-avatar-ico">📷</div>
+              <div class="fill-avatar-tx">头像</div>
+            </div>
+          </button>
+
+          <div class="fill-nick">
+            <div class="fill-nick-label">昵称</div>
+            <input class="fill-nick-input" placeholder="点此填入微信昵称" />
+          </div>
+
+          <button class="fill-save">保存并进入</button>
+          <div class="fill-skip">暂不设置，直接进入</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="old-note">
+    旧弹窗问题：背景死板、头像框描边生硬、保存按钮深蓝黑渐变偏沉、缺呼吸感。<br/>
+    新弹窗：毛玻璃遮罩 + 柔和光晕 + 圆润头像环 + 钢蓝渐变按钮 + 入场动画，并适配暗黑模式。
+  </div>
+</body>
+</html>
