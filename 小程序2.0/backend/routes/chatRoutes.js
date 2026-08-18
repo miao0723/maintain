@@ -231,7 +231,7 @@ function generateRuleBasedReply(intent, entities, knowledgeContext, productConte
     emergency: '紧急情况我们会优先处理，请您先到店或电话联系我们，我们会立即为您安排。',
     complaint: '非常抱歉给您带来不便，我理解您的心情，让我为您转接人工客服来处理您的问题。',
     refund: '关于退款问题，建议您转接人工客服，我们会根据具体情况为您处理。',
-    general: '感谢您的咨询！请问还有什么可以帮您的吗？'
+    general: '我是修小宝，您的电子维修智能助手~ 我可以帮您解答手机、电脑、平板、相机、无人机、游戏机等设备的维修与回收问题，也能查订单进度、安排上门或邮寄取件。您直接说设备型号+故障现象，或点下方选项选您想了解的内容，我马上为您解答😊'
   };
 
   // 如果有相关知识库内容，尝试从知识库中提取答案
@@ -247,6 +247,7 @@ function buildFallbackActions(intent, entities = {}) {
   const commonActions = [
     { type: 'quick_reply', text: '营业时间' },
     { type: 'quick_reply', text: '维修流程' },
+    { type: 'button', text: '预约维修', action: 'book_repair' },
     { type: 'button', text: '转人工客服', action: 'transfer_human' }
   ];
 

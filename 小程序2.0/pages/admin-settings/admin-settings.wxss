@@ -1,0 +1,29 @@
+/* pages/admin-settings/admin-settings.wxss */
+.page-container { min-height: 100vh; background: #f5f7fa; padding: 0 24rpx 40rpx; box-sizing: border-box; }
+
+.page-head { padding: 32rpx 8rpx 20rpx; }
+.head-title { font-size: 40rpx; font-weight: 700; color: #1f2937; }
+
+.card { background: #fff; border-radius: 20rpx; padding: 28rpx 24rpx; margin-bottom: 20rpx; box-shadow: 0 6rpx 18rpx rgba(79,107,132,0.05); }
+.card-title { font-size: 28rpx; font-weight: 600; color: #5b6b7b; margin-bottom: 18rpx; }
+
+.account { display: flex; align-items: center; }
+.avatar { width: 96rpx; height: 96rpx; border-radius: 50%; background: #e6ecf2; }
+.account-info { margin-left: 24rpx; }
+.account-name { display: block; font-size: 32rpx; font-weight: 600; color: #1f2937; }
+.account-role { display: block; font-size: 26rpx; color: #8a96a3; margin-top: 6rpx; }
+
+.switch-row { display: flex; align-items: center; justify-content: space-between; padding: 16rpx 0; border-bottom: 1rpx solid #eef2f7; }
+.switch-row:last-child { border-bottom: none; }
+.switch-label { font-size: 28rpx; color: #1f2937; }
+
+.info-row { display: flex; align-items: center; justify-content: space-between; padding: 10rpx 0; }
+.info-label { font-size: 28rpx; color: #5b6b7b; }
+.info-value { font-size: 26rpx; color: #4f6b84; max-width: 420rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.info-tip { font-size: 22rpx; color: #aab3bd; margin-top: 8rpx; }
+
+.action-row { display: flex; align-items: center; justify-content: space-between; }
+.action-label { font-size: 28rpx; color: #1f2937; }
+.action-arrow { font-size: 40rpx; color: #c2cad3; }
+
+.foot-note { font-size: 22rpx; color: #aab3bd; text-align: center; margin-top: 12rpx; padding: 0 20rpx; }

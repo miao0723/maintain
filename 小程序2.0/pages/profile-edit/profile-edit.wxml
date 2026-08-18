@@ -28,6 +28,7 @@
         placeholder="点击一键填入微信昵称"
         placeholder-class="form-input-ph"
         value="{{userInfo.nickName}}"
+        bindnickname="onFillNickName"
         bindinput="onNicknameInput"
         maxlength="20"/>
       <text class="char-count {{userInfo.nickName.length >= 18 ? 'near' : ''}}">{{userInfo.nickName.length}}/20</text>
@@ -110,3 +111,4 @@
   <!-- 底部间距 -->
   <view class="bottom-space"></view>
 </view>
+<confirm-modal id="confirmModal" />

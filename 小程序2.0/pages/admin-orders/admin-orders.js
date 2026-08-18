@@ -1,6 +1,7 @@
 // pages/admin-orders/admin-orders.js
 const app = getApp();
 const { adminApi } = require('../../utils/api.js');
+const { getMpApiBaseUrl } = require('../../utils/mpApi.js');
 
 // 状态配置
 const STATUS_CONFIG = {
@@ -12,8 +13,8 @@ const STATUS_CONFIG = {
   },
   quoted: {
     label: '已报价',
-    color: '#8b5cf6',
-    bg: '#ede9fe',
+    color: '#436f95',
+    bg: '#e8f1f8',
     icon: '💰'
   },
   confirmed: {
@@ -76,6 +77,17 @@ Page({
       processing: 0,
       completed: 0,
       cancelled: 0,
+      internal_pending: 0,
+      admin_created: 0
+    },
+
+    // 各状态未读订单数（管理员侧角标"未读的1"），点击状态 tab / 打开订单后清零
+    adminUnread: {
+      pending: 0,
+      quoted: 0,
+      confirmed: 0,
+      processing: 0,
+      completed: 0,
       internal_pending: 0,
       admin_created: 0
     },
@@ -204,6 +216,77 @@ Page({
   onShow() {
     console.log('[admin-orders] 页面显示, 当前Tab:', this.data.currentTab, '过滤器:', this.data.statusFilter);
     this.loadOrders();
+    this.loadUnreadBadges();
+  },
+
+  /**
+   * 加载管理员侧各状态未读角标（按状态统计 admin_unread=1 的订单）
+   */
+  async loadUnreadBadges() {
+    try {
+      const res = await new Promise((resolve, reject) => {
+        wx.request({
+          url: `${getMpApiBaseUrl()}/admin/orders/unread-counts`,
+          method: 'GET',
+          header: {
+            'Authorization': `Bearer ${this.data.token}`,
+            'Content-Type': 'application/json'
+          },
+          success: resolve,
+          fail: reject
+        });
+      });
+      if (res.statusCode === 200 && res.data && res.data.success) {
+        const counts = (res.data.data && res.data.data.counts) || {};
+        this.setData({
+          adminUnread: {
+            pending: counts.pending || 0,
+            quoted: counts.quoted || 0,
+            confirmed: counts.confirmed || 0,
+            processing: counts.processing || 0,
+            completed: counts.completed || 0,
+            internal_pending: counts.internal_pending || 0,
+            admin_created: counts.admin_created || 0
+          }
+        });
+      }
+    } catch (err) {
+      console.error('[admin-orders] 获取未读角标失败:', err);
+    }
+  },
+
+  /**
+   * 将某一状态的管理员未读订单标记为已读（点击状态 tab 时调用）
+   */
+  markTabRead(status) {
+    if (this.data.adminUnread.hasOwnProperty(status)) {
+      this.setData({ [`adminUnread.${status}`]: 0 });
+    }
+    wx.request({
+      url: `${getMpApiBaseUrl()}/admin/orders/read`,
+      method: 'PUT',
+      header: {
+        'Authorization': `Bearer ${this.data.token}`,
+        'Content-Type': 'application/json'
+      },
+      data: { status },
+      success: () => {},
+      fail: () => {}
+    });
+  },
+
+  /**
+   * 将单个订单标记为已读（打开订单详情时调用）
+   */
+  markOrderRead(orderId) {
+    if (!orderId) return;
+    wx.request({
+      url: `${getMpApiBaseUrl()}/admin/orders/${orderId}/read`,
+      method: 'PUT',
+      header: { 'Authorization': `Bearer ${this.data.token}` },
+      success: () => { this.loadUnreadBadges(); },
+      fail: () => {}
+    });
   },
 
   /**
@@ -232,7 +315,7 @@ Page({
       } else {
         // 调用API获取分配给当前管理员的订单
         res = await wx.request({
-          url: `${app.globalData.baseUrl}/api/admin/my-orders`,
+          url: `${getMpApiBaseUrl()}/admin/my-orders`,
           method: 'GET',
           header: {
             'Authorization': `Bearer ${this.data.token}`,
@@ -368,6 +451,9 @@ Page({
    */
   switchTab(e) {
     const tab = e.currentTarget.dataset.tab;
+    if (tab && tab !== 'all') {
+      this.markTabRead(tab);
+    }
     this.setData({
       currentTab: tab,
       statusFilter: tab,
@@ -436,11 +522,14 @@ Page({
     const orderId = e.currentTarget.dataset.id;
     const order = this.data.orders.find(o => String(o.id) === String(orderId));
 
+    // 打开订单详情即视为管理员已读，清除该订单未读角标
+    this.markOrderRead(orderId);
+
     console.log('[查看详情] 查找订单 ID:', orderId, '找到:', order ? '是' : '否');
 
     if (order) {
       // 处理图片URL：补全baseUrl前缀
-      const baseUrl = app.globalData.baseUrl || app.globalData.apiUrl || '';
+      const baseUrl = getMpApiBaseUrl();
       let images = order.images || [];
       if (typeof images === 'string') {
         try { images = JSON.parse(images); } catch (e) { images = []; }
@@ -470,6 +559,8 @@ Page({
       showOrderDetail: false,
       currentOrder: null
     });
+    // 关闭详情后刷新未读角标（打开时已清掉该订单的未读）
+    this.loadUnreadBadges();
   },
 
   /**
@@ -594,7 +685,7 @@ Page({
     wx.showLoading({ title: '创建中...', mask: true });
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/admin/orders/create-by-admin`,
+        url: `${getMpApiBaseUrl()}/admin/orders/create-by-admin`,
         method: 'POST',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -896,7 +987,7 @@ Page({
 
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/admin/orders/${orderId}/accept`,
+        url: `${getMpApiBaseUrl()}/admin/orders/${orderId}/accept`,
         method: 'PUT',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -924,7 +1015,7 @@ Page({
 
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/admin/orders/${orderId}/process`,
+        url: `${getMpApiBaseUrl()}/admin/orders/${orderId}/process`,
         method: 'PUT',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -955,7 +1046,7 @@ Page({
         if (res.confirm) {
           try {
             const res = await wx.request({
-              url: `${app.globalData.baseUrl}/api/admin/orders/${orderId}/complete`,
+              url: `${getMpApiBaseUrl()}/admin/orders/${orderId}/complete`,
               method: 'PUT',
               header: {
                 'Authorization': `Bearer ${this.data.token}`,
@@ -989,7 +1080,7 @@ Page({
         if (res.confirm) {
           try {
             const res = await wx.request({
-              url: `${app.globalData.baseUrl}/api/admin/orders/${orderId}/cancel`,
+              url: `${getMpApiBaseUrl()}/admin/orders/${orderId}/cancel`,
               method: 'PUT',
               header: {
                 'Authorization': `Bearer ${this.data.token}`,
@@ -1031,7 +1122,7 @@ Page({
 
           try {
             const response = await wx.request({
-              url: `${app.globalData.baseUrl}/api/admin/orders/${orderId}/progress`,
+              url: `${getMpApiBaseUrl()}/admin/orders/${orderId}/progress`,
               method: 'PUT',
               header: {
                 'Authorization': `Bearer ${this.data.token}`,
@@ -1307,7 +1398,7 @@ Page({
   async chooseRepairReportFiles() {
     try {
       wx.showLoading({ title: '上传中...' });
-      const baseUrl = app.globalData.baseUrl;
+      const baseUrl = getMpApiBaseUrl();
 
       const chooseRes = await new Promise((resolve, reject) => {
         wx.chooseMessageFile({
@@ -1326,7 +1417,7 @@ Page({
       const uploadPromises = chooseRes.tempFiles.map(file => {
         return new Promise((resolve, reject) => {
           wx.uploadFile({
-            url: `${baseUrl}/api/upload/repair`,
+            url: `${baseUrl}/upload/repair`,
             filePath: file.path,
             name: 'files',
             header: {
@@ -1382,7 +1473,7 @@ Page({
     wx.showLoading({ title: '提交中...', mask: true });
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/admin/orders/${repairReportOrderData.id}/repair-report`,
+        url: `${getMpApiBaseUrl()}/admin/orders/${repairReportOrderData.id}/repair-report`,
         method: 'PUT',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -1459,7 +1550,7 @@ Page({
       wx.showLoading({ title: '上传中...' });
 
       const app = getApp();
-      const baseUrl = app.globalData.baseUrl;
+      const baseUrl = getMpApiBaseUrl();
 
       // 先选择文件
       const chooseRes = await new Promise((resolve, reject) => {
@@ -1480,7 +1571,7 @@ Page({
       const uploadPromises = chooseRes.tempFiles.map(file => {
         return new Promise((resolve, reject) => {
           wx.uploadFile({
-            url: `${baseUrl}/api/upload/quote`,
+            url: `${baseUrl}/upload/quote`,
             filePath: file.path,
             name: 'files',
             header: {
@@ -1550,7 +1641,7 @@ Page({
         try {
           const app = getApp();
           const response = await wx.request({
-            url: `${app.globalData.baseUrl}/api/admin/orders/${quoteOrderData.id}/quote`,
+            url: `${getMpApiBaseUrl()}/admin/orders/${quoteOrderData.id}/quote`,
             method: 'PUT',
             header: {
               'Authorization': `Bearer ${this.data.token}`,

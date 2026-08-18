@@ -6,7 +6,7 @@
   <!-- 顶部导航 -->
   <view class="header">
     <view class="admin-card">
-      <image class="admin-avatar" src="{{adminInfo.avatar_url || adminInfo.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill" binderror="onAvatarError"></image>
+      <image class="admin-avatar" src="{{adminInfo.avatar_url || adminInfo.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill" binderror="onAvatarError"></image>
       <view class="admin-meta">
         <text class="admin-name">{{adminInfo.nickname || adminInfo.real_name || '超级管理员'}}</text>
         <view class="admin-role-row">
@@ -216,12 +216,12 @@
         <view class="section-title">最近用户</view>
         <view class="recent-users">
           <view class="recent-user-item" wx:for="{{dashboardData.recentUsers}}" wx:key="id">
-            <image class="ru-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill" binderror="onRecentUserAvatarError" data-index="{{index}}"></image>
+            <image class="ru-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill" binderror="onRecentUserAvatarError" data-index="{{index}}"></image>
             <view class="ru-info">
               <text class="ru-name">{{item.nickname || item.real_name || '用户'}}</text>
               <text class="ru-time">{{utils.formatDate(item.created_at)}}</text>
             </view>
-            <text class="ru-role {{item.role}}">{{item.role === 'super_admin' ? '超级管理员' : item.role === 'admin' ? '管理员' : '用户'}}</text>
+            <text class="ru-role {{item.role}}">{{item.role === 'super_admin' ? '超级管理员' : item.role === 'admin' ? '管理员' : item.role === 'repair' ? '维修人员' : '用户'}}</text>
           </view>
         </view>
       </view>
@@ -307,7 +307,7 @@
               <button class="action-btn primary" size="mini" bindtap="viewOrderDetail" data-order-id="{{item.id}}">详情</button>
               <button class="action-btn success" size="mini" wx:if="{{item.status === 'pending'}}" bindtap="assignOrderToTechnician" data-order-id="{{item.id}}">分配</button>
               <button class="action-btn" size="mini" wx:if="{{item.status === 'pending'}}" bindtap="updateOrderStatus" data-order-id="{{item.id}}" data-current-status="{{item.status}}">状态</button>
-              <button class="action-btn" size="mini" wx:if="{{item.status === 'quoted'}}" style="background: #8b5cf6; color: #fff;">等待确认</button>
+              <button class="action-btn" size="mini" wx:if="{{item.status === 'quoted'}}" style="background: #436f95; color: #fff;">等待确认</button>
               <button class="action-btn success" size="mini" wx:if="{{item.status === 'confirmed'}}" bindtap="updateOrderStatus" data-order-id="{{item.id}}" data-current-status="{{item.status}}">开始处理</button>
               <button class="action-btn feedback" size="mini" wx:if="{{item.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{item.id}}">📹 进度反馈</button>
             </view>
@@ -420,7 +420,7 @@
             <view class="myo-actions">
               <button class="myo-btn primary" size="mini" bindtap="viewOrderDetail" data-order-id="{{item.id}}">详情</button>
               <button class="myo-btn primary" size="mini" wx:if="{{item.status === 'pending'}}" bindtap="openQuoteModal" data-order-id="{{item.id}}">💰 报价</button>
-              <button class="myo-btn" size="mini" wx:if="{{item.status === 'quoted'}}" style="background: #8b5cf6; color: #fff;">等待确认</button>
+              <button class="myo-btn" size="mini" wx:if="{{item.status === 'quoted'}}" style="background: #436f95; color: #fff;">等待确认</button>
               <button class="myo-btn success" size="mini" wx:if="{{item.status === 'confirmed'}}" bindtap="doUpdateOrderStatus" data-order-id="{{item.id}}" data-status="processing">开始处理</button>
               <button class="myo-btn feedback" size="mini" wx:if="{{item.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{item.id}}">📹 进度反馈</button>
               <button class="myo-btn success" size="mini" wx:if="{{item.status === 'processing'}}" bindtap="doUpdateOrderStatus" data-order-id="{{item.id}}" data-status="completed">完成</button>
@@ -591,11 +591,11 @@
       <!-- 维修人员列表 -->
       <view class="technician-list" wx:if="{{technicians.length > 0}}">
         <view class="technician-item" wx:for="{{technicians}}" wx:key="id">
-          <image class="tech-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <image class="tech-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill"></image>
           <view class="tech-info">
             <view class="tech-name-row">
               <text class="tech-name">{{item.real_name || item.nickname || '维修人员'}}</text>
-              <text class="tech-role-tag {{item.role}}">{{item.role === 'super_admin' ? '超级管理员' : item.role === 'admin' ? '管理员' : '维修人员'}}</text>
+              <text class="tech-role-tag {{item.role}}">{{item.role === 'super_admin' ? '超级管理员' : item.role === 'admin' ? '管理员' : item.role === 'repair' ? '维修人员' : item.role === 'internal' ? '内部人员' : '普通用户'}}</text>
             </view>
             <text class="tech-phone" wx:if="{{item.phone}}">📞 {{item.phone}}</text>
             <text class="tech-email" wx:if="{{item.email}}">📧 {{item.email}}</text>
@@ -1032,48 +1032,141 @@
   </view>
 </view>
 
-<!-- 用户列表弹窗 -->
+<!-- 用户管理弹窗 -->
 <view class="popup-overlay" wx:if="{{showUserList}}">
   <view class="popup-mask" bindtap="closeUserList"></view>
-  <view class="popup-content">
-    <view class="popup-header">
-      <text class="popup-title">用户管理</text>
-      <text class="popup-close" bindtap="closeUserList">✕</text>
+  <view class="popup-content user-popup">
+    <view class="popup-header user-popup-header">
+      <view class="user-popup-title-wrap">
+        <text class="popup-title">用户管理</text>
+        <text class="user-popup-count">共 {{userTotal}} 位用户</text>
+      </view>
+      <view class="user-popup-header-actions">
+        <view class="user-add-btn" bindtap="onAddUser">
+          <text class="user-add-icon">＋</text>
+          <text>添加</text>
+        </view>
+        <text class="popup-close" bindtap="closeUserList">✕</text>
+      </view>
     </view>
+
     <view class="popup-search">
-      <input class="popup-search-input" placeholder="搜索用户名、手机号" value="{{userKeyword}}" bindinput="onUserSearchInput"></input>
-      <text class="popup-search-clear" wx:if="{{userKeyword}}" bindtap="onClearUserSearch">✕</text>
-      <button class="popup-search-btn" size="mini" bindtap="onUserSearch">搜索</button>
+      <view class="popup-search-box">
+        <text class="popup-search-icon">🔍</text>
+        <input class="popup-search-input" placeholder="搜索用户名、手机号" value="{{userKeyword}}" bindinput="onUserSearchInput" bindconfirm="onUserSearch"></input>
+        <text class="popup-search-clear" wx:if="{{userKeyword}}" bindtap="onClearUserSearch">✕</text>
+      </view>
+      <button class="popup-search-btn" bindtap="onUserSearch">搜索</button>
     </view>
-    <view class="popup-filters">
-      <view class="pfilter-item {{!userRoleFilter ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="">全部</view>
-      <view class="pfilter-item {{userRoleFilter === 'super_admin' ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="super_admin">超级管理员</view>
-      <view class="pfilter-item {{userRoleFilter === 'admin' ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="admin">管理员</view>
-      <view class="pfilter-item {{userRoleFilter === 'internal' ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="internal">内部人员</view>
-      <view class="pfilter-item {{userRoleFilter === 'user' ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="user">普通用户</view>
+
+    <!-- 角色筛选（分段控件） -->
+    <view class="role-filter">
+      <view class="role-filter-item {{!userRoleFilter ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="">全部</view>
+      <view class="role-filter-item {{userRoleFilter === 'super_admin' ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="super_admin">超级管理员</view>
+      <view class="role-filter-item {{userRoleFilter === 'admin' ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="admin">管理员</view>
+      <view class="role-filter-item {{userRoleFilter === 'repair' ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="repair">维修人员</view>
+      <view class="role-filter-item {{userRoleFilter === 'internal' ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="internal">内部人员</view>
+      <view class="role-filter-item {{userRoleFilter === 'user' ? 'active' : ''}}" bindtap="onUserRoleFilter" data-role="user">普通用户</view>
     </view>
+
     <scroll-view class="popup-scroll" scroll-y>
-      <view class="user-item" wx:for="{{users}}" wx:key="id">
-        <image class="user-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
-        <view class="user-info">
-          <text class="user-name">{{item.nickname || item.real_name || '用户'}}</text>
-          <text class="user-phone">{{item.phone || '无手机号'}}</text>
-          <text class="user-join-time">{{utils.formatDate(item.created_at)}}</text>
+      <view class="user-card" wx:for="{{users}}" wx:key="id">
+        <view class="user-card-top">
+          <image class="user-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill"></image>
+          <view class="user-info">
+            <view class="user-name-row">
+              <text class="user-name">{{item.nickname || item.real_name || '用户'}}</text>
+              <text class="user-role-tag {{item.role}}">{{item.role === 'super_admin' ? '超级管理员' : item.role === 'admin' ? '管理员' : item.role === 'repair' ? '维修人员' : item.role === 'internal' ? '内部人员' : '普通用户'}}</text>
+            </view>
+            <text class="user-phone">📱 {{item.phone || '无手机号'}}</text>
+            <text class="user-join-time">🕒 注册于 {{utils.formatDate(item.created_at)}}</text>
+          </view>
+          <view class="user-status-badge {{item.status ? 'on' : 'off'}}">{{item.status ? '正常' : '已禁用'}}</view>
         </view>
-        <view class="user-actions-col">
-          <text class="ua-btn {{item.status ? 'enable' : 'disable'}}" bindtap="onToggleUserStatus" data-id="{{item.id}}" data-status="{{item.status}}">{{item.status ? '启用' : '禁用'}}</text>
-          <text class="ua-btn role" bindtap="onChangeUserRole" data-id="{{item.id}}" data-role="{{item.role}}">{{item.role === 'admin' ? '改为内部人员' : (item.role === 'internal' ? '改为普通用户' : '设为管理员')}}</text>
+        <view class="user-card-actions">
+          <view class="uc-btn edit" bindtap="onEditUser" data-id="{{item.id}}">✏️ 修改信息</view>
+          <block wx:if="{{item.role === 'super_admin'}}">
+            <view class="uc-btn locked">🔒 超级管理员（受保护）</view>
+          </block>
+          <block wx:else>
+            <view class="uc-btn {{item.status ? 'disable' : 'enable'}}" bindtap="onToggleUserStatus" data-id="{{item.id}}" data-status="{{item.status}}">{{item.status ? '🚫 禁用' : '✅ 启用'}}</view>
+            <view class="uc-btn danger" bindtap="onDeleteUser" data-id="{{item.id}}" data-name="{{item.nickname || item.real_name || '该用户'}}">🗑 删除</view>
+          </block>
         </view>
+      </view>
+
+      <view class="user-list-loading" wx:if="{{loading}}">
+        <text class="empty-text">加载中...</text>
       </view>
       <view class="empty-state small" wx:if="{{!loading && users.length === 0}}">
         <text class="empty-icon">👥</text>
-        <text class="empty-text">暂无用户</text>
+        <text class="empty-text">暂无符合条件的用户</text>
       </view>
     </scroll-view>
+
     <view class="popup-pagination">
-      <button class="page-btn {{userPage <= 1 ? 'disabled' : ''}}" size="mini" bindtap="loadPrevUserPage">上一页</button>
+      <button class="page-btn {{userPage <= 1 ? 'disabled' : ''}}" bindtap="loadPrevUserPage">上一页</button>
       <text class="page-info">{{userPage}} / {{Math.ceil(userTotal / userPageSize) || 1}}</text>
-      <button class="page-btn {{userPage >= Math.ceil(userTotal / userPageSize) ? 'disabled' : ''}}" size="mini" bindtap="loadNextUserPage">下一页</button>
+      <button class="page-btn {{userPage >= Math.ceil(userTotal / userPageSize) ? 'disabled' : ''}}" bindtap="loadNextUserPage">下一页</button>
+    </view>
+  </view>
+</view>
+
+<!-- 用户编辑/新增弹窗 -->
+<view class="popup-overlay" wx:if="{{showUserForm}}">
+  <view class="popup-mask" bindtap="closeUserForm"></view>
+  <view class="popup-content form-popup">
+    <view class="popup-header">
+      <text class="popup-title">{{userFormMode === 'edit' ? '修改用户信息' : '新增用户'}}</text>
+      <text class="popup-close" bindtap="closeUserForm">✕</text>
+    </view>
+    <scroll-view class="popup-scroll" scroll-y>
+      <view class="form-group">
+        <text class="form-label">昵称<text class="form-required">*</text></text>
+        <input class="form-input" placeholder="请输入昵称" value="{{userForm.nickname}}" data-field="nickname" bindinput="onUserFormInput"></input>
+      </view>
+      <view class="form-group">
+        <text class="form-label">真实姓名</text>
+        <input class="form-input" placeholder="请输入真实姓名（选填）" value="{{userForm.real_name}}" data-field="real_name" bindinput="onUserFormInput"></input>
+      </view>
+      <view class="form-group">
+        <text class="form-label">手机号<text class="form-required">*</text></text>
+        <input class="form-input" type="number" placeholder="请输入手机号" value="{{userForm.phone}}" data-field="phone" bindinput="onUserFormInput"></input>
+      </view>
+      <view class="form-group">
+        <text class="form-label">邮箱</text>
+        <input class="form-input" placeholder="请输入邮箱（选填）" value="{{userForm.email}}" data-field="email" bindinput="onUserFormInput"></input>
+      </view>
+      <view class="form-group">
+        <text class="form-label">角色</text>
+        <block wx:if="{{userFormMode === 'edit' && userForm.role === 'super_admin'}}">
+          <view class="form-role-readonly">超级管理员（系统最高权限，角色不可修改）</view>
+        </block>
+        <block wx:else>
+          <view class="form-role-options">
+            <view class="form-role-opt {{userForm.role === 'user' ? 'active' : ''}}" bindtap="onUserFormRole" data-role="user">普通用户</view>
+            <view class="form-role-opt {{userForm.role === 'repair' ? 'active' : ''}}" bindtap="onUserFormRole" data-role="repair">维修人员</view>
+            <view class="form-role-opt {{userForm.role === 'internal' ? 'active' : ''}}" bindtap="onUserFormRole" data-role="internal">内部人员</view>
+            <view class="form-role-opt {{userForm.role === 'admin' ? 'active' : ''}}" bindtap="onUserFormRole" data-role="admin">管理员</view>
+          </view>
+        </block>
+      </view>
+      <view class="form-group" wx:if="{{userFormMode === 'edit'}}">
+        <text class="form-label">状态</text>
+        <block wx:if="{{userForm.role === 'super_admin'}}">
+          <view class="form-role-readonly">正常（超级管理员不可被禁用）</view>
+        </block>
+        <block wx:else>
+          <view class="form-role-options">
+            <view class="form-role-opt {{userForm.status === 1 ? 'active' : ''}}" bindtap="onUserFormStatus" data-status="1">正常</view>
+            <view class="form-role-opt {{userForm.status === 0 ? 'active' : ''}}" bindtap="onUserFormStatus" data-status="0">已禁用</view>
+          </view>
+        </block>
+      </view>
+    </scroll-view>
+    <view class="form-footer">
+      <button class="form-cancel-btn" bindtap="closeUserForm">取消</button>
+      <button class="form-save-btn" loading="{{savingUser}}" bindtap="onSaveUser">{{userFormMode === 'edit' ? '保存修改' : '创建用户'}}</button>
     </view>
   </view>
 </view>
@@ -1228,7 +1321,7 @@
     </scroll-view>
     <view class="detail-actions">
       <button class="detail-btn success" size="default" wx:if="{{orderDetail.status === 'pending'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="quoted">提交报价</button>
-      <button class="detail-btn" size="default" wx:if="{{orderDetail.status === 'quoted'}}" style="background: #8b5cf6; color: #fff;">等待用户确认报价</button>
+      <button class="detail-btn" size="default" wx:if="{{orderDetail.status === 'quoted'}}" style="background: #436f95; color: #fff;">等待用户确认报价</button>
       <button class="detail-btn success" size="default" wx:if="{{orderDetail.status === 'confirmed'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="processing">开始处理</button>
       <button class="detail-btn feedback" size="default" wx:if="{{orderDetail.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{orderDetail.id}}">📹 进度反馈</button>
       <button class="detail-btn success" size="default" wx:if="{{orderDetail.status === 'processing'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="completed">完成工单</button>
@@ -1390,12 +1483,15 @@
 <!-- 确认弹窗 -->
 <view class="popup-overlay" wx:if="{{showConfirm}}">
   <view class="popup-mask"></view>
-  <view class="confirm-dialog">
+  <view class="confirm-dialog confirm-dialog--{{confirmType}}">
+    <view class="confirm-icon confirm-icon--{{confirmType}}">
+      <text class="confirm-icon-symbol">{{confirmType === 'danger' ? '!' : (confirmType === 'success' ? '✓' : 'i')}}</text>
+    </view>
     <text class="confirm-title">{{confirmTitle}}</text>
     <text class="confirm-content">{{confirmContent}}</text>
     <view class="confirm-actions">
       <button class="confirm-btn cancel" bindtap="onConfirmCancel">取消</button>
-      <button class="confirm-btn ok" bindtap="onConfirmOk">确定</button>
+      <button class="confirm-btn ok" bindtap="onConfirmOk">{{confirmOkText}}</button>
     </view>
   </view>
 </view>
@@ -1455,3 +1551,4 @@
     <text class="loading-text">{{loadingText}}</text>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

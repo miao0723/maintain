@@ -98,7 +98,7 @@ function fetchWithCache(options) {
 }
 
 const CACHE_KEYS = {
-  userProfile: 'mine:userProfile',
+  userProfile: 'mine:userProfile:v2',
   orderSummary: 'mine:orderSummary',
   addressCount: 'mine:addressCount',
   unitCount: 'mine:unitCount',

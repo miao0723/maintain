@@ -118,7 +118,7 @@
 }
 
 .progress-step.active .step-dot {
-  background: linear-gradient(135deg, #5a6e8a, #7b93b0);
+  background: linear-gradient(135deg, #4f6b84, #7b93b0);
   color: #fff;
   box-shadow: 0 4rpx 16rpx rgba(90,110,138,0.35);
   transform: scale(1.15);
@@ -139,7 +139,7 @@
 
 .progress-step.active .step-label,
 .progress-step.done .step-label {
-  color: #5a6e8a;
+  color: #4f6b84;
   font-weight: 500;
 }
 
@@ -152,7 +152,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #5a6e8a, #7b93b0);
+  background: linear-gradient(90deg, #4f6b84, #7b93b0);
   border-radius: 3rpx;
   transition: width 0.4s ease;
 }
@@ -210,7 +210,7 @@
   width: 200rpx;
   height: 200rpx;
   border-radius: 50%;
-  background: #5a6e8a;
+  background: #4f6b84;
 }
 
 .qc-deco-line {
@@ -219,7 +219,7 @@
   right: 30rpx;
   width: 120rpx;
   height: 4rpx;
-  background: #5a6e8a;
+  background: #4f6b84;
   border-radius: 2rpx;
 }
 
@@ -233,11 +233,11 @@
 .qc-step-badge {
   display: inline-block;
   padding: 6rpx 18rpx;
-  background: linear-gradient(135deg, #5a6e8a15, #6b829918);
+  background: linear-gradient(135deg, #4f6b8415, #6b829918);
   border-radius: 20rpx;
   font-size: 22rpx;
   font-weight: 600;
-  color: #5a6e8a;
+  color: #4f6b84;
   margin-bottom: 16rpx;
 }
 
@@ -285,7 +285,7 @@
   top: 0;
   bottom: 0;
   width: 6rpx;
-  background: linear-gradient(180deg, #5a6e8a, #7b93b0);
+  background: linear-gradient(180deg, #4f6b84, #7b93b0);
   border-radius: 0 3rpx 3rpx 0;
   opacity: 0;
   transition: opacity 0.2s;
@@ -293,7 +293,7 @@
 
 .qc-option:active {
   background: #eef1f8;
-  border-color: #5a6e8a;
+  border-color: #4f6b84;
   transform: scale(0.98);
 }
 
@@ -322,7 +322,7 @@
 }
 
 .qc-option:active .qco-icon-wrap {
-  background: linear-gradient(135deg, #5a6e8a18, #7b93b018);
+  background: linear-gradient(135deg, #4f6b8418, #7b93b018);
 }
 
 .qco-content {
@@ -365,7 +365,7 @@
 }
 
 .qc-option:active .qco-arrow {
-  color: #5a6e8a;
+  color: #4f6b84;
   transform: translateX(4rpx);
 }
 
@@ -373,7 +373,7 @@
 .qc-live-price {
   margin-top: 28rpx;
   padding: 20rpx;
-  background: linear-gradient(135deg, #5a6e8a08, #7b93b008);
+  background: linear-gradient(135deg, #4f6b8408, #7b93b008);
   border-radius: 16rpx;
   text-align: center;
   position: relative;
@@ -390,7 +390,7 @@
 .live-price-value {
   font-size: 48rpx;
   font-weight: 800;
-  color: #5a6e8a;
+  color: #4f6b84;
   font-family: 'Menlo', 'SF Mono', monospace;
 }
 
@@ -435,7 +435,7 @@
 
 .qc-confirm-btn {
   padding: 16rpx 40rpx;
-  background: linear-gradient(135deg, #5a6e8a, #6b8299);
+  background: linear-gradient(135deg, #4f6b84, #6b8299);
   border-radius: 12rpx;
   font-size: 26rpx;
   color: #fff;
@@ -477,7 +477,7 @@
   width: 100%;
   height: 100%;
   border: 4rpx solid #e8ecf1;
-  border-top-color: #5a6e8a;
+  border-top-color: #4f6b84;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -547,7 +547,7 @@
 
 /* 价格 hero 卡片 */
 .result-hero {
-  background: linear-gradient(135deg, #4a5e7a, #5a6e8a, #6b8299);
+  background: linear-gradient(135deg, #4a5e7a, #4f6b84, #6b8299);
   border-radius: 24rpx;
   padding: 36rpx 28rpx;
   text-align: center;
@@ -638,7 +638,7 @@
 .rs-a {
   font-size: 26rpx;
   font-weight: 600;
-  color: #5a6e8a;
+  color: #4f6b84;
   text-align: right;
   max-width: 55%;
 }
@@ -763,7 +763,7 @@
   height: 88rpx;
   line-height: 88rpx;
   background: #f0f2f5 !important;
-  color: #5a6e8a !important;
+  color: #4f6b84 !important;
   font-size: 28rpx !important;
   font-weight: 500 !important;
   border-radius: 14rpx !important;
@@ -868,7 +868,7 @@
 
 .picker-check {
   font-size: 32rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
   font-weight: 700;
 }
 

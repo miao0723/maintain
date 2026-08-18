@@ -45,7 +45,10 @@
     <view class="apply-card" wx:for="{{applyList}}" wx:key="id" bindtap="viewDetail" data-id="{{item.id}}">
       <!-- 头部 -->
       <view class="card-header">
-        <text class="apply-no">{{item.apply_no}}</text>
+        <view class="card-header-left">
+          <text class="apply-no">{{item.apply_no}}</text>
+          <text class="apply-device-sub" wx:if="{{item.device_model}}">型号 {{item.device_model}}</text>
+        </view>
         <view class="status-badge" style="background: {{item.statusBg}}; color: {{item.statusColor}}">
           <text>{{item.statusIcon}}</text>
           <text>{{item.statusLabel}}</text>
@@ -86,3 +89,4 @@
     </view>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

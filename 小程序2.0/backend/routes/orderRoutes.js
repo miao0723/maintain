@@ -94,6 +94,43 @@ async function tryMarkQuoteUnread(orderId, unreadValue) {
   }
 }
 
+async function ensureUnreadColumns() {
+  const specs = [
+    { name: 'user_unread', def: "ADD COLUMN user_unread TINYINT(1) NULL DEFAULT 0 COMMENT '用户未读标记: 1-有更新未查看'" },
+    { name: 'admin_unread', def: "ADD COLUMN admin_unread TINYINT(1) NULL DEFAULT 0 COMMENT '管理员未读标记: 1-有更新未查看'" },
+    { name: 'reject_reason', def: "ADD COLUMN reject_reason VARCHAR(255) NULL COMMENT '驳回/取消原因'" }
+  ];
+  for (const s of specs) {
+    try {
+      const exists = await hasOrderColumn(s.name);
+      if (exists) continue;
+      await db.query(`ALTER TABLE orders ${s.def}`);
+    } catch (e) {
+      const dup = e && (e.code === 'ER_DUP_FIELDNAME' || e.errno === 1060 || String(e.message || '').includes('Duplicate column'));
+      if (!dup) throw e;
+    }
+  }
+}
+
+async function trySetUnread(orderId, { user, admin } = {}) {
+  await ensureUnreadColumns();
+  const sets = [];
+  const params = [];
+  if (user !== undefined) { sets.push('user_unread = ?'); params.push(user ? 1 : 0); }
+  if (admin !== undefined) { sets.push('admin_unread = ?'); params.push(admin ? 1 : 0); }
+  if (sets.length === 0) return;
+  params.push(orderId);
+  const sql = `UPDATE orders SET ${sets.join(', ')}, updated_at = NOW() WHERE id = ?`;
+  try {
+    await db.query(sql, params);
+  } catch (e) {
+    const missing = e && (e.code === 'ER_BAD_FIELD_ERROR' || e.errno === 1054 || String(e.message || '').includes('Unknown column'));
+    if (!missing) throw e;
+    await ensureUnreadColumns();
+    await db.query(sql, params);
+  }
+}
+
 /**
  * 创建订单
  * POST /api/orders/create
@@ -349,6 +386,9 @@ router.post('/create', authenticateToken, async (req, res) => {
 
     const orderId = insertResult.insertId;
 
+    // 新订单对管理员而言是未读（需要接单/处理）；对用户自身不算未读
+    await trySetUnread(orderId, { admin: true }).catch(() => {});
+
     // 查询创建的订单信息
     const orderResult = await db.query(
       `SELECT
@@ -560,6 +600,121 @@ router.put('/:orderId/progress-read', authenticateToken, async (req, res) => {
 });
 
 /**
+ * 获取用户"进度反馈动态"——用于"我的"页通知卡片
+ * GET /api/orders/progress-feed?limit=6
+ * 返回各"未读进度"订单的最新一条反馈（描述 + 缩略图 + 时间），按反馈时间倒序
+ */
+router.get('/progress-feed', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = Math.min(parseInt(req.query.limit) || 6, 20);
+
+    let rows = [];
+    try {
+      rows = await db.query(
+        `SELECT
+           p.order_id,
+           p.description AS feedback_text,
+           p.images AS feedback_images,
+           p.uploaded_by_name,
+           p.created_at AS feedback_at,
+           o.order_id AS order_no,
+           o.device_model,
+           o.status,
+           o.progress,
+           o.progress_unread,
+           d.name AS device_type_name
+         FROM order_progress_photos p
+         INNER JOIN (
+           SELECT order_id, MAX(id) AS max_id
+           FROM order_progress_photos
+           GROUP BY order_id
+         ) latest ON p.id = latest.max_id
+         INNER JOIN orders o ON o.id = p.order_id
+         LEFT JOIN device_types d ON o.device_type = d.id
+         WHERE o.user_id = ? AND o.progress_unread = 1
+         ORDER BY p.created_at DESC
+         LIMIT ?`,
+        [userId, limit]
+      );
+    } catch (dbErr) {
+      const columnErr = dbErr.code === 'ER_BAD_FIELD_ERROR'
+        || (dbErr.errno === 1054)
+        || String(dbErr.message || '').includes('Unknown column');
+      if (columnErr) {
+        // progress_unread 列不存在时的回退方案：仅按有进度照片的订单展示
+        console.warn('[progress-feed] progress_unread列不存在，使用回退方案');
+        rows = await db.query(
+          `SELECT
+             p.order_id,
+             p.description AS feedback_text,
+             p.images AS feedback_images,
+             p.uploaded_by_name,
+             p.created_at AS feedback_at,
+             o.order_id AS order_no,
+             o.device_model,
+             o.status,
+             o.progress,
+             1 AS progress_unread,
+             d.name AS device_type_name
+           FROM order_progress_photos p
+           INNER JOIN (
+             SELECT order_id, MAX(id) AS max_id
+             FROM order_progress_photos
+             GROUP BY order_id
+           ) latest ON p.id = latest.max_id
+           INNER JOIN orders o ON o.id = p.order_id
+           LEFT JOIN device_types d ON o.device_type = d.id
+           WHERE o.user_id = ?
+           ORDER BY p.created_at DESC
+           LIMIT ?`,
+          [userId, limit]
+        );
+      } else {
+        throw dbErr;
+      }
+    }
+
+    const feed = (rows || []).map(r => {
+      let images = [];
+      try {
+        if (typeof r.feedback_images === 'string') {
+          images = JSON.parse(r.feedback_images || '[]');
+        } else if (Array.isArray(r.feedback_images)) {
+          images = r.feedback_images;
+        }
+      } catch (e) {
+        images = [];
+      }
+      const thumbnail = Array.isArray(images) && images.length > 0 ? images[0] : '';
+      const deviceLabel = [r.device_type_name, r.device_model]
+        .filter(Boolean).join(' ') || '设备';
+      const statusLabel = {
+        processing: '维修中', completed: '已完成', review: '待评价'
+      }[r.status] || r.status || '';
+      return {
+        order_id: r.order_id,
+        order_no: r.order_no || '',
+        feedback_text: r.feedback_text || '上传了维修进度',
+        thumbnail,
+        images: Array.isArray(images) ? images : [],
+        uploaded_by_name: r.uploaded_by_name || '',
+        feedback_at: r.feedback_at ? String(r.feedback_at) : '',
+        device_label: deviceLabel,
+        status_label: statusLabel,
+        progress: r.progress || 0,
+        is_unread: Number(r.progress_unread) === 1
+      };
+    });
+
+    res.json({ success: true, data: { list: feed, total: feed.length } });
+  } catch (error) {
+    console.error('[progress-feed] 获取进度动态失败:', error);
+    res.status(500).json({ success: false, error: '获取进度动态失败' });
+  }
+});
+
+/**
  * 标记订单报价为已读
  * PUT /api/orders/:orderId/quote-read
  */
@@ -575,6 +730,76 @@ router.put('/:orderId/quote-read', authenticateToken, async (req, res) => {
   } catch (error) {
     console.warn('[quote-read] 非致命异常:', error.message || error);
     res.json({ success: true, message: '已处理' });
+  }
+});
+
+/**
+ * 获取当前用户各状态的未读订单计数（用于"我的"页状态网格角标）
+ * GET /api/orders/unread-counts
+ */
+router.get('/unread-counts', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    await ensureUnreadColumns().catch(() => {});
+    const rows = await db.query(
+      `SELECT status, COUNT(*) as c FROM orders WHERE user_id = ? AND user_unread = 1 GROUP BY status`,
+      [userId]
+    );
+    const counts = {};
+    let total = 0;
+    rows.forEach(r => { counts[r.status] = r.c; total += r.c; });
+    const [internalPendingRow] = await db.query(
+      `SELECT COUNT(*) as c FROM orders WHERE user_id = ? AND status = 'internal_pending'`,
+      [userId]
+    );
+    res.json({
+      success: true,
+      data: {
+        counts,
+        total,
+        internalPending: internalPendingRow[0]?.c || 0
+      }
+    });
+  } catch (error) {
+    console.error('[unread-counts] 失败:', error.message || error);
+    res.status(500).json({ success: false, error: '获取未读计数失败' });
+  }
+});
+
+/**
+ * 将用户的未读订单标记为已读（点击状态格时按 status 清空；不带 status 则清空全部）
+ * PUT /api/orders/read
+ */
+router.put('/read', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { status } = req.body || {};
+    await ensureUnreadColumns().catch(() => {});
+    const params = [userId];
+    let where = 'user_id = ?';
+    if (status) { where += ' AND status = ?'; params.push(status); }
+    await db.query(`UPDATE orders SET user_unread = 0 WHERE ${where}`, params);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[read] 失败:', error.message || error);
+    res.status(500).json({ success: false, error: '标记已读失败' });
+  }
+});
+
+/**
+ * 将单个订单标记为已读（打开订单详情时调用）
+ * PUT /api/orders/:orderId/read
+ */
+router.put('/:orderId/read', authenticateToken, async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId) || 0;
+    if (!orderId) return res.status(400).json({ success: false, error: '无效的订单ID' });
+    await ensureUnreadColumns().catch(() => {});
+    await db.query('UPDATE orders SET user_unread = 0 WHERE id = ? AND user_id = ?', [orderId, req.user.id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[order-read] 失败:', error.message || error);
+    res.status(500).json({ success: false, error: '标记已读失败' });
   }
 });
 

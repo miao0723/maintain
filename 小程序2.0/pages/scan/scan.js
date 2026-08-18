@@ -1,6 +1,7 @@
 // pages/scan/scan.js - 拍照识别设备
 const { userDevicesApi } = require('../../utils/api.js')
 const { deviceTypes } = require('../../utils/deviceData.js')
+const { getMpApiBaseUrl } = require('../../utils/mpApi.js')
 
 Page({
   data: {
@@ -155,7 +156,7 @@ Page({
       const token = wx.getStorageSync('token')
 
       const uploadTask = wx.uploadFile({
-        url: `${baseUrl}/api/scan/identify`,
+        url: `${getMpApiBaseUrl()}/scan/identify`,
         filePath: filePath,
         name: 'image',
         header: {

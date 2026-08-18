@@ -1,6 +1,6 @@
 // pages/login/login.js
 const { userApi } = require('../../utils/api.js')
-const { normalizeAvatarUrl } = require('../../utils/avatar.js')
+const { DEFAULT_AVATAR_URL, normalizeAvatarUrl } = require('../../utils/avatar.js')
 
 function isGenericNickname(name) {
   return !name || name === '微信用户' || name === '游客'
@@ -15,6 +15,7 @@ Page({
     fillAvatarUrl: '',
     fillNickName: '',
     isFilling: false,
+    defaultAvatarUrl: DEFAULT_AVATAR_URL,
     featureTags: [
       'AI故障自检',
       '透明报价',
@@ -180,7 +181,9 @@ Page({
         })
 
         // 新用户或资料不完整 -> 弹出资料补全层（读取微信名和头像）
-        if (this.needProfileFill(normalizedUser)) {
+        // 用户曾经主动「跳过」则不再打扰，可在「我的资料」页随时补填
+        const skippedBefore = wx.getStorageSync('profileFillSkipped')
+        if (!skippedBefore && this.needProfileFill(normalizedUser)) {
           this.setData({
             showProfileFill: true,
             fillAvatarUrl: normalizedUser.avatarUrl || '',
@@ -230,15 +233,11 @@ Page({
     }
   },
 
-  // 点一次「获取微信头像和昵称」：选完头像后自动带出昵称并立即保存
-  onChooseAvatarAndSave(e) {
+  // 选择微信头像：仅本地预览，昵称随用户在昵称框一键填入，最后由「保存并进入」统一上传
+  onChooseAvatar(e) {
     const { avatarUrl } = e.detail
     if (!avatarUrl) return
     this.setData({ fillAvatarUrl: avatarUrl })
-    // 微信昵称在弹层出现时已通过 bindnickname 自动带出，这里兜底确保有值
-    const nickName = this.data.fillNickName || '微信用户'
-    this.setData({ fillNickName: nickName })
-    this.saveProfileFill()
   },
 
   // 昵称输入（input type="nickname" 可一键填入微信昵称）
@@ -247,14 +246,48 @@ Page({
   },
 
   skipProfileFill() {
+    // 记录用户主动跳过，避免每次登录都重复弹资料补全层（仍可到「我的资料」页补填）
+    wx.setStorageSync('profileFillSkipped', true)
     this.setData({ showProfileFill: false })
     this.navigateToHome()
+  },
+
+  /**
+   * 压缩微信头像临时文件（头像最终只显示很小，压到 200px 足够，弱网也能快速上传）
+   * 压缩失败时返回 null，由调用方回退使用原临时文件
+   */
+  compressWechatAvatar(filePath) {
+    return new Promise((resolve) => {
+      wx.compressImage({
+        src: filePath,
+        quality: 70,
+        compressedWidth: 200,
+        compressedHeight: 200,
+        success: (res) => resolve(res.tempFilePath),
+        fail: () => resolve(null)
+      })
+    })
+  },
+
+  /**
+   * 带超时上限的头像上传：最多等待 capMs，超时/失败则回退（绝不阻塞资料保存与跳转）
+   * 本地调试时后端在 127.0.0.1:3001，上传应秒级完成；线上较慢时也不会让用户干等几十秒
+   */
+  uploadAvatarWithCap(filePath, capMs = 10000) {
+    return new Promise((resolve) => {
+      let settled = false
+      const timer = setTimeout(() => {
+        if (!settled) { settled = true; resolve(null) }
+      }, capMs)
+      userApi.uploadAvatar(filePath, { timeout: capMs, suppressErrorToast: true })
+        .then(r => { if (!settled) { settled = true; clearTimeout(timer); resolve(r) } })
+        .catch(() => { if (!settled) { settled = true; clearTimeout(timer); resolve(null) } })
+    })
   },
 
   async saveProfileFill() {
     if (this.data.isFilling) return
     const { fillAvatarUrl, fillNickName } = this.data
-
     if (!fillNickName || !fillNickName.trim()) {
       wx.showToast({ title: '请填写微信昵称', icon: 'none' })
       return
@@ -263,13 +296,21 @@ Page({
     this.setData({ isFilling: true })
     wx.showLoading({ title: '保存中...', mask: true })
 
-    try {
-      let finalAvatarUrl = fillAvatarUrl
+    // 本地先拼装最终用户资料，确保即使服务端保存失败也能正常完成登录
+    let finalAvatarUrl = fillAvatarUrl
+    let serverUser = null
 
-      // 微信头像临时文件需先上传后端
+    try {
+      // 微信头像临时文件需先压缩再上传后端（临时文件体积不可控，压小后弱网也能秒传）
       if (finalAvatarUrl && (finalAvatarUrl.indexOf('http://tmp/') === 0 || finalAvatarUrl.indexOf('wxfile://') === 0 || finalAvatarUrl.indexOf('tmp/') === 0)) {
         try {
-          const uploadRes = await userApi.uploadAvatar(finalAvatarUrl)
+          const compressed = await this.compressWechatAvatar(finalAvatarUrl)
+          finalAvatarUrl = compressed || finalAvatarUrl
+        } catch (cErr) {
+          console.warn('压缩微信头像失败，使用原临时文件:', cErr)
+        }
+        try {
+          const uploadRes = await this.uploadAvatarWithCap(finalAvatarUrl)
           if (uploadRes && uploadRes.avatar_url) {
             finalAvatarUrl = uploadRes.avatar_url
           }
@@ -279,40 +320,41 @@ Page({
         }
       }
 
-      const updatedUser = await userApi.updateUserInfo({
-        nickname: fillNickName.trim(),
-        avatar_url: finalAvatarUrl
-      })
-
-      const currentUserInfo = wx.getStorageSync('userInfo') || {}
-      const mergedUser = {
-        ...currentUserInfo,
-        ...updatedUser,
-        nickname: updatedUser.nickname || fillNickName.trim(),
-        nickName: updatedUser.nickname || fillNickName.trim(),
-        avatar_url: updatedUser.avatar_url || updatedUser.avatarUrl || finalAvatarUrl,
-        avatarUrl: normalizeAvatarUrl(updatedUser.avatar_url || updatedUser.avatarUrl || finalAvatarUrl)
+      // 同步资料到服务端；失败不阻断登录，本地资料照常生效
+      try {
+        serverUser = await userApi.updateUserInfo({
+          nickname: fillNickName.trim(),
+          avatar_url: finalAvatarUrl
+        })
+      } catch (upErr) {
+        console.warn('[登录-资料保存] 服务端更新失败，使用本地资料继续登录:', upErr)
       }
-
-      wx.setStorageSync('userInfo', mergedUser)
-      console.log('[登录-资料保存] 原始 avatar_url:', updatedUser.avatar_url || updatedUser.avatarUrl || finalAvatarUrl)
-      console.log('[登录-资料保存] 最终可访问 avatarUrl:', mergedUser.avatarUrl)
-      const app = getApp()
-      if (app.globalData) {
-        app.globalData.userInfo = mergedUser
-        app.globalData.isLoggedIn = true
-      }
-
-      wx.hideLoading()
-      wx.showToast({ title: '已保存', icon: 'success', duration: 1200 })
-      this.setData({ showProfileFill: false })
-      setTimeout(() => this.navigateToHome(), 1200)
     } catch (err) {
-      console.error('保存资料失败:', err)
-      wx.hideLoading()
-      this.setData({ isFilling: false })
-      wx.showToast({ title: '保存失败，请重试', icon: 'none' })
+      console.warn('[登录-资料保存] 头像处理异常，使用默认头像继续:', err)
+      finalAvatarUrl = normalizeAvatarUrl('')
     }
+
+    const currentUserInfo = wx.getStorageSync('userInfo') || {}
+    const mergedUser = {
+      ...currentUserInfo,
+      ...(serverUser || {}),
+      nickname: (serverUser && serverUser.nickname) || fillNickName.trim(),
+      nickName: (serverUser && serverUser.nickname) || fillNickName.trim(),
+      avatar_url: normalizeAvatarUrl((serverUser && (serverUser.avatar_url || serverUser.avatarUrl)) || finalAvatarUrl),
+      avatarUrl: normalizeAvatarUrl((serverUser && (serverUser.avatar_url || serverUser.avatarUrl)) || finalAvatarUrl)
+    }
+
+    wx.setStorageSync('userInfo', mergedUser)
+    const app = getApp()
+    if (app.globalData) {
+      app.globalData.userInfo = mergedUser
+      app.globalData.isLoggedIn = true
+    }
+
+    wx.hideLoading()
+    wx.showToast({ title: '已登录', icon: 'success', duration: 1200 })
+    this.setData({ showProfileFill: false, isFilling: false })
+    setTimeout(() => this.navigateToHome(), 1200)
   },
 
   /**

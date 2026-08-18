@@ -195,7 +195,7 @@
           <text class="form-label switch-label">设为默认设备</text>
           <text class="form-hint switch-hint">新建设备时将自动选中</text>
         </view>
-        <switch checked="{{isDefault}}" bindchange="toggleDefault" color="#5a6e8a" />
+        <switch checked="{{isDefault}}" bindchange="toggleDefault" color="#4f6b84" />
       </view>
     </view>
   </view>
@@ -207,3 +207,4 @@
     </button>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

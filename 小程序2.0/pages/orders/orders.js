@@ -1,11 +1,12 @@
 // pages/orders/orders.js
 const { orderApi, addressApi } = require('../../utils/api.js')
 const { isProgressUnread, getUnreadProgressOrders, getProgressStamp, syncProgressUnreadState } = require('../../utils/progressUnread.js')
+const { getMpApiBaseUrl } = require('../../utils/mpApi.js')
 
 // 状态配置
 const STATUS_CONFIG = {
   pending: { label: '待处理', color: '#f59e0b', bg: '#fef3c7', icon: '⏳' },
-  quoted: { label: '待确认报价', color: '#8b5cf6', bg: '#ede9fe', icon: '💰' },
+  quoted: { label: '待确认报价', color: '#436f95', bg: '#e8f1f8', icon: '💰' },
   confirmed: { label: '已确认报价', color: '#06b6d4', bg: '#cffafe', icon: '✅' },
   processing: { label: '维修中', color: '#3b82f6', bg: '#dbeafe', icon: '🔧' },
   completed: { label: '已完成', color: '#10b981', bg: '#d1fae5', icon: '✅' },
@@ -158,11 +159,11 @@ Page({
    */
   markOrderProgressRead(orderId) {
     const token = wx.getStorageSync('token');
-    const baseUrl = getApp().globalData.baseUrl || getApp().globalData.apiUrl;
+    const baseUrl = getMpApiBaseUrl();
     if (!token || !orderId) return;
 
     wx.request({
-      url: `${baseUrl}/api/orders/${orderId}/progress-read`,
+      url: `${baseUrl}/orders/${orderId}/progress-read`,
       method: 'PUT',
       header: { 'Authorization': `Bearer ${token}` },
       success: () => {
@@ -190,11 +191,11 @@ Page({
    */
   markOrderQuoteRead(orderId) {
     const token = wx.getStorageSync('token');
-    const baseUrl = getApp().globalData.baseUrl || getApp().globalData.apiUrl;
+    const baseUrl = getMpApiBaseUrl();
     if (!token || !orderId) return;
 
     wx.request({
-      url: `${baseUrl}/api/orders/${orderId}/quote-read`,
+      url: `${baseUrl}/orders/${orderId}/quote-read`,
       method: 'PUT',
       header: { 'Authorization': `Bearer ${token}` },
       success: () => {
@@ -1190,10 +1191,10 @@ Page({
 
         try {
           const token = wx.getStorageSync('token');
-          const baseUrl = getApp().globalData.baseUrl || getApp().globalData.apiUrl;
+          const baseUrl = getMpApiBaseUrl();
           const response = await new Promise((resolve, reject) => {
             wx.request({
-              url: `${baseUrl}/api/orders/${order.id}/accept-quote`,
+              url: `${baseUrl}/orders/${order.id}/accept-quote`,
               method: 'PUT',
               header: {
                 'Content-Type': 'application/json',
@@ -1391,10 +1392,10 @@ Page({
 
         try {
           const token = wx.getStorageSync('token');
-          const baseUrl = getApp().globalData.baseUrl || getApp().globalData.apiUrl;
+          const baseUrl = getMpApiBaseUrl();
           const response = await new Promise((resolve, reject) => {
             wx.request({
-              url: `${baseUrl}/api/orders/${rejectQuoteOrderData.id}/reject-quote`,
+              url: `${baseUrl}/orders/${rejectQuoteOrderData.id}/reject-quote`,
               method: 'PUT',
               data: { reason: rejectQuoteFormData.reason },
               header: {
@@ -1592,7 +1593,7 @@ Page({
       return;
     }
 
-    const baseUrl = getApp().globalData.baseUrl || getApp().globalData.apiUrl || '';
+    const baseUrl = getMpApiBaseUrl() || '';
     const fullUrl = /^https?:\/\//i.test(url) ? url : `${baseUrl}${url}`;
 
     wx.showLoading({ title: '打开中...' });
@@ -1737,7 +1738,7 @@ Page({
   async uploadAfterSalesImage() {
     try {
       wx.showLoading({ title: '上传中...' });
-      const baseUrl = getApp().globalData.baseUrl || getApp().globalData.apiUrl;
+      const baseUrl = getMpApiBaseUrl();
       const token = wx.getStorageSync('token');
 
       const chooseRes = await new Promise((resolve, reject) => {
@@ -1757,7 +1758,7 @@ Page({
 
       const uploadPromises = chooseRes.tempFiles.map(file => new Promise((resolve, reject) => {
         wx.uploadFile({
-          url: `${baseUrl}/api/upload/quote`,
+          url: `${baseUrl}/upload/quote`,
           filePath: file.tempFilePath,
           name: 'files',
           header: token ? { 'Authorization': `Bearer ${token}` } : {},
@@ -1815,10 +1816,10 @@ Page({
 
     try {
       const token = wx.getStorageSync('token');
-      const baseUrl = getApp().globalData.baseUrl || getApp().globalData.apiUrl;
+      const baseUrl = getMpApiBaseUrl();
       const response = await new Promise((resolve, reject) => {
         wx.request({
-          url: `${baseUrl}/api/after-sales/request`,
+          url: `${baseUrl}/after-sales/request`,
           method: 'POST',
           header: {
             'Content-Type': 'application/json',
@@ -1864,12 +1865,12 @@ Page({
   async loadMyAfterSales() {
     const token = wx.getStorageSync('token');
     if (!token) return;
-    const baseUrl = getApp().globalData.baseUrl || getApp().globalData.apiUrl;
+    const baseUrl = getMpApiBaseUrl();
 
     try {
       const response = await new Promise((resolve, reject) => {
         wx.request({
-          url: `${baseUrl}/api/after-sales/my`,
+          url: `${baseUrl}/after-sales/my`,
           method: 'GET',
           header: { 'Authorization': `Bearer ${token}` },
           success: (res) => {

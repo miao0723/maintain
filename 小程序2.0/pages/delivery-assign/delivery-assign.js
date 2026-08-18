@@ -1,5 +1,6 @@
 // pages/delivery-assign/delivery-assign.js
 const app = getApp();
+const { getMpApiBaseUrl } = require('../../utils/mpApi.js');
 
 Page({
   data: {
@@ -53,7 +54,7 @@ Page({
   async loadOrderDetail() {
     try {
       const res = await wx.request({
-        url: `${this.data.baseUrl}/api/orders/${this.data.orderId}/detail`,
+        url: `${getMpApiBaseUrl()}/orders/${this.data.orderId}/detail`,
         method: 'GET',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -81,7 +82,7 @@ Page({
   async loadDeliveryPersons() {
     try {
       const res = await wx.request({
-        url: `${this.data.baseUrl}/api/delivery/persons`,
+        url: `${getMpApiBaseUrl()}/delivery/persons`,
         method: 'GET',
         data: {
           available: 'true'
@@ -189,7 +190,7 @@ Page({
 
         try {
           const response = await wx.request({
-            url: `${this.data.baseUrl}/api/delivery/orders/${orderId}/assign`,
+            url: `${getMpApiBaseUrl()}/delivery/orders/${orderId}/assign`,
             method: 'PUT',
             header: {
               'Authorization': `Bearer ${this.data.token}`,

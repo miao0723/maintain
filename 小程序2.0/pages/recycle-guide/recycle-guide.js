@@ -2,6 +2,10 @@
 const { guideQuestions, conditionRates } = require('../../utils/recycleData.js');
 const { orderApi } = require('../../utils/api.js');
 
+// 二手回收基准系数：即便是“全新未使用”，回收方也以低于全新零售价（约 9 折）回收，
+// 避免估价虚高等于 100% 全新零售价，使金额更接近真实二手行情。
+const RECYCLE_BASE_FACTOR = 0.9;
+
 Page({
   data: {
     // 产品信息
@@ -16,7 +20,7 @@ Page({
       modelName: '',
       modelPrice: 0,
       modelSpecs: '',
-      modelColor: '#5a6e8a'
+      modelColor: '#4f6b84'
     },
 
     // 问题相关
@@ -107,13 +111,14 @@ Page({
     // 记录回答
     answers[q.id] = { value, label, rate: rate || 1 };
     
-    // 计算实时估价
+    // 计算实时估价（含二手回收基准系数，金额更贴近真实行情）
     let quickEstimate = product.modelPrice;
     Object.keys(answers).forEach(key => {
       if (answers[key] && answers[key].rate) {
         quickEstimate *= answers[key].rate;
       }
     });
+    quickEstimate *= RECYCLE_BASE_FACTOR;
 
     const nextIndex = currentQuestionIndex + 1;
     const isLast = nextIndex >= questions.length;
@@ -219,13 +224,16 @@ Page({
     if (answers.version) price *= answers.version.rate;
     if (answers.accessories) price *= answers.accessories.rate;
     if (answers['repair-history']) price *= answers['repair-history'].rate;
+    // 叠加二手回收基准系数，使估价更接近真实回收行情
+    price *= RECYCLE_BASE_FACTOR;
     return Math.round(price);
   },
 
   calculatePriceRange(estimate) {
+    // 区间收紧，围绕点估价小幅浮动，避免虚高
     return {
-      min: Math.round(estimate * 0.85),
-      max: Math.round(estimate * 1.1)
+      min: Math.round(estimate * 0.9),
+      max: Math.round(estimate * 1.05)
     };
   },
 

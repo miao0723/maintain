@@ -13,7 +13,10 @@ Page({
     email: '',
     defaultAddress: null,
     defaultUnit: null,
-    isSaving: false // 防止重复提交
+    isSaving: false, // 防止重复提交
+    uploadedAvatarUrl: '', // 选图后已成功上传到服务端的头像地址（保存时直接引用，无需再阻塞上传）
+    uploadingAvatar: false, // 头像后台上传中
+    pendingUpload: false // 压缩失败/上传失败时置位，保存时再补传
   },
 
   onLoad() {
@@ -103,7 +106,9 @@ Page({
   onChooseAvatar(e) {
     const { avatarUrl } = e.detail
     if (avatarUrl) {
-      this.setData({ 'userInfo.avatarUrl': avatarUrl })
+      this.setData({ 'userInfo.avatarUrl': avatarUrl, uploadedAvatarUrl: '', pendingUpload: false })
+      // 该路径为本地临时文件，选完即后台上传，保存时直接引用
+      this.uploadAvatarNow(avatarUrl)
     }
   },
 
@@ -160,7 +165,14 @@ Page({
   },
 
   /**
-   * 选择头像（带前端预处理）
+   * 判断是否为本地临时文件（尚未上传到服务端，无法直接持久化）
+   */
+  isLocalTemp(path) {
+    return !!(path && (path.startsWith('http://tmp/') || path.startsWith('wxfile://') || path.startsWith('tmp/')))
+  },
+
+  /**
+   * 选择头像（选完即本地压缩 + 后台上传，保存时不再阻塞）
    */
   handleChooseAvatar() {
     wx.chooseMedia({
@@ -177,31 +189,33 @@ Page({
         try {
           wx.showLoading({ title: '处理图片中...', mask: true })
 
-          // 前端图片压缩处理
+          // 前端图片压缩处理（弱机也能快速完成，目标体积很小）
           const compressedPath = await this.compressImage(tempFilePath)
 
           wx.hideLoading()
 
+          // 先展示本地预览
           this.setData({
-            'userInfo.avatarUrl': compressedPath
+            'userInfo.avatarUrl': compressedPath,
+            uploadedAvatarUrl: '',
+            pendingUpload: false
           })
 
-          wx.showToast({
-            title: '头像已上传',
-            icon: 'success',
-            duration: 1500
-          })
+          // 立即后台上传，与用户填写资料并行，保存时即可秒完成
+          this.uploadAvatarNow(compressedPath)
         } catch (error) {
           wx.hideLoading()
           console.error('图片压缩失败:', error)
 
-          // 压缩失败，使用原始路径
+          // 压缩失败，使用原始路径并标记待上传
           this.setData({
-            'userInfo.avatarUrl': tempFilePath
+            'userInfo.avatarUrl': tempFilePath,
+            uploadedAvatarUrl: '',
+            pendingUpload: true
           })
 
           wx.showToast({
-            title: '使用原图',
+            title: '使用原图（将自动上传）',
             icon: 'none'
           })
         }
@@ -221,7 +235,49 @@ Page({
   },
 
   /**
+   * 后台上传头像（非阻塞，带进度提示）
+   * 成功后把服务端地址写入 uploadedAvatarUrl，保存时直接引用即可，不再等待上传。
+   */
+  uploadAvatarNow(localPath) {
+    if (!localPath || !this.isLocalTemp(localPath)) return
+
+    this.setData({ uploadingAvatar: true })
+    wx.showToast({ title: '头像上传中...', icon: 'none', duration: 1500 })
+
+    userApi.uploadAvatar(localPath, {
+      timeout: 15000,
+      onProgress: (p) => {
+        // 预留进度处理：弱网时可在此刷新进度条
+        if (p && typeof p.progress === 'number') {
+          console.log('头像上传进度:', p.progress + '%')
+        }
+      }
+    })
+      .then(res => {
+        this.setData({ uploadingAvatar: false })
+        if (res && res.avatar_url) {
+          const url = normalizeAvatarUrl(res.avatar_url)
+          this.setData({
+            uploadedAvatarUrl: url,
+            'userInfo.avatarUrl': url,
+            pendingUpload: false
+          })
+          wx.showToast({ title: '头像已上传', icon: 'success', duration: 1200 })
+        } else {
+          // 服务端未返回地址，保存时再补传
+          this.setData({ pendingUpload: true })
+        }
+      })
+      .catch(err => {
+        this.setData({ uploadingAvatar: false, pendingUpload: true })
+        console.error('头像后台上传失败，保存时再补传:', err)
+        wx.showToast({ title: '头像稍后自动上传', icon: 'none' })
+      })
+  },
+
+  /**
    * 压缩图片（前端预处理）
+   * 头像最终在服务端会被压到 150px，这里只需压到足够小即可，避免弱网/弱机上传几十秒。
    * @param {string} filePath - 图片路径
    * @returns {Promise<string>} 压缩后的图片路径
    */
@@ -233,8 +289,8 @@ Page({
         success: (imageInfo) => {
           console.log('原始图片信息:', imageInfo)
 
-          // 计算压缩后的尺寸
-          const maxSize = 800 // 最大边长
+          // 头像显示尺寸很小，最大边长限制在 300 即可（服务端还会再压到 150）
+          const maxSize = 300
           let width = imageInfo.width
           let height = imageInfo.height
 
@@ -249,29 +305,43 @@ Page({
             }
           }
 
-          console.log('压缩后尺寸:', width, 'x', height)
+          // 目标上传体积上限：超过则逐级降低质量，避免弱网传大图
+          const MAX_UPLOAD_KB = 120
+          const tryQualities = [60, 50, 40]
 
-          // 压缩图片
-          wx.compressImage({
-            src: filePath,
-            quality: 80, // 压缩质量 0-100
-            compressedWidth: width,
-            compressedHeight: height,
-            success: (compressRes) => {
-              // 获取压缩后文件大小
-              wx.getFileInfo({
-                filePath: compressRes.tempFilePath,
-                success: (fileInfo) => {
-                  console.log('压缩后文件大小:', (fileInfo.size / 1024).toFixed(2), 'KB')
-                }
-              })
-              resolve(compressRes.tempFilePath)
-            },
-            fail: (error) => {
-              console.error('图片压缩失败:', error)
-              reject(error)
-            }
-          })
+          const attempt = (qi) => {
+            const quality = tryQualities[qi]
+            console.log('压缩尝试 质量=', quality, '尺寸=', width, 'x', height)
+            wx.compressImage({
+              src: filePath,
+              quality,
+              compressedWidth: width,
+              compressedHeight: height,
+              success: (compressRes) => {
+                wx.getFileInfo({
+                  filePath: compressRes.tempFilePath,
+                  success: (fileInfo) => {
+                    const kb = fileInfo.size / 1024
+                    console.log('压缩后文件大小:', kb.toFixed(2), 'KB')
+                    // 体积达标或已降到最低质量，直接采用
+                    if (kb <= MAX_UPLOAD_KB || qi >= tryQualities.length - 1) {
+                      resolve(compressRes.tempFilePath)
+                    } else {
+                      attempt(qi + 1)
+                    }
+                  },
+                  fail: () => resolve(compressRes.tempFilePath)
+                })
+              },
+              fail: (error) => {
+                console.error('图片压缩失败:', error)
+                // 质量压缩失败时，退而求其次用上一次结果；首次失败则回退原图
+                reject(error)
+              }
+            })
+          }
+
+          attempt(0)
         },
         fail: (error) => {
           console.error('获取图片信息失败:', error)
@@ -282,12 +352,22 @@ Page({
   },
 
   /**
-   * 输入昵称
+   * 输入昵称（手动）
    */
   onNicknameInput(e) {
     this.setData({
       'userInfo.nickName': e.detail.value
     })
+  },
+
+  /**
+   * 微信昵称一键填入（input type="nickname" 的 bindnickname 回调）
+   */
+  onFillNickName(e) {
+    const nickName = (e.detail && e.detail.nickName) || ''
+    if (nickName) {
+      this.setData({ 'userInfo.nickName': nickName })
+    }
   },
 
   /**
@@ -380,11 +460,21 @@ Page({
     try {
       let finalAvatarUrl = userInfo.avatarUrl;
 
-      // 如果是本地临时文件，先上传头像
-      if (finalAvatarUrl && (finalAvatarUrl.startsWith('http://tmp/') || finalAvatarUrl.startsWith('wxfile://') || finalAvatarUrl.startsWith('tmp/'))) {
-        const uploadRes = await userApi.uploadAvatar(finalAvatarUrl);
-        if (uploadRes && uploadRes.avatar_url) {
-          finalAvatarUrl = uploadRes.avatar_url;
+      // 优先使用「选图时已后台上传」的服务端地址，保存时秒过、不再阻塞 20s
+      if (this.data.uploadedAvatarUrl) {
+        finalAvatarUrl = this.data.uploadedAvatarUrl;
+      } else if (this.isLocalTemp(finalAvatarUrl)) {
+        // 尚未后台上传成功（压缩失败/上传失败兜底），保存时补传
+        try {
+          const uploadRes = await userApi.uploadAvatar(finalAvatarUrl, { timeout: 15000 });
+          if (uploadRes && uploadRes.avatar_url) {
+            finalAvatarUrl = normalizeAvatarUrl(uploadRes.avatar_url);
+            this.setData({ 'userInfo.avatarUrl': finalAvatarUrl });
+          }
+        } catch (upErr) {
+          // 头像上传失败不阻断整条保存：文字资料照常保存，头像沿用已有/默认
+          console.error('保存时上传头像失败，文字资料仍保存:', upErr);
+          finalAvatarUrl = '';
         }
       }
 

@@ -78,7 +78,7 @@
 
 /* 地图选择按钮 */
 .map-picker-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
   margin: 30rpx 0;
   padding: 25rpx;
   border-radius: 10rpx;
@@ -142,7 +142,7 @@
 
 .tag-option.active {
   background-color: #f0f4ff;
-  border-color: #667eea;
+  border-color: #436f95;
 }
 
 .tag-text {
@@ -151,7 +151,7 @@
 }
 
 .tag-option.active .tag-text {
-  color: #667eea;
+  color: #436f95;
   font-weight: bold;
 }
 
@@ -183,7 +183,7 @@
 }
 
 .default-icon.checked {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
 }
 
 .default-text {
@@ -201,7 +201,7 @@
 }
 
 .default-switch.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
 }
 
 .switch-dot {
@@ -231,7 +231,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
   border-radius: 45rpx;
   color: #ffffff;
   font-size: 32rpx;

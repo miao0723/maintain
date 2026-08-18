@@ -432,7 +432,7 @@ Page({
                  status === 'completed' ? (isRecycle ? '回收完成' : '维修完成') : '';
     const map = {
       pending:    { icon: '⏳', label: '待处理', desc: '等待报价', color: '#f59e0b' },
-      quoted:     { icon: '💰', label: '待确认报价', desc: '已报价，请确认', color: '#8b5cf6' },
+      quoted:     { icon: '💰', label: '待确认报价', desc: '已报价，请确认', color: '#436f95' },
       confirmed:  { icon: '✅', label: '已确认报价', desc: '报价已确认，等待开始处理', color: '#06b6d4' },
       processing: { icon: isRecycle ? '♻️' : '🔧', label: isRecycle ? '回收中' : '维修中', desc: desc, color: isRecycle ? '#059669' : '#3b82f6' },
       completed:  { icon: '✅', label: '已完成', desc: desc, color: '#10b981' },
@@ -491,7 +491,8 @@ Page({
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('请求超时')), 8000)
       wx.request({
-        url: (app.globalData.baseUrl || app.globalData.apiUrl) + url,
+        // 网关 /mp-api 已映射到后端 /api；路径不再重复写 /api，否则会变成 /mp-api/api/... 而 404
+        url: (app.globalData.baseUrl || app.globalData.apiUrl) + (url.startsWith('/api/') ? url.slice(4) : url),
         method: method || 'GET',
         data: data,
         timeout: 8000,

@@ -46,7 +46,7 @@
 }
 
 .default-badge {
-  background: #667eea;
+  background: #436f95;
   color: white;
   padding: 4rpx 12rpx;
   border-radius: 20rpx;
@@ -146,7 +146,7 @@
 }
 
 .add-btn {
-  background: #667eea;
+  background: #436f95;
   color: white;
   border: none;
   border-radius: 50rpx;

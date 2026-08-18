@@ -1,0 +1,37 @@
+/* pages/admin-stats/admin-stats.wxss */
+.page-container { min-height: 100vh; background: #f5f7fa; padding: 0 24rpx 40rpx; box-sizing: border-box; }
+
+.page-head { display: flex; align-items: baseline; justify-content: space-between; padding: 32rpx 8rpx 20rpx; }
+.head-title { font-size: 40rpx; font-weight: 700; color: #1f2937; }
+.refresh { font-size: 26rpx; color: #4f6b84; }
+
+.card {
+  background: #fff; border-radius: 20rpx; padding: 28rpx 24rpx; margin-bottom: 20rpx;
+  box-shadow: 0 6rpx 18rpx rgba(79,107,132,0.05);
+}
+.card-title { font-size: 30rpx; font-weight: 600; color: #1f2937; margin-bottom: 20rpx; }
+
+.grid-2 { display: flex; flex-wrap: wrap; }
+.grid-3 { display: flex; flex-wrap: wrap; }
+.stat-cell {
+  width: 50%; box-sizing: border-box; padding: 16rpx 8rpx;
+  display: flex; flex-direction: column; align-items: center;
+}
+.grid-3 .stat-cell { width: 33.33%; }
+.stat-value { font-size: 38rpx; font-weight: 700; color: #4f6b84; }
+.stat-value.warn { color: #b7791f; }
+.stat-value.ok { color: #2f8a5b; }
+.stat-label { font-size: 24rpx; color: #8a96a3; margin-top: 6rpx; }
+
+.order-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18rpx 0; border-bottom: 1rpx solid #eef2f7;
+}
+.order-item:last-child { border-bottom: none; }
+.order-main { display: flex; flex-direction: column; }
+.order-no { font-size: 28rpx; color: #1f2937; font-weight: 600; }
+.order-dev { font-size: 24rpx; color: #8a96a3; margin-top: 4rpx; }
+.order-right { display: flex; flex-direction: column; align-items: flex-end; }
+.order-status { font-size: 24rpx; color: #4f6b84; }
+.order-price { font-size: 26rpx; color: #1f2937; font-weight: 600; margin-top: 4rpx; }
+.empty-text { text-align: center; color: #8a96a3; font-size: 26rpx; padding: 20rpx 0; }

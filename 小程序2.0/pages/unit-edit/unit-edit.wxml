@@ -63,3 +63,4 @@
   <!-- 底部间距 -->
   <view class="bottom-space"></view>
 </view>
+<confirm-modal id="confirmModal" />

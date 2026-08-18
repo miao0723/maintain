@@ -18,6 +18,43 @@ async function hasOrderColumn(columnName) {
   return columns.length > 0;
 }
 
+async function ensureUnreadColumns() {
+  const specs = [
+    { name: 'user_unread', def: "ADD COLUMN user_unread TINYINT(1) NULL DEFAULT 0 COMMENT '用户未读标记: 1-有更新未查看'" },
+    { name: 'admin_unread', def: "ADD COLUMN admin_unread TINYINT(1) NULL DEFAULT 0 COMMENT '管理员未读标记: 1-有更新未查看'" },
+    { name: 'reject_reason', def: "ADD COLUMN reject_reason VARCHAR(255) NULL COMMENT '驳回/取消原因'" }
+  ];
+  for (const s of specs) {
+    try {
+      const exists = await hasOrderColumn(s.name);
+      if (exists) continue;
+      await db.query(`ALTER TABLE orders ${s.def}`);
+    } catch (e) {
+      const dup = e && (e.code === 'ER_DUP_FIELDNAME' || e.errno === 1060 || String(e.message || '').includes('Duplicate column'));
+      if (!dup) throw e;
+    }
+  }
+}
+
+async function trySetUnread(orderId, { user, admin } = {}) {
+  await ensureUnreadColumns();
+  const sets = [];
+  const params = [];
+  if (user !== undefined) { sets.push('user_unread = ?'); params.push(user ? 1 : 0); }
+  if (admin !== undefined) { sets.push('admin_unread = ?'); params.push(admin ? 1 : 0); }
+  if (sets.length === 0) return;
+  params.push(orderId);
+  const sql = `UPDATE orders SET ${sets.join(', ')}, updated_at = NOW() WHERE id = ?`;
+  try {
+    await db.query(sql, params);
+  } catch (e) {
+    const missing = e && (e.code === 'ER_BAD_FIELD_ERROR' || e.errno === 1054 || String(e.message || '').includes('Unknown column'));
+    if (!missing) throw e;
+    await ensureUnreadColumns();
+    await db.query(sql, params);
+  }
+}
+
 async function ensureQuoteUnreadColumn() {
   const exists = await hasOrderColumn('quote_unread');
   if (exists) {
@@ -432,9 +469,11 @@ router.put('/orders/:orderId/accept', authenticateToken, requireAdmin, async (re
     }
 
     // 更新订单状态
+    await ensureUnreadColumns().catch(() => {});
     await db.query(
       `UPDATE orders
        SET status = 'processing',
+           user_unread = 1,
            assigned_to = ?,
            assigned_at = NOW(),
            updated_at = NOW()
@@ -500,9 +539,11 @@ router.put('/orders/:orderId/process', authenticateToken, requireAdmin, async (r
     }
 
     // 更新订单状态
+    await ensureUnreadColumns().catch(() => {});
     await db.query(
       `UPDATE orders
        SET status = 'processing',
+           user_unread = 1,
            assigned_to = ?,
            assigned_at = NOW(),
            progress = 0,
@@ -561,9 +602,11 @@ router.put('/orders/:orderId/complete', authenticateToken, requireAdmin, async (
     }
 
     // 更新订单状态
+    await ensureUnreadColumns().catch(() => {});
     await db.query(
       `UPDATE orders
        SET status = 'completed',
+           user_unread = 1,
            progress = 100,
            completed_at = NOW(),
            updated_at = NOW()
@@ -1538,6 +1581,9 @@ router.put('/orders/:orderId/quote', authenticateToken, requireAdmin, async (req
       orderId
     ]);
 
+    // 报价提交后通知用户（待确认报价）
+    await trySetUnread(orderId, { user: true }).catch(() => {});
+
     res.json({
       success: true,
       message: '报价提交成功'
@@ -1598,7 +1644,7 @@ router.put('/orders/:orderId/internal-confirm', authenticateToken, requireAdmin,
   try {
     const orderId = parseInt(req.params.orderId) || 0;
     const adminId = req.user.id;
-    const { actual_price, remark } = req.body || {};
+    const { action, actual_price, remark, reject_reason } = req.body || {};
 
     if (!orderId) {
       return res.status(400).json({ success: false, error: '无效的订单ID' });
@@ -1623,15 +1669,39 @@ router.put('/orders/:orderId/internal-confirm', authenticateToken, requireAdmin,
       return res.status(400).json({ success: false, error: '当前订单状态不可确认（仅 internal_pending 可确认）' });
     }
 
+    // 驳回分支：管理员拒绝内部申请（填原因），订单取消并通知申请人
+    if (action === 'reject') {
+      const reason = (reject_reason || remark || '').trim();
+      await ensureUnreadColumns().catch(() => {});
+      await db.query(
+        `UPDATE orders
+         SET status = 'cancelled', reject_reason = ?, user_unread = 1, updated_at = NOW()
+         WHERE id = ?`,
+        [reason, orderId]
+      );
+      try {
+        await db.query(
+          `INSERT INTO internal_orders_log (order_id, confirmed_by, confirmed_at, remark, created_at)
+           VALUES (?, ?, NOW(), ?, NOW())`,
+          [orderId, adminId, '驳回内部申请: ' + reason]
+        );
+      } catch (logErr) {
+        console.warn('[内部订单驳回] 写入日志失败(已忽略):', logErr.message);
+      }
+      return res.json({ success: true, message: '已驳回内部申请', data: { order_id: orderId, status: 'cancelled' } });
+    }
+
     // 确认后：
     // - 维修订单 -> processing（进入正常维修流程，免付款）
     // - 回收订单 -> completed（回收完成，免付款）
     const nextStatus = o.order_type === 'recycle' ? 'completed' : 'processing';
     const finalActualPrice = Number(actual_price) >= 0 ? Number(actual_price) : (o.actual_price || 0);
 
+    await ensureUnreadColumns().catch(() => {});
     await db.query(
       `UPDATE orders
        SET status = ?,
+           user_unread = 1,
            is_internal = 1,
            payment_status = 'waived',
            pay_amount = 0,
@@ -1870,9 +1940,10 @@ router.put('/orders/:orderId/user-confirm', authenticateToken, async (req, res) 
       return res.status(400).json({ success: false, error: '请先填写收货/服务地址' });
     }
 
+    await ensureUnreadColumns().catch(() => {});
     await db.query(
       `UPDATE orders
-       SET status = 'confirmed', address_id = ?, updated_at = NOW() WHERE id = ?`,
+       SET admin_unread = 1, status = 'confirmed', address_id = ?, updated_at = NOW() WHERE id = ?`,
       [addressId, orderId]
     );
 
@@ -1936,6 +2007,65 @@ router.get('/internal-orders', authenticateToken, requireAdmin, async (req, res)
   } catch (error) {
     console.error('获取内部订单列表错误:', error);
     res.status(500).json({ success: false, error: '获取内部订单列表失败' });
+  }
+});
+
+/**
+ * 获取管理员各状态的未读订单计数（用于管理员订单 tab 角标）
+ * GET /api/admin/orders/unread-counts
+ */
+router.get('/orders/unread-counts', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    await ensureUnreadColumns().catch(() => {});
+    const rows = await db.query(
+      `SELECT status, COUNT(*) as c FROM orders WHERE admin_unread = 1 GROUP BY status`
+    );
+    const counts = {};
+    let total = 0;
+    rows.forEach(r => { counts[r.status] = r.c; total += r.c; });
+    res.json({ success: true, data: { counts, total } });
+  } catch (error) {
+    console.error('[admin-unread-counts] 失败:', error.message || error);
+    res.status(500).json({ success: false, error: '获取未读计数失败' });
+  }
+});
+
+/**
+ * 将管理员侧的未读订单标记为已读（打开订单时调用）
+ * PUT /api/admin/orders/:orderId/read
+ */
+router.put('/orders/:orderId/read', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId) || 0;
+    if (!orderId) return res.status(400).json({ success: false, error: '无效的订单ID' });
+    await ensureUnreadColumns().catch(() => {});
+    await db.query('UPDATE orders SET admin_unread = 0 WHERE id = ?', [orderId]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[admin-order-read] 失败:', error.message || error);
+    res.status(500).json({ success: false, error: '标记已读失败' });
+  }
+});
+
+/**
+ * 将管理员侧的未读订单标记为已读（点击状态 tab 时按 status 清空；不带 status 清空全部）
+ * PUT /api/admin/orders/read
+ */
+router.put('/orders/read', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { status } = req.body || {};
+    await ensureUnreadColumns().catch(() => {});
+    let where = 'admin_unread = 1';
+    const params = [];
+    if (status) {
+      where = 'status = ? AND admin_unread = 1';
+      params.push(status);
+    }
+    await db.query(`UPDATE orders SET admin_unread = 0 WHERE ${where}`, params);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[admin-read] 失败:', error.message || error);
+    res.status(500).json({ success: false, error: '标记已读失败' });
   }
 });
 

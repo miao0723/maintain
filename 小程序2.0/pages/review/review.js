@@ -1,5 +1,6 @@
 // pages/review/review.js
 const { orderApi } = require('../../utils/api.js');
+const { getMpApiBaseUrl } = require('../../utils/mpApi.js');
 
 // 评分对应的表情
 const RATING_EMOJIS = { 1: '😡', 2: '☹️', 3: '😐', 4: '😊', 5: '🤩' };
@@ -328,7 +329,7 @@ Page({
       const baseUrl = app.globalData.apiUrl || app.globalData.baseUrl;
 
       wx.uploadFile({
-        url: `${baseUrl}/api/upload/image`,
+        url: `${getMpApiBaseUrl()}/upload/image`,
         filePath: filePath,
         name: 'file',
         header: {

@@ -31,6 +31,15 @@
     <text class="human-banner-desc">{{currentAgentInfo && currentAgentInfo.name ? currentAgentInfo.name : '人工客服'}} 正在为您服务，当前消息将不再由 AI 自动回复。</text>
   </view>
 
+  <!-- 查看历史会话提示条 -->
+  <view class="history-view-banner" wx:if="{{viewingHistory}}">
+    <text class="history-view-icon">🕘</text>
+    <text class="history-view-text">正在查看历史会话</text>
+    <view class="history-view-back" bindtap="backToHistory">
+      <text class="history-view-back-text">返回历史记录</text>
+    </view>
+  </view>
+
   <!-- 当前选中产品提示 -->
   <view class="current-product" wx:if="{{selectedProduct}}">
     <view class="current-product-tag">
@@ -50,7 +59,7 @@
         </view>
         <view class="avatar-wrapper service-avatar" wx:else>
           <view class="avatar-glow"></view>
-          <image class="avatar" src="/images/service-avatar-pro.svg" mode="aspectFill"></image>
+          <image class="avatar" src="/images/service-avatar-pro.webp" mode="aspectFill"></image>
           <view class="online-dot"></view>
         </view>
         <view class="message-content">
@@ -82,7 +91,7 @@
       <view class="message-item service" wx:if="{{serviceTyping}}" id="typing-indicator">
         <view class="avatar-wrapper service-avatar">
           <view class="avatar-glow"></view>
-          <image class="avatar" src="/images/service-avatar-pro.svg" mode="aspectFill"></image>
+          <image class="avatar" src="/images/service-avatar-pro.webp" mode="aspectFill"></image>
           <view class="online-dot"></view>
         </view>
         <view class="message-content">
@@ -99,7 +108,7 @@
       <!-- 产品选择提示 -->
       <view class="product-tip" wx:if="{{messages.length === 0}}">
         <view class="tip-avatar">
-          <image class="tip-avatar-img" src="/images/service-avatar-pro.svg" mode="aspectFill"></image>
+          <image class="tip-avatar-img" src="/images/service-avatar-pro.webp" mode="aspectFill"></image>
           <view class="tip-online-dot"></view>
         </view>
         <view class="tip-content">
@@ -212,33 +221,39 @@
         </view>
       </view>
 
-      <!-- 历史会话列表 -->
-      <view class="history-list" wx:if="{{!conversationsLoading && conversations.length > 0}}">
-        <view class="history-item" wx:for="{{conversations}}" wx:key="id">
-          <view class="history-item-left" bindtap="openConversation" data-id="{{item.id}}">
-            <view class="history-avatar">
-              <text class="history-avatar-icon">🤖</text>
-            </view>
-            <view class="history-item-info">
-              <view class="history-item-top">
-                <text class="history-item-title">{{item.summary || '客服对话'}}</text>
-                <text class="history-item-status {{item.status}}">
-                  {{item.status === 'active' ? '进行中' : (item.status === 'transferred' ? '已转人工' : '已结束')}}
-                </text>
-              </view>
-              <text class="history-item-count">{{item.message_count || 0}} 条消息</text>
-            </view>
+      <!-- 历史会话列表（按日期分组） -->
+      <view class="history-list" wx:if="{{!conversationsLoading && historyGroups.length > 0}}">
+        <block wx:for="{{historyGroups}}" wx:key="label" wx:for-item="group">
+          <view class="history-group-header">
+            <text class="history-group-label">{{group.label}}</text>
           </view>
-          <view class="history-item-right">
-            <text class="history-item-time">{{item._displayTime || ''}}</text>
-            <view class="history-item-actions">
-              <text class="history-item-arrow">></text>
+          <view class="history-item {{item.status}}" wx:for="{{group.items}}" wx:key="id" wx:for-item="item">
+            <view class="history-item-left" bindtap="openConversation" data-id="{{item.id}}">
+              <view class="history-avatar">
+                <text class="history-avatar-icon">🤖</text>
+              </view>
+              <view class="history-item-info">
+                <view class="history-item-top">
+                  <text class="history-item-title">{{item._title || '客服对话'}}</text>
+                  <text class="history-item-status {{item.status}}">
+                    {{item.status === 'active' ? '进行中' : (item.status === 'transferred' ? '已转人工' : '已结束')}}
+                  </text>
+                </view>
+                <text class="history-item-preview">{{item._firstQuestion || item._title}}</text>
+                <view class="history-item-meta">
+                  <text class="history-item-count">{{item.message_count || 0}} 条消息</text>
+                  <text class="history-item-time">{{item._displayTime || ''}}</text>
+                </view>
+              </view>
+            </view>
+            <view class="history-item-right">
+              <text class="history-item-arrow">›</text>
               <view class="history-delete-btn" catchtap="deleteConversation" data-id="{{item.id}}">
                 <text class="history-delete-icon">✕</text>
               </view>
             </view>
           </view>
-        </view>
+        </block>
       </view>
     </scroll-view>
 
@@ -253,7 +268,7 @@
   <view class="product-panel {{showProductPanel ? 'show' : ''}}">
     <view class="panel-header">
       <view class="panel-header-left">
-        <image class="panel-avatar" src="/images/service-avatar-pro.svg" mode="aspectFill"></image>
+        <image class="panel-avatar" src="/images/service-avatar-pro.webp" mode="aspectFill"></image>
         <view class="panel-title-group">
           <text class="panel-title">选择产品</text>
           <text class="panel-subtitle">选择您需要维修的设备</text>
@@ -297,3 +312,4 @@
     </scroll-view>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

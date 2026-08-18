@@ -1,6 +1,35 @@
 const { getDefaultBaseUrl, normalizeBaseUrl } = require('./utils/networkConfig.js')
 const { normalizeAvatarUrl } = require('./utils/avatar.js')
 
+// =====================================================================
+// 全局美化「确定 / 拒绝」确认弹窗
+// 用自定义 confirm-modal 组件接管 wx.showModal，保持与原生完全一致的
+// options / success / fail / complete 回调契约，因此所有页面的代码无需改动。
+// 当当前页面未挂载 #confirmModal 组件时，自动回退到原生 wx.showModal。
+// =====================================================================
+const _nativeShowModal = wx.showModal ? wx.showModal.bind(wx) : null
+wx.showModal = function (options) {
+  const pages = getCurrentPages()
+  const page = pages && pages.length ? pages[pages.length - 1] : null
+  let comp = null
+  try {
+    comp = page && typeof page.selectComponent === 'function'
+      ? page.selectComponent('#confirmModal')
+      : null
+  } catch (e) {
+    comp = null
+  }
+  if (comp && typeof comp.showModal === 'function') {
+    return comp.showModal(options || {})
+  }
+  if (_nativeShowModal) return _nativeShowModal(options)
+  // 极端兜底：环境异常时直接构造一个被取消的结果，避免调用方卡死
+  const res = { confirm: false, cancel: true }
+  if (options && typeof options.success === 'function') options.success(res)
+  if (options && typeof options.complete === 'function') options.complete(res)
+  return Promise.resolve(res)
+}
+
 function normalizeStoredUserInfo(userInfo) {
   if (!userInfo) return null
 

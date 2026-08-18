@@ -8,3 +8,4 @@
     object-fit="contain"
   ></video>
 </view>
+<confirm-modal id="confirmModal" />

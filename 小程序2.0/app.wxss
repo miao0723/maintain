@@ -140,3 +140,56 @@ textarea:focus {
   box-shadow: 0 10rpx 28rpx rgba(102, 118, 138, 0.08);
   background-color: #ffffff;
 }
+
+/* ====== 通用信息行（标签-值对齐规范） ======
+ * 同一类数据尽量同行展示；值过长换行时左对齐、填满整行，与上方数据对齐。
+ * 标签固定列宽，保证多行值的起始 x 一致（视觉"对满"）。
+ */
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  padding: 16rpx 0;
+}
+.info-row.divided + .info-row.divided,
+.info-row.divided ~ .info-row.divided {
+  border-top: 1rpx solid #f0f3f7;
+}
+.info-label {
+  flex: 0 0 160rpx;
+  font-size: 26rpx;
+  color: #8a96a3;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+.info-value {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-size: 28rpx;
+  color: #2b3440;
+  font-weight: 500;
+  line-height: 1.5;
+  word-break: break-word;
+}
+.info-value--price {
+  color: #d97706;
+  font-size: 32rpx;
+  font-weight: 700;
+}
+.info-value--muted {
+  color: #8a96a3;
+  font-weight: 400;
+}
+.info-value--end {
+  text-align: right;
+}
+
+/* ====== 区块标题左色条（统一各卡片标题视觉） ====== */
+.section-title--accent,
+.card-title--accent {
+  position: relative;
+  padding-left: 22rpx;
+  border-left: 8rpx solid #4f6b84;
+  border-bottom: none;
+}

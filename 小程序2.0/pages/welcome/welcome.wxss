@@ -3,7 +3,7 @@
 /* 容器 */
 .welcome-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   display: flex;
   flex-direction: column;
   padding: 40rpx;
@@ -90,7 +90,7 @@
 .header-title {
   font-size: 32rpx;
   font-weight: bold;
-  color: #5a6e8a;
+  color: #4f6b84;
 }
 
 /* 协议内容 */
@@ -114,7 +114,7 @@
 .section-title {
   font-size: 28rpx;
   font-weight: bold;
-  color: #5a6e8a;
+  color: #4f6b84;
   display: block;
 }
 
@@ -156,7 +156,7 @@
 
 .btn-agree {
   background: white;
-  color: #5a6e8a;
+  color: #4f6b84;
   font-weight: bold;
   box-shadow: 0 6rpx 20rpx rgba(255, 255, 255, 0.3);
 }

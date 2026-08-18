@@ -49,7 +49,7 @@
 
 .default-badge {
   padding: 6rpx 15rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
   color: #ffffff;
   font-size: 22rpx;
   border-radius: 8rpx;
@@ -73,7 +73,7 @@
 .tag {
   padding: 6rpx 15rpx;
   background-color: #f0f4ff;
-  color: #667eea;
+  color: #436f95;
   font-size: 22rpx;
   border-radius: 8rpx;
 }
@@ -154,7 +154,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
   border-radius: 40rpx;
   color: #ffffff;
   font-size: 28rpx;

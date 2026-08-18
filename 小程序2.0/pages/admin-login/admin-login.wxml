@@ -41,3 +41,4 @@
     <text class="footer-text" bindtap="goBack">返回首页</text>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

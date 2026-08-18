@@ -1,5 +1,6 @@
 // pages/order-review/order-review.js
 const { orderApi } = require('../../utils/api.js');
+const { getMpApiBaseUrl } = require('../../utils/mpApi.js');
 
 Page({
   data: {
@@ -321,7 +322,7 @@ Page({
       const baseUrl = app.globalData.baseUrl || app.globalData.apiUrl;
 
       wx.uploadFile({
-        url: `${baseUrl}/api/upload/image`,
+        url: `${getMpApiBaseUrl()}/upload/image`,
         filePath: filePath,
         name: 'file',
         header: {

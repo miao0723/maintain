@@ -94,3 +94,4 @@
     <button class="submit-btn" bindtap="submit" disabled="{{submitting}}" loading="{{submitting}}">确认分配</button>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

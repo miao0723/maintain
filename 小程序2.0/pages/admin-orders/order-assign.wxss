@@ -28,7 +28,7 @@
 .stat-value {
   font-size: 28px;
   font-weight: bold;
-  color: #667eea;
+  color: #436f95;
   margin-bottom: 5px;
 }
 
@@ -81,7 +81,7 @@
 }
 
 .filter-tab.active {
-  background: #667eea;
+  background: #436f95;
   color: white;
 }
 
@@ -273,7 +273,7 @@
 }
 
 .btn-assign {
-  background: #667eea;
+  background: #436f95;
   color: white;
 }
 
@@ -314,7 +314,7 @@
 
 .load-btn {
   width: 200px;
-  background: #667eea;
+  background: #436f95;
   color: white;
   border: none;
   border-radius: 8px;
@@ -423,7 +423,7 @@
 }
 
 .btn-confirm {
-  background: #667eea;
+  background: #436f95;
   color: white;
 }
 

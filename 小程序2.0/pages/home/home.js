@@ -11,7 +11,7 @@ Page({
     },
     greetingText: '欢迎回来',
     roleText: '普通用户',
-    summaryTipText: '已接入微信授权登录资料',
+    summaryTipText: '',
     userReady: false,
     loadingUserInfo: false,
     // 授权相关
@@ -21,11 +21,7 @@ Page({
     fillAvatarUrl: '',
     fillNickName: '',
     isFilling: false,
-    trustHighlights: [
-      { id: 1, label: '可维修品类', value: '全品类', desc: '常见与特殊电子设备均可受理检测维修' },
-      { id: 2, label: '进度反馈', value: '实时', desc: '检测、维修、完工节点持续同步' },
-      { id: 3, label: '报价方式', value: '透明', desc: '先报价再确认，清楚看到费用构成' }
-    ],
+    uploadedFillAvatarUrl: '', // 资料补全时选图后已上传到服务端的头像地址
     servicePromises: [
       { id: 1, icon: '🧩', title: '全品类受理', desc: '从常见手机电脑到音响、路由器、游戏机、无人机，统一受理与诊断。' },
       { id: 2, icon: '📡', title: '维修实时反馈', desc: '检测完成、配件确认、维修进度、完工状态都会持续回传。' },
@@ -176,7 +172,7 @@ Page({
     }
     return {
       greetingText: userInfo && userInfo.nickName ? `你好，${userInfo.nickName}` : '欢迎回来',
-      summaryTipText: this.data.loadingUserInfo ? '正在同步最新资料...' : '已接入微信授权登录资料',
+      summaryTipText: this.data.loadingUserInfo ? '资料加载中…' : '',
       roleText
     }
   },
@@ -195,6 +191,12 @@ Page({
     }
 
     if (this.data.loadingUserInfo) {
+      return
+    }
+
+    // 60s 内已同步过且本地有数据，直接复用，避免每次切到首页都打网络请求（弱网/弱机更跟手）
+    const lastSync = (app && app.globalData && app.globalData._userInfoSyncedAt) || 0
+    if (localUserInfo && Date.now() - lastSync < 60000) {
       return
     }
 
@@ -217,13 +219,17 @@ Page({
           ...this.getUserPresentation(displayUserInfo),
           userReady: true
         })
+        // 记录本次同步时间，供 60s 缓存判断
+        if (app && app.globalData) {
+          app.globalData._userInfoSyncedAt = Date.now()
+        }
       }
     } catch (error) {
       console.error('首页加载用户信息失败:', error)
     } finally {
       this.setData({
         loadingUserInfo: false,
-        summaryTipText: '已接入微信授权登录资料'
+        summaryTipText: ''
       })
     }
   },
@@ -397,13 +403,20 @@ Page({
     }
   },
 
-  onChooseAvatarAndSave(e) {
+  onChooseAvatar(e) {
     const { avatarUrl } = e.detail
     if (!avatarUrl) return
-    this.setData({ fillAvatarUrl: avatarUrl })
-    const nickName = this.data.fillNickName || '微信用户'
-    this.setData({ fillNickName: nickName })
-    this.saveProfileFill()
+    this.setData({ fillAvatarUrl: avatarUrl, uploadedFillAvatarUrl: '' })
+    // 选完即后台上传，保存时直接引用，不再阻塞
+    if (avatarUrl.indexOf('http://tmp/') === 0 || avatarUrl.indexOf('wxfile://') === 0 || avatarUrl.indexOf('tmp/') === 0) {
+      userApi.uploadAvatar(avatarUrl, { timeout: 15000 })
+        .then(res => {
+          if (res && res.avatar_url) {
+            this.setData({ uploadedFillAvatarUrl: res.avatar_url, fillAvatarUrl: res.avatar_url })
+          }
+        })
+        .catch(err => console.warn('补全资料头像上传失败，保存时再补传:', err))
+    }
   },
 
   onFillNickNameInput(e) {
@@ -429,9 +442,12 @@ Page({
 
     try {
       let finalAvatarUrl = fillAvatarUrl
-      if (finalAvatarUrl && (finalAvatarUrl.indexOf('http://tmp/') === 0 || finalAvatarUrl.indexOf('wxfile://') === 0 || finalAvatarUrl.indexOf('tmp/') === 0)) {
+      // 优先使用选图时已后台上传的服务端地址，避免保存时阻塞
+      if (this.data.uploadedFillAvatarUrl) {
+        finalAvatarUrl = this.data.uploadedFillAvatarUrl
+      } else if (finalAvatarUrl && (finalAvatarUrl.indexOf('http://tmp/') === 0 || finalAvatarUrl.indexOf('wxfile://') === 0 || finalAvatarUrl.indexOf('tmp/') === 0)) {
         try {
-          const uploadRes = await userApi.uploadAvatar(finalAvatarUrl)
+          const uploadRes = await userApi.uploadAvatar(finalAvatarUrl, { timeout: 15000 })
           if (uploadRes && uploadRes.avatar_url) {
             finalAvatarUrl = uploadRes.avatar_url
           }
@@ -452,7 +468,7 @@ Page({
         ...updatedUser,
         nickname: updatedUser.nickname || fillNickName.trim(),
         nickName: updatedUser.nickname || fillNickName.trim(),
-        avatar_url: updatedUser.avatar_url || updatedUser.avatarUrl || finalAvatarUrl,
+        avatar_url: normalizeAvatarUrl(updatedUser.avatar_url || updatedUser.avatarUrl || finalAvatarUrl),
         avatarUrl: normalizeAvatarUrl(updatedUser.avatar_url || updatedUser.avatarUrl || finalAvatarUrl)
       }
 

@@ -229,3 +229,4 @@
     </view>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

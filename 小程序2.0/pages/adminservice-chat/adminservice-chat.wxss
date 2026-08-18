@@ -53,7 +53,7 @@
   max-width: 70%;
   border-radius: 22rpx;
   padding: 16rpx 18rpx;
-  box-shadow: 0 8rpx 18rpx rgba(90, 110, 138, 0.08);
+  box-shadow: 0 8rpx 18rpx rgba(79, 107, 132, 0.08);
 }
 
 .user-bubble {
@@ -61,7 +61,7 @@
 }
 
 .admin-bubble {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
 }
 
 .system-bubble {
@@ -133,9 +133,9 @@
 }
 
 .quick-chip:active {
-  background: #5a6e8a;
+  background: #4f6b84;
   color: #ffffff;
-  border-color: #5a6e8a;
+  border-color: #4f6b84;
   transform: scale(0.96);
 }
 
@@ -161,7 +161,7 @@
 .voice-trigger {
   border: none;
   border-radius: 18rpx;
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
 }
 
 .composer-btn {
@@ -178,7 +178,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8rpx 18rpx rgba(90, 110, 138, 0.12);
+  box-shadow: 0 8rpx 18rpx rgba(79, 107, 132, 0.12);
 }
 
 .voice-trigger.recording {
@@ -222,7 +222,7 @@
   border-radius: 16rpx;
   padding: 16rpx 20rpx;
   margin-bottom: 18rpx;
-  box-shadow: 0 6rpx 16rpx rgba(90, 110, 138, 0.08);
+  box-shadow: 0 6rpx 16rpx rgba(79, 107, 132, 0.08);
 }
 .as-header {
   display: flex;
@@ -236,7 +236,7 @@
 }
 .as-toggle {
   font-size: 22rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
 }
 .as-section-title {
   font-size: 23rpx;

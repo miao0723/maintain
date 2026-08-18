@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
+const { compressImage } = require('../middleware/imageCompress');
 const db = require('../database.js');
 const multer = require('multer');
 const path = require('path');
@@ -91,13 +92,21 @@ router.post('/photos/upload', authenticateToken, upload.array('images', 9), asyn
       });
     }
 
-    // 将文件移动到订单子目录
+    // 将文件移动到订单子目录，并对图片做压缩（避免 1.6MB 原图直存拖慢加载）
     const orderDir = getUploadDir(orderId);
-    const imageUrls = req.files.map(file => {
-      const destPath = path.join(orderDir, file.filename);
-      fs.renameSync(file.path, destPath);
-      return `/uploads/progress/${orderId}/${file.filename}`;
-    });
+    const imageUrls = await Promise.all(req.files.map(async (file) => {
+      let target = file;
+      if (/^image\//.test(file.mimetype)) {
+        try {
+          target = await compressImage(file, { maxWidth: 1280, maxHeight: 1280, quality: 82, format: 'jpeg', fit: 'inside' });
+        } catch (err) {
+          console.warn('[进度照片] 压缩失败，保留原图:', err.message);
+        }
+      }
+      const destPath = path.join(orderDir, target.filename);
+      fs.renameSync(target.path, destPath);
+      return `/uploads/progress/${orderId}/${target.filename}`;
+    }));
 
     // 获取用户姓名
     const userResult = await db.query(
@@ -286,9 +295,15 @@ router.post('/videos/upload', authenticateToken, upload.fields([
       const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
       if (allowedImageTypes.includes(coverFile.mimetype)) {
-        const coverDestPath = path.join(orderDir, coverFile.filename);
-        fs.renameSync(coverFile.path, coverDestPath);
-        coverUrl = `/uploads/progress/${orderId}/${coverFile.filename}`;
+        let coverTarget = coverFile;
+        try {
+          coverTarget = await compressImage(coverFile, { maxWidth: 1280, maxHeight: 1280, quality: 82, format: 'jpeg', fit: 'inside' });
+        } catch (err) {
+          console.warn('[进度视频封面] 压缩失败，保留原图:', err.message);
+        }
+        const coverDestPath = path.join(orderDir, coverTarget.filename);
+        fs.renameSync(coverTarget.path, coverDestPath);
+        coverUrl = `/uploads/progress/${orderId}/${coverTarget.filename}`;
       } else {
         try { fs.unlinkSync(coverFile.path); } catch (e) {}
       }

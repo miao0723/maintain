@@ -1258,10 +1258,18 @@ router.put('/users/:userId/role', authenticateToken, requireSuperAdmin, async (r
     const { userId } = req.params;
     const { role } = req.body;
 
-    if (!role || !['user', 'admin', 'super_admin', 'internal'].includes(role)) {
+    if (!role || !['user', 'admin', 'internal', 'repair'].includes(role)) {
       return res.status(400).json({
         success: false,
         error: '无效的角色值'
+      });
+    }
+
+    // 不允许将用户设置为超级管理员
+    if (role === 'super_admin') {
+      return res.status(400).json({
+        success: false,
+        error: '不能将用户设置为超级管理员'
       });
     }
 
@@ -1270,6 +1278,21 @@ router.put('/users/:userId/role', authenticateToken, requireSuperAdmin, async (r
       return res.status(400).json({
         success: false,
         error: '不能修改自己的角色'
+      });
+    }
+
+    // 超级管理员角色受保护，不允许被修改
+    const targetRows = await db.query('SELECT id, role FROM users WHERE id = ?', [userId]);
+    if (targetRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '用户不存在'
+      });
+    }
+    if (targetRows[0].role === 'super_admin') {
+      return res.status(400).json({
+        success: false,
+        error: '不能修改超级管理员的角色'
       });
     }
 
@@ -1312,6 +1335,21 @@ router.put('/users/:userId/status', authenticateToken, requireSuperAdmin, async 
       return res.status(400).json({
         success: false,
         error: '不能禁用自己'
+      });
+    }
+
+    // 超级管理员账号受保护，不允许被禁用
+    const targetRows = await db.query('SELECT id, role FROM users WHERE id = ?', [userId]);
+    if (targetRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '用户不存在'
+      });
+    }
+    if (targetRows[0].role === 'super_admin') {
+      return res.status(400).json({
+        success: false,
+        error: '不能禁用超级管理员账号'
       });
     }
 
@@ -1402,11 +1440,17 @@ router.put('/users/:userId', authenticateToken, requireSuperAdmin, async (req, r
       });
     }
 
-    // 验证角色
-    if (role && !['user', 'admin', 'super_admin'].includes(role)) {
+    // 验证角色（不允许设置为超级管理员）
+    if (role && !['user', 'admin', 'internal', 'repair'].includes(role)) {
       return res.status(400).json({
         success: false,
         error: '无效的角色值'
+      });
+    }
+    if (role === 'super_admin') {
+      return res.status(400).json({
+        success: false,
+        error: '不能将用户设置为超级管理员'
       });
     }
 
@@ -1585,11 +1629,17 @@ router.post('/users', authenticateToken, requireSuperAdmin, async (req, res) => 
       });
     }
 
-    // 验证角色
-    if (role && !['user', 'admin', 'super_admin'].includes(role)) {
+    // 验证角色（创建用户不允许设置为超级管理员）
+    if (role && !['user', 'admin', 'internal', 'repair'].includes(role)) {
       return res.status(400).json({
         success: false,
         error: '无效的角色值'
+      });
+    }
+    if (role === 'super_admin') {
+      return res.status(400).json({
+        success: false,
+        error: '不能创建超级管理员账号'
       });
     }
 
@@ -1670,6 +1720,61 @@ router.post('/users', authenticateToken, requireSuperAdmin, async (req, res) => 
 });
 
 /**
+ * 删除用户
+ * DELETE /api/super-admin/users/:userId
+ */
+router.delete('/users/:userId', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // 不允许删除自己
+    if (Number(userId) === Number(req.user.id)) {
+      return res.status(400).json({
+        success: false,
+        error: '不能删除自己'
+      });
+    }
+
+    // 检查用户是否存在
+    const existingUser = await db.query(
+      'SELECT id, role FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (existingUser.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '用户不存在'
+      });
+    }
+
+    // 不允许删除超级管理员账号
+    if (existingUser[0].role === 'super_admin') {
+      return res.status(400).json({
+        success: false,
+        error: '不能删除超级管理员账号'
+      });
+    }
+
+    await db.query(
+      'DELETE FROM users WHERE id = ?',
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      message: '用户删除成功'
+    });
+  } catch (error) {
+    console.error('删除用户错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '删除用户失败'
+    });
+  }
+});
+
+/**
  * 获取系统日志/操作记录
  * GET /api/super-admin/activity-log
  */
@@ -1716,6 +1821,122 @@ router.get('/activity-log', authenticateToken, requireSuperAdmin, async (req, re
       success: false,
       error: '获取活动日志失败'
     });
+  }
+});
+
+// ===================== 设备类型管理 =====================
+// device_types 表由 repair.sql 创建，这里提供 CRUD 供管理员维护设备目录
+router.get('/device-types', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const rows = await db.query(
+      'SELECT id, name, icon, created_at FROM device_types ORDER BY id ASC'
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('获取设备类型失败:', err);
+    res.status(500).json({ success: false, message: '获取设备类型失败' });
+  }
+});
+
+router.post('/device-types', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const { name, icon } = req.body || {};
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ success: false, message: '设备类型名称不能为空' });
+    }
+    const result = await db.query(
+      'INSERT INTO device_types (name, icon) VALUES (?, ?)',
+      [String(name).trim(), icon || '']
+    );
+    res.json({ success: true, data: { id: result.insertId, name: String(name).trim(), icon: icon || '' } });
+  } catch (err) {
+    console.error('创建设备类型失败:', err);
+    res.status(500).json({ success: false, message: '创建设备类型失败' });
+  }
+});
+
+router.put('/device-types/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const { name, icon } = req.body || {};
+    await db.query(
+      'UPDATE device_types SET name = ?, icon = ? WHERE id = ?',
+      [name, icon || '', req.params.id]
+    );
+    res.json({ success: true, data: { id: Number(req.params.id), name, icon } });
+  } catch (err) {
+    console.error('更新设备类型失败:', err);
+    res.status(500).json({ success: false, message: '更新设备类型失败' });
+  }
+});
+
+router.delete('/device-types/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    await db.query('DELETE FROM device_types WHERE id = ?', [req.params.id]);
+    res.json({ success: true, message: '删除成功' });
+  } catch (err) {
+    console.error('删除设备类型失败:', err);
+    res.status(500).json({ success: false, message: '删除设备类型失败' });
+  }
+});
+
+// ===================== 维修价格管理 =====================
+// prices 表由 migrations/009_prices_table.sql 创建
+router.get('/prices', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const rows = await db.query(
+      'SELECT id, device_type, fault_category, device_model, price, description, created_at, updated_at FROM prices ORDER BY id DESC'
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('获取价格失败:', err);
+    res.status(500).json({ success: false, message: '获取价格失败' });
+  }
+});
+
+router.post('/prices', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const { device_type, fault_category, device_model, price, description } = req.body || {};
+    if (!device_type || !fault_category) {
+      return res.status(400).json({ success: false, message: '设备类型和故障类别不能为空' });
+    }
+    const result = await db.query(
+      'INSERT INTO prices (device_type, fault_category, device_model, price, description) VALUES (?, ?, ?, ?, ?)',
+      [device_type, fault_category, device_model || '', price || 0, description || '']
+    );
+    res.json({
+      success: true,
+      data: { id: result.insertId, device_type, fault_category, device_model, price, description }
+    });
+  } catch (err) {
+    console.error('创建价格失败:', err);
+    res.status(500).json({ success: false, message: '创建价格失败' });
+  }
+});
+
+router.put('/prices/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const { device_type, fault_category, device_model, price, description } = req.body || {};
+    await db.query(
+      'UPDATE prices SET device_type = ?, fault_category = ?, device_model = ?, price = ?, description = ? WHERE id = ?',
+      [device_type, fault_category, device_model || '', price || 0, description || '', req.params.id]
+    );
+    res.json({
+      success: true,
+      data: { id: Number(req.params.id), device_type, fault_category, device_model, price, description }
+    });
+  } catch (err) {
+    console.error('更新价格失败:', err);
+    res.status(500).json({ success: false, message: '更新价格失败' });
+  }
+});
+
+router.delete('/prices/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    await db.query('DELETE FROM prices WHERE id = ?', [req.params.id]);
+    res.json({ success: true, message: '删除成功' });
+  } catch (err) {
+    console.error('删除价格失败:', err);
+    res.status(500).json({ success: false, message: '删除价格失败' });
   }
 });
 

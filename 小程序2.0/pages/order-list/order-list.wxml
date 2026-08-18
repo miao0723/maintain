@@ -169,7 +169,7 @@
         <view wx:if="{{item.status === 'pending'}}" class="action-btn assign" bindtap="assignOrder" data-id="{{item.id}}" catchtap="stopPropagation">
           分配
         </view>
-        <view wx:if="{{item.status === 'quoted'}}" class="action-btn" style="background: #8b5cf6; color: #fff;" catchtap="stopPropagation">
+        <view wx:if="{{item.status === 'quoted'}}" class="action-btn" style="background: #436f95; color: #fff;" catchtap="stopPropagation">
           待确认
         </view>
         <view wx:if="{{item.status === 'confirmed'}}" class="action-btn process" bindtap="processOrder" data-id="{{item.id}}" catchtap="stopPropagation">
@@ -218,3 +218,4 @@
     </view>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

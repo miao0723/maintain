@@ -141,7 +141,17 @@ async function getUnreadCount(userId) {
 async function getUserConversations(userId, limit = 10) {
   const conversations = await db.query(
     `SELECT cc.id, cc.status, cc.summary, cc.created_at, cc.last_activity, cc.end_reason,
-            (SELECT COUNT(*) FROM chat_messages WHERE conversation_id = cc.id) as message_count
+            (SELECT COUNT(*) FROM chat_messages WHERE conversation_id = cc.id) as message_count,
+            (SELECT cm.content FROM chat_messages cm WHERE cm.conversation_id = cc.id ORDER BY cm.created_at DESC, cm.id DESC LIMIT 1) as last_message,
+            (SELECT cm.sender_type FROM chat_messages cm WHERE cm.conversation_id = cc.id ORDER BY cm.created_at DESC, cm.id DESC LIMIT 1) as last_sender,
+            COALESCE(
+              (SELECT cm.content FROM chat_messages cm WHERE cm.conversation_id = cc.id AND cm.sender_type = 'user' ORDER BY cm.created_at ASC, cm.id ASC LIMIT 1),
+              (SELECT cm.content FROM chat_messages cm WHERE cm.conversation_id = cc.id ORDER BY cm.created_at ASC, cm.id ASC LIMIT 1)
+            ) as first_message,
+            COALESCE(
+              (SELECT cm.sender_type FROM chat_messages cm WHERE cm.conversation_id = cc.id AND cm.sender_type = 'user' ORDER BY cm.created_at ASC, cm.id ASC LIMIT 1),
+              (SELECT cm.sender_type FROM chat_messages cm WHERE cm.conversation_id = cc.id ORDER BY cm.created_at ASC, cm.id ASC LIMIT 1)
+            ) as first_sender
      FROM chat_conversations cc
      WHERE cc.user_id = ?
      ORDER BY cc.last_activity DESC

@@ -181,7 +181,13 @@ Page({
       '无人机回收估价流程？',
       '回收后数据会泄露吗？',
       '回收支持上门取件吗？',
-      '手表回收价格怎么判断？'
+      '手表回收价格怎么判断？',
+      // === 服务 / 支付 / 售后 ===
+      '维修费用是先付吗？',
+      '数据会丢吗？',
+      '原装配件和第三方有什么区别？',
+      '怎么转人工客服？',
+      '你们支持哪些设备？'
     ],
 
     // 产品面板
@@ -230,7 +236,9 @@ Page({
 
     // 历史记录相关
     conversations: [],
-    conversationsLoading: false
+    conversationsLoading: false,
+    historyGroups: [], // 按日期分组后的历史会话，用于列表展示
+    viewingHistory: false // 是否正在查看某条历史会话（聊天视图顶部提示条）
   },
 
   onLoad() {
@@ -414,11 +422,35 @@ Page({
       const response = await chatApi.getConversations(userId)
       const resData = response.data || response
       console.log('[Service] getConversations 响应:', JSON.stringify(resData).substring(0, 200))
-      const list = (resData.conversations || resData.data?.conversations || []).map(c => ({
-        ...c,
-        _displayTime: this.formatHistoryTime(c.last_activity || c.created_at)
-      }))
-      this.setData({ conversations: list })
+      const list = (resData.conversations || resData.data?.conversations || []).map(c => {
+        const sender = c.last_sender
+        const rawPreview = (c.last_message || '').trim()
+        let preview
+        if (rawPreview) {
+          preview = (sender === 'user' ? '我：' : '客服：') + rawPreview
+        } else {
+          preview = c.summary || '（暂无消息）'
+        }
+        // 首问：标题下方显示“第一句询问的问题”（优先取用户的第一条消息）
+        const rawFirst = (c.first_message || '').trim()
+        let firstQuestion
+        if (rawFirst) {
+          firstQuestion = (c.first_sender === 'user' ? '问：' : '') + rawFirst
+        } else {
+          firstQuestion = rawPreview || (c.summary || '（暂无消息）')
+        }
+        firstQuestion = this.truncateText(firstQuestion, 22)
+        return {
+          ...c,
+          _displayTime: this.formatHistoryTime(c.last_activity || c.created_at),
+          _preview: preview,
+          _title: this.truncateSummary(c.summary || ''),
+          _firstQuestion: firstQuestion,
+          _group: this.formatHistoryGroup(c.last_activity || c.created_at)
+        }
+      })
+      const groups = this.groupConversationsByDate(list)
+      this.setData({ conversations: list, historyGroups: groups })
     } catch (error) {
       console.error('加载会话列表失败:', error)
     } finally {
@@ -447,6 +479,7 @@ Page({
     // 切换到聊天视图
     this.setComposerState('', {
       currentView: 'chat',
+      viewingHistory: false,
       messages: [
         {
           id: Date.now(),
@@ -463,6 +496,12 @@ Page({
       serviceTyping: false,
       pendingReplyCount: 0
     })
+  },
+
+  // 从历史会话返回历史记录列表
+  backToHistory() {
+    this.setData({ viewingHistory: false, currentView: 'history' })
+    this.loadConversations()
   },
 
   /**
@@ -535,6 +574,7 @@ Page({
       this.setComposerState('', {
         currentView: 'chat',
         conversationId,
+        viewingHistory: true,
         messages: messages.length > 0 ? messages : [
           {
             id: Date.now(),
@@ -588,6 +628,72 @@ Page({
     const month = date.getMonth() + 1
     const day = date.getDate()
     return month + '月' + day + '日 ' + hour + ':' + minute
+  },
+
+  // 将日期映射为分组标签：今天 / 昨天 / 更早（MM月DD日）
+  formatHistoryGroup(dateStr) {
+    if (!dateStr) return '更早'
+    const date = new Date(dateStr)
+    const now = new Date()
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const yesterdayStart = new Date(todayStart.getTime() - 86400000)
+    const tomorrowStart = new Date(todayStart.getTime() + 86400000)
+
+    if (date >= todayStart && date < tomorrowStart) return '今天'
+    if (date >= yesterdayStart && date < todayStart) return '昨天'
+
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    return month + '月' + day + '日'
+  },
+
+  // 将会话摘要裁成“一句话标题”：优先取首句，过长则按字数截断并加省略号
+  truncateSummary(text, maxLen = 20) {
+    if (!text) return ''
+    let s = String(text).trim()
+    // 取到第一个句末标点为止（中英文句号、感叹/问号、换行）
+    const firstSentence = s.split(/[。！？!?\n]/)[0].trim()
+    if (firstSentence) s = firstSentence
+    if (s.length > maxLen) {
+      s = s.slice(0, maxLen) + '…'
+    }
+    return s
+  },
+
+  // 通用截断：纯按字数限制（用于首问等），过长加省略号
+  truncateText(text, maxLen = 22) {
+    if (!text) return ''
+    const s = String(text).trim()
+    return s.length > maxLen ? s.slice(0, maxLen) + '…' : s
+  },
+
+  // 按 _group 标签将会话分组（今天 → 昨天 → 更早），组内保持原顺序
+  groupConversationsByDate(list) {
+    const order = ['今天', '昨天']
+    const map = {}
+    list.forEach(item => {
+      const key = item._group || '更早'
+      if (!map[key]) map[key] = []
+      map[key].push(item)
+    })
+    const groups = []
+    // 固定分组顺序：今天、昨天、其余按日期倒序
+    order.forEach(label => {
+      if (map[label]) {
+        groups.push({ label, items: map[label] })
+        delete map[label]
+      }
+    })
+    // 剩下的（更早）按标签中的日期倒序排列
+    const restLabels = Object.keys(map).sort((a, b) => {
+      const da = new Date(a.replace('月', '-').replace('日', ''))
+      const db = new Date(b.replace('月', '-').replace('日', ''))
+      return db - da
+    })
+    restLabels.forEach(label => {
+      if (map[label]) groups.push({ label, items: map[label] })
+    })
+    return groups
   },
 
   /**
@@ -1566,6 +1672,8 @@ Page({
       });
 
       this.addServiceMessage('正在为您转接人工客服，请稍候...');
+      // 用户主动转人工：清除之前的失败标记，允许本次显式重试一次
+      this._humanSocketFailed = false
       this.connectHumanSocket(resData.conversationId || this.data.conversationId, userInfo.id || '')
     } catch (error) {
       wx.showToast({ title: '转接失败，请稍后重试', icon: 'none' });
@@ -1581,6 +1689,11 @@ Page({
 
   connectHumanSocket(conversationId, userId) {
     if (!conversationId) return
+    // 本轮页面会话已确认连不上（服务端未开启 /ws/chat），不再反复重连刷错误
+    if (this._humanSocketFailed) {
+      this.setData({ humanSocketConnected: false })
+      return
+    }
     this.closeHumanSocket()
 
     const socketTask = wx.connectSocket({
@@ -1588,16 +1701,21 @@ Page({
     })
 
     this.humanSocketTask = socketTask
+    this._humanSocketOpened = false
 
     socketTask.onOpen(() => {
+      this._humanSocketOpened = true
+      this._humanSocketFailed = false
       this.setData({ humanSocketConnected: true })
-      socketTask.send({
-        data: JSON.stringify({
-          type: 'auth_user',
-          conversationId,
-          userId
+      try {
+        socketTask.send({
+          data: JSON.stringify({
+            type: 'auth_user',
+            conversationId,
+            userId
+          })
         })
-      })
+      } catch (e) {}
     })
 
     socketTask.onMessage((event) => {
@@ -1610,22 +1728,30 @@ Page({
     })
 
     socketTask.onClose(() => {
+      this._humanSocketOpened = false
       this.setData({ humanSocketConnected: false })
     })
 
     socketTask.onError((error) => {
-      console.error('人工客服 Socket 连接失败:', error)
+      // 标记失败并静默：人工客服 WS 为增强能力，连不上不影响智能客服主流程，也不刷错误
+      this._humanSocketOpened = false
+      this._humanSocketFailed = true
+      console.warn('[Service] 人工客服 Socket 连接失败（已忽略，不影响主流程）:', error)
       this.setData({ humanSocketConnected: false })
     })
   },
 
   closeHumanSocket() {
     if (this.humanSocketTask) {
-      try {
-        this.humanSocketTask.close({})
-      } catch (error) {}
+      const task = this.humanSocketTask
       this.humanSocketTask = null
+      // 只有真正建立过连接（onOpen 触发过）才调用 close，
+      // 连接中/连接失败状态下 close 会抛 closeSocket:fail task not found
+      if (this._humanSocketOpened) {
+        try { task.close({}) } catch (error) {}
+      }
     }
+    this._humanSocketOpened = false
     this.setData({ humanSocketConnected: false })
   },
 
@@ -1939,6 +2065,8 @@ Page({
 
   async restoreHumanServiceState() {
     if (!this.data.conversationId) return
+    // 已确认人工客服 WS 连不上，本次页面会话不再尝试，避免调试器刷 WebSocket 错误
+    if (this._humanSocketFailed) return
     try {
       const res = await chatApi.getHumanStatus(this.data.conversationId)
       const data = res.data || res || {}

@@ -1,10 +1,11 @@
 // pages/my-orders/my-orders.js
 const app = getApp();
+const { getMpApiBaseUrl } = require('../../utils/mpApi.js');
 
 // 状态配置
 const STATUS_CONFIG = {
   pending: { label: '待处理', color: '#f59e0b', bg: '#fef3c7', icon: '⏳' },
-  quoted: { label: '已报价', color: '#8b5cf6', bg: '#ede9fe', icon: '💰' },
+  quoted: { label: '已报价', color: '#436f95', bg: '#e8f1f8', icon: '💰' },
   confirmed: { label: '已确认', color: '#06b6d4', bg: '#cffafe', icon: '✅' },
   processing: { label: '维修中', color: '#3b82f6', bg: '#dbeafe', icon: '🔧' },
   completed: { label: '已完成', color: '#10b981', bg: '#d1fae5', icon: '✅' },
@@ -332,7 +333,7 @@ Page({
       const { page, pageSize, statusFilter, searchKeyword } = this.data;
 
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/admin/my-orders`,
+        url: `${getMpApiBaseUrl()}/admin/my-orders`,
         method: 'GET',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -411,7 +412,7 @@ Page({
   async loadOrderStats() {
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/admin/dashboard-stats`,
+        url: `${getMpApiBaseUrl()}/admin/dashboard-stats`,
         method: 'GET',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -528,7 +529,7 @@ Page({
 
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/admin/orders/${orderId}/accept`,
+        url: `${getMpApiBaseUrl()}/admin/orders/${orderId}/accept`,
         method: 'PUT',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -569,7 +570,7 @@ Page({
 
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/admin/orders/${orderId}/process`,
+        url: `${getMpApiBaseUrl()}/admin/orders/${orderId}/process`,
         method: 'PUT',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -605,7 +606,7 @@ Page({
           wx.showLoading({ title: '处理中...' });
           try {
             const response = await wx.request({
-              url: `${app.globalData.baseUrl}/api/admin/orders/${orderId}/complete`,
+              url: `${getMpApiBaseUrl()}/admin/orders/${orderId}/complete`,
               method: 'PUT',
               header: {
                 'Authorization': `Bearer ${this.data.token}`,
@@ -645,7 +646,7 @@ Page({
           wx.showLoading({ title: '处理中...' });
           try {
             const response = await wx.request({
-              url: `${app.globalData.baseUrl}/api/admin/orders/${orderId}/cancel`,
+              url: `${getMpApiBaseUrl()}/admin/orders/${orderId}/cancel`,
               method: 'PUT',
               header: {
                 'Authorization': `Bearer ${this.data.token}`,
@@ -693,7 +694,7 @@ Page({
           wx.showLoading({ title: '更新中...' });
           try {
             const response = await wx.request({
-              url: `${app.globalData.baseUrl}/api/admin/orders/${orderId}/progress`,
+              url: `${getMpApiBaseUrl()}/admin/orders/${orderId}/progress`,
               method: 'PUT',
               header: {
                 'Authorization': `Bearer ${this.data.token}`,
@@ -923,7 +924,7 @@ Page({
       }
 
       const response = await wx.request({
-        url: `${app.globalData.baseUrl}/api/admin/orders/${editOrderData.id}/edit`,
+        url: `${getMpApiBaseUrl()}/admin/orders/${editOrderData.id}/edit`,
         method: 'PUT',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -1050,7 +1051,7 @@ Page({
 
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/admin/orders/${refundOrderData.id}/refund`,
+        url: `${getMpApiBaseUrl()}/admin/orders/${refundOrderData.id}/refund`,
         method: 'PUT',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -1188,7 +1189,7 @@ Page({
       const uploadPromises = chooseRes.tempFiles.map(file => {
         return new Promise((resolve, reject) => {
           wx.uploadFile({
-            url: `${baseUrl}/api/upload/quote`,
+            url: `${getMpApiBaseUrl()}/upload/quote`,
             filePath: file.path,
             name: 'files',
             header: {
@@ -1256,7 +1257,7 @@ Page({
 
         try {
           const response = await wx.request({
-            url: `${app.globalData.baseUrl}/api/admin/orders/${quoteOrderData.id}/quote`,
+            url: `${getMpApiBaseUrl()}/admin/orders/${quoteOrderData.id}/quote`,
             method: 'PUT',
             header: {
               'Authorization': `Bearer ${this.data.token}`,
@@ -1402,7 +1403,7 @@ Page({
       const uploadPromises = chooseRes.tempFiles.map(file => {
         return new Promise((resolve, reject) => {
           wx.uploadFile({
-            url: `${baseUrl}/api/upload/quote`,
+            url: `${getMpApiBaseUrl()}/upload/quote`,
             filePath: file.tempFilePath,
             name: 'files',
             header: { 'Authorization': `Bearer ${this.data.token}` },
@@ -1459,7 +1460,7 @@ Page({
 
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/after-sales/request`,
+        url: `${getMpApiBaseUrl()}/after-sales/request`,
         method: 'POST',
         header: {
           'Authorization': `Bearer ${this.data.token}`,

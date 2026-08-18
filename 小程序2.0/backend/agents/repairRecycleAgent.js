@@ -683,8 +683,8 @@ ${corePrinciples}
       reply = '我们支持上门取件和到店送修，上门覆盖主要城区，营业时间周一至周日 9:00-21:00，节假日正常营业。';
       suggestedActions = [{ type: 'quick_reply', text: '上门取件怎么预约' }, { type: 'quick_reply', text: '门店地址在哪' }];
     } else {
-      reply = '您好，我是修小宝，专业电子维修客服助手。可解答手机、电脑、平板、相机、无人机、游戏机等维修问题，也能帮您查订单进度。';
-      suggestedActions = [{ type: 'quick_reply', text: '手机屏幕碎了' }, { type: 'quick_reply', text: '电脑开不了机' }, { type: 'quick_reply', text: '相机镜头故障' }];
+      reply = '您好，我是修小宝，您身边的电子维修智能助手~ 手机、电脑、平板、手表、耳机、相机、无人机、游戏机等设备都能帮您判断故障、估价与安排维修，也能查订单进度、回收估价和转接人工。您直接说设备型号+故障现象就好，我来帮您安排。';
+      suggestedActions = [{ type: 'quick_reply', text: '手机屏幕碎了怎么修？' }, { type: 'quick_reply', text: '旧手机能回收多少钱？' }, { type: 'button', text: '预约维修', action: 'submit_order' }];
     }
     return { reply, suggestedActions };
   }

@@ -19,7 +19,7 @@
   display: flex;
   align-items: center;
   gap: 16rpx;
-  box-shadow: 0 8rpx 20rpx rgba(90, 110, 138, 0.08);
+  box-shadow: 0 8rpx 20rpx rgba(79, 107, 132, 0.08);
 }
 
 .internal-banner-icon {
@@ -124,7 +124,7 @@
 
 .repair-progress-percent {
   font-size: 22rpx;
-  color: #6e85a5;
+  color: #6a9abb;
   font-weight: 600;
 }
 
@@ -423,8 +423,8 @@
   margin: 20rpx 24rpx 8rpx;
   padding: 22rpx 24rpx;
   border-radius: 24rpx;
-  background: linear-gradient(135deg, rgba(90, 110, 138, 0.96) 0%, rgba(110, 133, 165, 0.96) 100%);
-  box-shadow: 0 10rpx 28rpx rgba(90, 110, 138, 0.18);
+  background: linear-gradient(135deg, rgba(79, 107, 132, 0.96) 0%, rgba(110, 133, 165, 0.96) 100%);
+  box-shadow: 0 10rpx 28rpx rgba(79, 107, 132, 0.18);
   color: #ffffff;
 }
 
@@ -480,12 +480,12 @@
 /* 顶部Tab切换 */
 .top-tabs {
   display: flex;
-  background: linear-gradient(135deg, rgba(90, 110, 138, 0.05) 0%, rgba(110, 133, 165, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(79, 107, 132, 0.05) 0%, rgba(110, 133, 165, 0.05) 100%);
   padding: 18rpx 24rpx;
-  box-shadow: 0 6rpx 22rpx rgba(90, 110, 138, 0.12);
+  box-shadow: 0 6rpx 22rpx rgba(79, 107, 132, 0.12);
   position: relative;
   z-index: 100;
-  border-bottom: 2rpx solid rgba(90, 110, 138, 0.1);
+  border-bottom: 2rpx solid rgba(79, 107, 132, 0.1);
 }
 
 .tab-item {
@@ -498,8 +498,8 @@
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
-  box-shadow: 0 8rpx 30rpx rgba(90, 110, 138, 0.5);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
+  box-shadow: 0 8rpx 30rpx rgba(79, 107, 132, 0.5);
   transform: translateY(-4rpx) scale(1.02);
 }
 
@@ -521,10 +521,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #5a6e8a15 0%, #6e85a515 100%);
+  background: linear-gradient(135deg, #4f6b8415 0%, #6a9abb15 100%);
   border-radius: 16rpx;
   padding: 25rpx;
-  border: 2rpx solid #5a6e8a30;
+  border: 2rpx solid #4f6b8430;
 }
 
 .address-content {
@@ -541,18 +541,18 @@
 .contact-name {
   font-size: 30rpx;
   font-weight: bold;
-  color: #333333;
+  color: #1f2937;
   margin-right: 20rpx;
 }
 
 .contact-phone {
   font-size: 26rpx;
-  color: #666666;
+  color: #5b6b7b;
 }
 
 .address-detail {
   font-size: 26rpx;
-  color: #666666;
+  color: #5b6b7b;
   line-height: 1.6;
 }
 
@@ -564,13 +564,13 @@
 
 .change-btn {
   font-size: 26rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
   font-weight: 500;
 }
 
 .arrow-icon {
   font-size: 28rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
 }
 
 /* 选择地址提示 */
@@ -581,7 +581,7 @@
   padding: 30rpx;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
   border-radius: 16rpx;
-  border: 2rpx dashed #5a6e8a50;
+  border: 2rpx dashed #4f6b8450;
 }
 
 .hint-icon {
@@ -591,14 +591,14 @@
 
 .hint-text {
   font-size: 28rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
   flex: 1;
   text-align: center;
 }
 
 .hint-arrow {
   font-size: 30rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
 }
 
 /* 地址选择器弹窗 */
@@ -644,7 +644,7 @@
 .address-selector-title {
   font-size: 34rpx;
   font-weight: bold;
-  color: #333333;
+  color: #1f2937;
 }
 
 .address-selector-close {
@@ -654,7 +654,7 @@
   align-items: center;
   justify-content: center;
   font-size: 50rpx;
-  color: #999999;
+  color: #8a96a3;
   line-height: 1;
 }
 
@@ -679,7 +679,7 @@
 
 .empty-text {
   font-size: 28rpx;
-  color: #999999;
+  color: #8a96a3;
 }
 
 .address-item-list {
@@ -699,8 +699,8 @@
 }
 
 .address-item.selected {
-  background: linear-gradient(135deg, #5a6e8a15 0%, #6e85a515 100%);
-  border-color: #5a6e8a;
+  background: linear-gradient(135deg, #4f6b8415 0%, #6a9abb15 100%);
+  border-color: #4f6b84;
 }
 
 .address-item-content {
@@ -719,7 +719,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #5a6e8a;
+  background-color: #4f6b84;
   color: #ffffff;
   border-radius: 50%;
   font-size: 28rpx;
@@ -737,7 +737,7 @@
   align-items: center;
   justify-content: center;
   padding: 25rpx;
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   color: #ffffff;
   border: none;
   border-radius: 50rpx;
@@ -756,14 +756,14 @@
   margin: 16rpx 24rpx;
   border-radius: 24rpx;
   padding: 24rpx;
-  box-shadow: 0 10rpx 30rpx rgba(90, 110, 138, 0.1);
+  box-shadow: 0 10rpx 30rpx rgba(79, 107, 132, 0.1);
   backdrop-filter: blur(20rpx);
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   border: 1rpx solid rgba(255, 255, 255, 0.5);
 }
 
 .section:active {
-  box-shadow: 0 8rpx 20rpx rgba(90, 110, 138, 0.1);
+  box-shadow: 0 8rpx 20rpx rgba(79, 107, 132, 0.1);
 }
 
 .section-header {
@@ -786,7 +786,7 @@
 .drawer-summary {
   margin-top: 6rpx;
   font-size: 22rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
   line-height: 1.4;
   word-break: break-all;
 }
@@ -803,13 +803,13 @@
 
 .drawer-toggle-text {
   font-size: 22rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
   font-weight: 600;
 }
 
 .drawer-toggle-icon {
   font-size: 20rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
 }
 
 .drawer-content {
@@ -841,19 +841,19 @@
   display: inline-block;
   padding: 6rpx 16rpx;
   background: linear-gradient(135deg, #f0f2f5 0%, #e5e8eb 100%);
-  color: #5a6e8a;
+  color: #4f6b84;
   border-radius: 16rpx;
   font-size: 24rpx;
   margin-left: 18rpx;
   font-weight: 600;
-  box-shadow: 0 2rpx 8rpx rgba(90, 110, 138, 0.2);
+  box-shadow: 0 2rpx 8rpx rgba(79, 107, 132, 0.2);
 }
 
 /* 自定义输入区块 */
 .custom-input-section {
   background: linear-gradient(135deg, #f0f4ff 0%, #e8edf5 100%);
-  border: 2rpx solid #5a6e8a40;
-  box-shadow: 0 8rpx 25rpx rgba(90, 110, 138, 0.1);
+  border: 2rpx solid #4f6b8440;
+  box-shadow: 0 8rpx 25rpx rgba(79, 107, 132, 0.1);
   position: relative;
   overflow: hidden;
 }
@@ -865,7 +865,7 @@
   left: 0;
   width: 6rpx;
   height: 100%;
-  background: linear-gradient(180deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(180deg, #4f6b84 0%, #6a9abb 100%);
   border-radius: 0 3rpx 3rpx 0;
 }
 
@@ -883,9 +883,9 @@
   align-items: center;
   gap: 8rpx;
   padding: 8rpx 16rpx;
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   border-radius: 20rpx;
-  box-shadow: 0 4rpx 12rpx rgba(90, 110, 138, 0.3);
+  box-shadow: 0 4rpx 12rpx rgba(79, 107, 132, 0.3);
 }
 
 .custom-badge-icon {
@@ -900,18 +900,18 @@
 
 .input-required {
   font-size: 22rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
   padding: 6rpx 14rpx;
-  background: rgba(90, 110, 138, 0.1);
+  background: rgba(79, 107, 132, 0.1);
   border-radius: 20rpx;
   font-weight: 500;
   transition: all 0.3s ease;
 }
 
 .input-required.filled {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   color: #ffffff;
-  box-shadow: 0 2rpx 8rpx rgba(90, 110, 138, 0.3);
+  box-shadow: 0 2rpx 8rpx rgba(79, 107, 132, 0.3);
 }
 
 /* 输入包装器 */
@@ -921,14 +921,14 @@
   background-color: #ffffff;
   border-radius: 14rpx;
   padding: 0 16rpx;
-  border: 2rpx solid #e0e0e0;
+  border: 2rpx solid #dde5ee;
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
 }
 
 .input-wrapper.has-value {
-  border-color: #5a6e8a;
-  box-shadow: 0 4rpx 15rpx rgba(90, 110, 138, 0.15);
+  border-color: #4f6b84;
+  box-shadow: 0 4rpx 15rpx rgba(79, 107, 132, 0.15);
 }
 
 
@@ -962,12 +962,12 @@
   align-items: flex-start;
   margin-top: 18rpx;
   font-size: 24rpx;
-  color: #999999;
+  color: #8a96a3;
   line-height: 1.6;
   padding: 14rpx 18rpx;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(90, 110, 138, 0.06) 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(79, 107, 132, 0.06) 100%);
   border-radius: 12rpx;
-  border-left: 3rpx solid #5a6e8a;
+  border-left: 3rpx solid #4f6b84;
 }
 
 .input-tip .tip-icon {
@@ -1000,19 +1000,19 @@
 }
 
 .device-item.active {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
-  border-color: #5a6e8a;
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
+  border-color: #4f6b84;
   transform: translateY(-4rpx);
-  box-shadow: 0 8rpx 25rpx rgba(90, 110, 138, 0.35);
+  box-shadow: 0 8rpx 25rpx rgba(79, 107, 132, 0.35);
 }
 
 .device-item.custom {
   background: linear-gradient(135deg, #f0f4ff 0%, #e8edf5 100%);
-  border: 2rpx dashed #5a6e8a60;
+  border: 2rpx dashed #4f6b8460;
 }
 
 .device-item.custom.active {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   border-style: solid;
 }
 
@@ -1081,19 +1081,19 @@
 }
 
 .brand-item.active {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
-  border-color: #5a6e8a;
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
+  border-color: #4f6b84;
   transform: translateY(-3rpx) scale(1.03);
-  box-shadow: 0 8rpx 30rpx rgba(90, 110, 138, 0.4);
+  box-shadow: 0 8rpx 30rpx rgba(79, 107, 132, 0.4);
 }
 
 .brand-item.custom {
   background: linear-gradient(135deg, #f0f4ff 0%, #e8edf5 100%);
-  border: 2rpx dashed #5a6e8a60;
+  border: 2rpx dashed #4f6b8460;
 }
 
 .brand-item.custom.active {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   border-style: solid;
 }
 
@@ -1127,7 +1127,7 @@
 
 .model-list-inline .model-item.active {
   background-color: #f0f2f5;
-  border-color: #5a6e8a;
+  border-color: #4f6b84;
 }
 
 .model-list-inline .model-info {
@@ -1137,13 +1137,13 @@
 
 .model-list-inline .model-name {
   font-size: 26rpx;
-  color: #333333;
+  color: #1f2937;
   font-weight: 500;
   margin-bottom: 6rpx;
 }
 
 .model-list-inline .model-item.active .model-name {
-  color: #5a6e8a;
+  color: #4f6b84;
   font-weight: bold;
 }
 
@@ -1159,7 +1159,7 @@
   justify-content: center;
   padding: 18rpx;
   background: linear-gradient(135deg, #f0f4ff 0%, #e8edf5 100%);
-  border: 2rpx dashed #5a6e8a60;
+  border: 2rpx dashed #4f6b8460;
   border-radius: 15rpx;
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
@@ -1171,7 +1171,7 @@
 
 .custom-btn-text {
   font-size: 26rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
   font-weight: 500;
 }
 
@@ -1195,17 +1195,17 @@
 
 .problem-option.active {
   background-color: #f0f2f5;
-  border-color: #5a6e8a;
+  border-color: #4f6b84;
 }
 
 .problem-option.custom-problem {
   background: linear-gradient(135deg, #f0f4ff 0%, #e8edf5 100%);
-  border: 2rpx dashed #5a6e8a60;
+  border: 2rpx dashed #4f6b8460;
 }
 
 .problem-option.custom-problem.active {
-  background: rgba(90, 110, 138, 0.1);
-  border-color: #5a6e8a;
+  background: rgba(79, 107, 132, 0.1);
+  border-color: #4f6b84;
 }
 
 .problem-left {
@@ -1220,14 +1220,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   border-radius: 10rpx;
   font-size: 26rpx;
   margin-right: 14rpx;
 }
 
 .problem-option.custom-problem .problem-icon {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
 }
 
 .problem-info {
@@ -1237,18 +1237,18 @@
 
 .problem-name {
   font-size: 26rpx;
-  color: #333333;
+  color: #1f2937;
   margin-bottom: 4rpx;
 }
 
 .problem-price {
   font-size: 22rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
   font-weight: bold;
 }
 
 .problem-option.custom-problem .problem-price {
-  color: #5a6e8a;
+  color: #4f6b84;
 }
 
 .problem-check {
@@ -1257,18 +1257,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #e0e0e0;
+  background-color: #dde5ee;
   border-radius: 20rpx;
   font-size: 24rpx;
   color: #ffffff;
 }
 
 .problem-check.checked {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
 }
 
 .problem-option.custom-problem .problem-check.checked {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
 }
 
 .textarea-wrapper {
@@ -1276,14 +1276,14 @@
   background-color: #ffffff;
   border-radius: 16rpx;
   padding: 5rpx;
-  border: 2rpx solid #e0e0e0;
+  border: 2rpx solid #dde5ee;
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
 }
 
 .textarea-wrapper.has-value {
-  border-color: #5a6e8a;
-  box-shadow: 0 4rpx 15rpx rgba(90, 110, 138, 0.15);
+  border-color: #4f6b84;
+  box-shadow: 0 4rpx 15rpx rgba(79, 107, 132, 0.15);
 }
 
 .custom-textarea {
@@ -1323,13 +1323,13 @@
   border-radius: 15rpx;
   font-size: 26rpx;
   box-sizing: border-box;
-  border: 2rpx solid #e0e0e0;
+  border: 2rpx solid #dde5ee;
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .textarea:focus {
-  border-color: #5a6e8a;
-  box-shadow: 0 0 0 4rpx rgba(90, 110, 138, 0.1);
+  border-color: #4f6b84;
+  box-shadow: 0 0 0 4rpx rgba(79, 107, 132, 0.1);
 }
 
 .char-count {
@@ -1337,7 +1337,7 @@
   bottom: 15rpx;
   right: 20rpx;
   font-size: 24rpx;
-  color: #999999;
+  color: #8a96a3;
 }
 
 /* 上传图片 */
@@ -1362,30 +1362,30 @@
 
 .upload-btn:active {
   background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
-  border-color: #5a6e8a;
+  border-color: #4f6b84;
   transform: scale(0.98);
 }
 
 .upload-icon {
   font-size: 60rpx;
-  color: #999999;
+  color: #8a96a3;
   margin-bottom: 10rpx;
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .upload-btn:active .upload-icon {
-  color: #5a6e8a;
+  color: #4f6b84;
   transform: scale(1.1);
 }
 
 .upload-text {
   font-size: 24rpx;
-  color: #999999;
+  color: #8a96a3;
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .upload-btn:active .upload-text {
-  color: #5a6e8a;
+  color: #4f6b84;
 }
 
 .image-preview {
@@ -1420,7 +1420,7 @@
   display: flex;
   align-items: center;
   font-size: 24rpx;
-  color: #999999;
+  color: #8a96a3;
   margin-top: 15rpx;
   padding: 12rpx;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
@@ -1456,7 +1456,7 @@
 
 .service-option.active {
   background-color: #f0f2f5;
-  border-color: #5a6e8a;
+  border-color: #4f6b84;
 }
 
 .service-icon {
@@ -1479,14 +1479,14 @@
 
 .service-name {
   font-size: 26rpx;
-  color: #333333;
+  color: #1f2937;
   font-weight: bold;
   margin-bottom: 8rpx;
 }
 
 .service-desc {
   font-size: 22rpx;
-  color: #999999;
+  color: #8a96a3;
   line-height: 1.4;
 }
 
@@ -1496,14 +1496,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #e0e0e0;
+  background-color: #dde5ee;
   border-radius: 20rpx;
   font-size: 24rpx;
   color: #ffffff;
 }
 
 .service-check.checked {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
 }
 
 /* 回收类型 */
@@ -1531,9 +1531,9 @@
 
 .recycle-item.active {
   background-color: #f0f2f5;
-  border-color: #5a6e8a;
+  border-color: #4f6b84;
   transform: translateY(-4rpx);
-  box-shadow: 0 10rpx 24rpx rgba(90, 110, 138, 0.18);
+  box-shadow: 0 10rpx 24rpx rgba(79, 107, 132, 0.18);
 }
 
 .recycle-icon {
@@ -1542,7 +1542,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   border-radius: 15rpx;
   font-size: 36rpx;
   margin-right: 20rpx;
@@ -1556,7 +1556,7 @@
 
 .recycle-name {
   font-size: 28rpx;
-  color: #333333;
+  color: #1f2937;
   margin-bottom: 8rpx;
 }
 
@@ -1579,32 +1579,32 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #e0e0e0;
+  background-color: #dde5ee;
   border-radius: 20rpx;
   font-size: 24rpx;
   color: #ffffff;
 }
 
 .recycle-check.checked {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
 }
 
 .recycle-item.custom {
   background: linear-gradient(135deg, #f0f4ff 0%, #e8edf5 100%);
-  border: 2rpx dashed #5a6e8a60;
+  border: 2rpx dashed #4f6b8460;
 }
 
 .recycle-item.custom.active {
-  background: rgba(90, 110, 138, 0.1);
-  border-color: #5a6e8a;
+  background: rgba(79, 107, 132, 0.1);
+  border-color: #4f6b84;
 }
 
 .recycle-item.custom .recycle-icon {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
 }
 
 .recycle-item.custom .recycle-check.checked {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
 }
 
 @media (max-width: 420px) {
@@ -1622,13 +1622,13 @@
   border-radius: 15rpx;
   font-size: 28rpx;
   box-sizing: border-box;
-  border: 2rpx solid #e0e0e0;
+  border: 2rpx solid #dde5ee;
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .model-input:focus {
-  border-color: #5a6e8a;
-  box-shadow: 0 0 0 4rpx rgba(90, 110, 138, 0.1);
+  border-color: #4f6b84;
+  box-shadow: 0 0 0 4rpx rgba(79, 107, 132, 0.1);
 }
 
 .recycle-model-input {
@@ -1660,7 +1660,7 @@
 
 .condition-item.active {
   background-color: #f0f2f5;
-  border-color: #5a6e8a;
+  border-color: #4f6b84;
 }
 
 .condition-header {
@@ -1673,7 +1673,7 @@
 .condition-name {
   display: block;
   font-size: 28rpx;
-  color: #333333;
+  color: #1f2937;
   font-weight: bold;
 }
 
@@ -1689,18 +1689,18 @@
 .condition-desc {
   display: block;
   font-size: 24rpx;
-  color: #999999;
+  color: #8a96a3;
 }
 
 /* 估价结果 */
 .price-section {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   text-align: center;
   padding: 40rpx;
 }
 
 .price-section.waiting-section {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
 }
 
 .price-title {
@@ -1762,7 +1762,7 @@
   justify-content: space-between;
   padding: 20rpx 30rpx;
   background-color: #ffffff;
-  border-top: 1rpx solid #e0e0e0;
+  border-top: 1rpx solid #dde5ee;
   padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
   box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
   z-index: 100;
@@ -1776,7 +1776,7 @@
 
 .price-label {
   font-size: 26rpx;
-  color: #666666;
+  color: #5b6b7b;
 }
 
 .price-value-wrapper {
@@ -1791,8 +1791,28 @@
 }
 
 .price-value.waiting-price {
-  color: #5a6e8a;
+  color: #4f6b84;
   font-size: 32rpx;
+}
+
+.price-range {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 12rpx;
+  line-height: 1.4;
+}
+
+.price-range-text {
+  font-size: 24rpx;
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+.price-range-note {
+  font-size: 20rpx;
+  color: #ffffff;
+  opacity: 0.75;
 }
 
 .price-badge {
@@ -1801,7 +1821,7 @@
   padding: 8rpx 16rpx;
   background: linear-gradient(135deg, #f0f4ff 0%, #e8edf5 100%);
   border-radius: 20rpx;
-  border: 2rpx solid #5a6e8a30;
+  border: 2rpx solid #4f6b8430;
 }
 
 .badge-icon {
@@ -1811,7 +1831,7 @@
 
 .badge-text {
   font-size: 22rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
   font-weight: 500;
 }
 
@@ -1822,13 +1842,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   border-radius: 40rpx;
   color: #ffffff;
   font-size: 32rpx;
   font-weight: bold;
   border: none;
-  box-shadow: 0 6rpx 20rpx rgba(90, 110, 138, 0.4);
+  box-shadow: 0 6rpx 20rpx rgba(79, 107, 132, 0.4);
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
   overflow: hidden;
@@ -1841,7 +1861,7 @@
 
 .submit-btn:active {
   transform: scale(0.98);
-  box-shadow: 0 3rpx 10rpx rgba(90, 110, 138, 0.3);
+  box-shadow: 0 3rpx 10rpx rgba(79, 107, 132, 0.3);
 }
 
 .submit-btn::after {
@@ -1849,8 +1869,8 @@
 }
 
 .submit-btn.waiting {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
-  box-shadow: 0 6rpx 20rpx rgba(90, 110, 138, 0.4);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
+  box-shadow: 0 6rpx 20rpx rgba(79, 107, 132, 0.4);
 }
 
 .recycle-btn {
@@ -1884,7 +1904,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+  background: linear-gradient(135deg, #f0f0f0 0%, #dde5ee 100%);
   color: #999;
   font-size: 32rpx;
   font-weight: bold;
@@ -1950,7 +1970,7 @@
   padding: 10rpx;
   background: #f9f9f9;
   border-radius: 10rpx;
-  border-left: 4rpx solid #5a6e8a;
+  border-left: 4rpx solid #4f6b84;
 }
 
 /* 底部间距 */
@@ -1960,10 +1980,10 @@
 
 /* 已选设备信息 */
 .device-info {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   color: #ffffff;
   border: none;
-  box-shadow: 0 10rpx 30rpx rgba(90, 110, 138, 0.25);
+  box-shadow: 0 10rpx 30rpx rgba(79, 107, 132, 0.25);
 }
 
 .device-info .info-header {
@@ -2073,9 +2093,9 @@
 .selected-unit-card {
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #5a6e8a08 0%, #6e85a508 100%);
+  background: linear-gradient(135deg, #4f6b8408 0%, #6a9abb08 100%);
   border-radius: 24rpx;
-  border: 2rpx solid #5a6e8a30;
+  border: 2rpx solid #4f6b8430;
   overflow: hidden;
   transition: all 0.3s ease;
 }
@@ -2097,11 +2117,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   border-radius: 20rpx;
   font-size: 40rpx;
   flex-shrink: 0;
-  box-shadow: 0 4rpx 15rpx rgba(90, 110, 138, 0.3);
+  box-shadow: 0 4rpx 15rpx rgba(79, 107, 132, 0.3);
 }
 
 .unit-details {
@@ -2133,12 +2153,12 @@
 
 .unit-default-badge {
   font-size: 18rpx;
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   color: #ffffff;
   padding: 6rpx 14rpx;
   border-radius: 20rpx;
   white-space: nowrap;
-  box-shadow: 0 2rpx 8rpx rgba(90, 110, 138, 0.3);
+  box-shadow: 0 2rpx 8rpx rgba(79, 107, 132, 0.3);
 }
 
 .unit-contact-row {
@@ -2185,7 +2205,7 @@
 
 .unit-card-actions {
   display: flex;
-  border-top: 1rpx solid #5a6e8a20;
+  border-top: 1rpx solid #4f6b8420;
   background: rgba(255,255,255, 0.5);
 }
 
@@ -2197,18 +2217,18 @@
   gap: 8rpx;
   padding: 20rpx;
   font-size: 26rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
   font-weight: 500;
   transition: all 0.3s ease;
   position: relative;
 }
 
 .unit-action-btn:not(:last-child) {
-  border-right: 1rpx solid #5a6e8a20;
+  border-right: 1rpx solid #4f6b8420;
 }
 
 .unit-action-btn:active {
-  background: rgba(90, 110, 138, 0.1);
+  background: rgba(79, 107, 132, 0.1);
 }
 
 .unit-action-btn.cancel {
@@ -2232,15 +2252,15 @@
   align-items: center;
   justify-content: center;
   padding: 40rpx;
-  background: linear-gradient(135deg, #5a6e8a15 0%, #6e85a515 100%);
+  background: linear-gradient(135deg, #4f6b8415 0%, #6a9abb15 100%);
   border-radius: 16rpx;
-  border: 2rpx dashed #5a6e8a40;
+  border: 2rpx dashed #4f6b8440;
   gap: 10rpx;
 }
 
 .select-unit-hint .hint-text {
   font-size: 28rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
 }
 
 .unit-tip {
@@ -2250,7 +2270,7 @@
   padding: 15rpx 20rpx;
   background: #f0f5ff;
   border-radius: 12rpx;
-  border-left: 4rpx solid #5a6e8a;
+  border-left: 4rpx solid #4f6b84;
   gap: 8rpx;
 }
 
@@ -2355,8 +2375,8 @@
 }
 
 .unit-list-item.selected {
-  background: linear-gradient(135deg, #5a6e8a10 0%, #6e85a510 100%);
-  border-color: #5a6e8a;
+  background: linear-gradient(135deg, #4f6b8410 0%, #6a9abb10 100%);
+  border-color: #4f6b84;
 }
 
 .unit-list-left {
@@ -2372,7 +2392,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   border-radius: 16rpx;
   font-size: 36rpx;
   flex-shrink: 0;
@@ -2407,7 +2427,7 @@
 
 .unit-list-badge {
   font-size: 16rpx;
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   color: #ffffff;
   padding: 4rpx 12rpx;
   border-radius: 20rpx;
@@ -2447,7 +2467,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   color: #ffffff;
   border-radius: 50%;
   font-size: 26rpx;
@@ -2467,7 +2487,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   color: #ffffff;
   font-size: 28rpx;
   font-weight: 500;

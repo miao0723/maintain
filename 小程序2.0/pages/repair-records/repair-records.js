@@ -1,5 +1,28 @@
 // pages/repair-records/repair-records.js
 const app = getApp();
+const { getMpApiBaseUrl } = require('../../utils/mpApi.js');
+
+/**
+ * 把后端 ISO 时间格式化成友好的中文展示
+ * 今天 / 昨天 / 前天 + HH:mm，更早则 YYYY-MM-DD HH:mm
+ */
+function formatRecordTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const hh = pad(d.getHours());
+  const mm = pad(d.getMinutes());
+  const startOfDay = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((startOfDay(now) - startOfDay(d)) / 86400000);
+  let dayLabel;
+  if (diff === 0) dayLabel = '今天';
+  else if (diff === 1) dayLabel = '昨天';
+  else if (diff === 2) dayLabel = '前天';
+  else dayLabel = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return `${dayLabel} ${hh}:${mm}`;
+}
 
 Page({
   data: {
@@ -36,6 +59,10 @@ Page({
     // 配件列表
     partsList: [],
 
+    // 概览：最近一条记录的阶段与时间
+    latestStage: '',
+    latestTime: '',
+
     token: null
   },
 
@@ -66,7 +93,7 @@ Page({
   async loadOrderDetail() {
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/orders/${this.data.orderId}/detail`,
+        url: `${getMpApiBaseUrl()}/orders/${this.data.orderId}/detail`,
         method: 'GET',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -94,7 +121,7 @@ Page({
   async loadRepairRecords() {
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/repair-records/order/${this.data.orderId}`,
+        url: `${getMpApiBaseUrl()}/repair-records/order/${this.data.orderId}`,
         method: 'GET',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -113,13 +140,19 @@ Page({
         const records = (res.data.data.records || []).map(record => ({
           ...record,
           stageClass: stageClassMap[record.stage] || '',
+          createdDisplay: formatRecordTime(record.created_at),
           partsTotal: record.parts_used ? record.parts_used.reduce((sum, p) => sum + (p.quantity * p.price), 0).toFixed(2) : '0.00',
           parts_used: (record.parts_used || []).map(part => ({
             ...part,
             subtotal: ((part.quantity || 0) * (part.price || 0)).toFixed(2)
           }))
         }));
-        this.setData({ records });
+        const latest = [...records].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))[0];
+        this.setData({
+          records,
+          latestStage: latest ? latest.stage : '',
+          latestTime: latest ? latest.createdDisplay : ''
+        });
       }
     } catch (error) {
       console.error('加载维修记录失败:', error);
@@ -254,7 +287,7 @@ Page({
       const uploadPromises = filePaths.map(filePath => {
         return new Promise((resolve, reject) => {
           wx.uploadFile({
-            url: `${app.globalData.baseUrl}/api/upload/repair`,
+            url: `${getMpApiBaseUrl()}/upload/repair`,
             filePath: filePath,
             name: 'files',
             header: {
@@ -447,7 +480,7 @@ Page({
 
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/repair-records`,
+        url: `${getMpApiBaseUrl()}/repair-records`,
         method: 'POST',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -523,7 +556,7 @@ Page({
 
           try {
             const response = await wx.request({
-              url: `${app.globalData.baseUrl}/api/repair-records/${recordId}`,
+              url: `${getMpApiBaseUrl()}/repair-records/${recordId}`,
               method: 'DELETE',
               header: {
                 'Authorization': `Bearer ${this.data.token}`,

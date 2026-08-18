@@ -59,7 +59,7 @@
   width: 60rpx;
   height: 60rpx;
   border: 4rpx solid #e0e0e0;
-  border-top-color: #667eea;
+  border-top-color: #436f95;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20rpx;
@@ -82,7 +82,7 @@
 
 /* ====== 订单信息卡片 ====== */
 .order-info-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
   border-radius: 20rpx;
   padding: 32rpx 36rpx;
   color: white;
@@ -324,14 +324,14 @@
 }
 
 .tag.active {
-  color: #667eea;
+  color: #436f95;
   background: rgba(102, 126, 234, 0.08);
-  border-color: #667eea;
+  border-color: #436f95;
   font-weight: 500;
 }
 
 .tag.active text {
-  color: #667eea;
+  color: #436f95;
 }
 
 /* ====== 评价内容部分 ====== */
@@ -365,7 +365,7 @@
 }
 
 .comment-input:focus {
-  border-color: #667eea;
+  border-color: #436f95;
   background: #fff;
 }
 
@@ -496,7 +496,7 @@
   width: 100%;
   height: 96rpx;
   line-height: 96rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
   color: white;
   border-radius: 50rpx;
   font-size: 34rpx;

@@ -55,3 +55,4 @@
     <text class="tip-text">登录即表示您同意我们的服务条款和隐私政策</text>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

@@ -1,7 +1,11 @@
 // pages/mine/mine.js
 const { DEFAULT_AVATAR_URL: defaultAvatarUrl, normalizeAvatarUrl } = require('../../utils/avatar.js')
+
+// 会话内记录"锦上添花"接口是否可用（服务端未部署这些路由时会返回 404）。
+// 一旦确认不可用，本次会话内不再重复请求，避免每次 onShow 都在控制台刷 404 红错。
+const _endpointAvailable = {}
 const { userApi } = require('../../utils/api.js')
-const { getUnreadProgressOrders } = require('../../utils/progressUnread.js')
+const { getUnreadProgressOrders, syncProgressUnreadState } = require('../../utils/progressUnread.js')
 const {
   CACHE_KEYS,
   CACHE_TTL,
@@ -10,6 +14,7 @@ const {
   fetchWithCache
 } = require('../../utils/mineDataCache.js')
 const { getDefaultBaseUrl } = require('../../utils/networkConfig.js')
+const { getMpApiBaseUrl } = require('../../utils/mpApi.js')
 
 Page({
   data: {
@@ -36,6 +41,16 @@ Page({
     isInternal: false,  // 是否为公司内部人员（免付款申请）
     quotedCount: 0,   // 待确认报价的订单数
     progressUnreadCount: 0,  // 未读进度更新的订单数
+    progressFeed: [],        // 进度反馈动态列表（用于"我的"页通知卡片）
+    progressFeedTotal: 0,    // 进度反馈动态真实未读总数（标题展示用）
+    statusBadges: {   // 各状态未读订单数（角标"未读的1"），点击状态格后清零
+      pending: 0,
+      quoted: 0,
+      processing: 0,
+      completed: 0,
+      review: 0
+    },
+    internalPending: 0,  // 内部人员待确认的免付款申请数（角标）
     showSettingsPanel: false,
     cacheSize: '0KB',
     settings: {
@@ -144,6 +159,222 @@ Page({
     this.loadDeviceCount(force)
     this.loadQuotedCount(force)
     this.loadProgressUnreadCount(force)
+    this.loadUnreadBadges(force)
+    this.loadProgressFeed(force)
+  },
+
+  /**
+   * 加载"我的"页进度反馈动态（维修进度照片更新通知）
+   * 数据来自 GET /api/orders/progress-feed，仅含 progress_unread=1 的订单最新一条反馈
+   */
+  async loadProgressFeed(force = false) {
+    const app = getApp()
+    if (!app.globalData.isLoggedIn) {
+      this.setData({ progressFeed: [], progressFeedTotal: 0 })
+      return
+    }
+    // 服务端尚未部署该路由时跳过，避免重复 404
+    if (_endpointAvailable['progress-feed'] === false) return
+    try {
+      const token = wx.getStorageSync('token')
+      const baseUrl = getMpApiBaseUrl()
+      const res = await new Promise((resolve, reject) => {
+        wx.request({
+          url: `${baseUrl}/orders/progress-feed?limit=6`,
+          method: 'GET',
+          header: { 'Authorization': token ? `Bearer ${token}` : '' },
+          success: resolve,
+          fail: reject
+        })
+      })
+      if (res.statusCode === 200 && res.data && res.data.success) {
+        _endpointAvailable['progress-feed'] = true
+        const list = (res.data.data && res.data.data.list) || []
+        const feed = list.map(item => {
+          const thumb = item.thumbnail ? normalizeAvatarUrl(item.thumbnail) : ''
+          return {
+            ...item,
+            thumbUrl: thumb,
+            timeText: this.formatRelativeTime(item.feedback_at)
+          }
+        })
+        this.setData({
+          progressFeed: feed,
+          progressFeedTotal: Number(res.data.data && res.data.data.total) || feed.length
+        })
+      } else if (res.statusCode === 404) {
+        // 路由未部署：标记不可用，后续不再重复请求
+        _endpointAvailable['progress-feed'] = false
+      }
+    } catch (err) {
+      console.error('获取进度动态失败:', err)
+    }
+  },
+
+  /**
+   * 将单个订单的进度标记为已读（打开某条进度动态时调用）
+   */
+  markProgressReadForOrder(orderId, feedbackAt) {
+    if (!orderId) return
+    const token = wx.getStorageSync('token')
+    const baseUrl = getMpApiBaseUrl()
+    wx.request({
+      url: `${baseUrl}/orders/${orderId}/progress-read`,
+      method: 'PUT',
+      header: { 'Authorization': token ? `Bearer ${token}` : '' },
+      success: () => {},
+      fail: () => {}
+    })
+    try {
+      syncProgressUnreadState(orderId, feedbackAt, { wasUnread: true })
+    } catch (e) {}
+    this.setData({
+      progressUnreadCount: Math.max(0, this.data.progressUnreadCount - 1)
+    })
+    this.syncBadgeToTabBar(this.data.quotedCount, Math.max(0, this.data.progressUnreadCount - 1))
+  },
+
+  /**
+   * 点击进度动态卡片：标记该订单进度已读并跳转到订单详情
+   */
+  goToProgressDetail(e) {
+    const orderId = e.currentTarget.dataset.orderId
+    const feedbackAt = e.currentTarget.dataset.feedbackAt || ''
+    if (!orderId) return
+    this.markProgressReadForOrder(orderId, feedbackAt)
+    // 本地立即移除该卡片，体验更顺滑
+    const feed = this.data.progressFeed.filter(it => String(it.order_id) !== String(orderId))
+    this.setData({ progressFeed: feed })
+    wx.navigateTo({
+      url: `/pages/order-detail/order-detail?orderId=${orderId}`
+    })
+  },
+
+  /**
+   * 全部已读：清除所有进度动态未读
+   */
+  markAllProgressRead() {
+    const app = getApp()
+    if (!app.globalData.isLoggedIn) return
+    const feed = this.data.progressFeed
+    feed.forEach(it => this.markProgressReadForOrder(it.order_id, it.feedback_at))
+    this.setData({ progressFeed: [], progressFeedTotal: 0, progressUnreadCount: 0 })
+    this.syncBadgeToTabBar(this.data.quotedCount, 0)
+    wx.showToast({ title: '已全部标记为已读', icon: 'none' })
+  },
+
+  /**
+   * 格式化相对时间（用于进度动态时间展示）
+   */
+  formatRelativeTime(raw) {
+    if (!raw) return ''
+    let date
+    if (typeof raw === 'string') {
+      // 兼容 "2026-05-25 09:15:01" 与 ISO 字符串
+      date = new Date(raw.replace(' ', 'T'))
+    } else {
+      date = new Date(raw)
+    }
+    if (isNaN(date.getTime())) return ''
+    const now = new Date()
+    const diff = (now.getTime() - date.getTime()) / 1000
+    if (diff < 60) return '刚刚'
+    if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`
+    if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}天前`
+    const pad = n => (n < 10 ? '0' + n : '' + n)
+    return `${date.getMonth() + 1}月${date.getDate()}日 ${pad(date.getHours())}:${pad(date.getMinutes())}`
+  },
+
+  /**
+   * 加载"我的"页状态网格未读角标（按状态统计 user_unread=1 的订单）
+   */
+  async loadUnreadBadges(force = false) {
+    const app = getApp()
+    if (!app.globalData.isLoggedIn) {
+      this.setData({
+        statusBadges: { pending: 0, quoted: 0, processing: 0, completed: 0, review: 0 },
+        internalPending: 0
+      })
+      return
+    }
+    // 服务端尚未部署该路由时跳过，避免重复 404
+    if (_endpointAvailable['unread-counts'] === false) return
+    try {
+      const token = wx.getStorageSync('token')
+      const baseUrl = getMpApiBaseUrl()
+      const res = await new Promise((resolve, reject) => {
+        wx.request({
+          url: `${baseUrl}/orders/unread-counts`,
+          method: 'GET',
+          header: { 'Authorization': token ? `Bearer ${token}` : '' },
+          success: resolve,
+          fail: reject
+        })
+      })
+      if (res.statusCode === 200 && res.data && res.data.success) {
+        _endpointAvailable['unread-counts'] = true
+        const d = res.data.data || {}
+        const counts = d.counts || {}
+        this.setData({
+          statusBadges: {
+            pending: counts.pending || 0,
+            quoted: counts.quoted || 0,
+            processing: counts.processing || 0,
+            completed: counts.completed || 0,
+            review: counts.review || 0
+          },
+          internalPending: d.internalPending || 0
+        })
+      } else if (res.statusCode === 404) {
+        // 路由未部署：标记不可用，后续不再重复请求
+        _endpointAvailable['unread-counts'] = false
+      }
+    } catch (err) {
+      console.error('获取未读角标失败:', err)
+    }
+  },
+
+  /**
+   * 将某一状态的用户未读订单标记为已读（点击状态格时调用）
+   */
+  markStatusRead(status) {
+    // 本地立即清零该状态角标，点击后"1"立刻消失，体验更顺滑
+    if (this.data.statusBadges.hasOwnProperty(status)) {
+      this.setData({ [`statusBadges.${status}`]: 0 })
+    }
+    if (status === 'internal_pending') {
+      this.setData({ internalPending: 0 })
+    }
+    const app = getApp()
+    if (!app.globalData.isLoggedIn) return
+    const token = wx.getStorageSync('token')
+    const baseUrl = getMpApiBaseUrl()
+    wx.request({
+      url: `${baseUrl}/orders/read`,
+      method: 'PUT',
+      header: { 'Authorization': token ? `Bearer ${token}` : '', 'Content-Type': 'application/json' },
+      data: { status },
+      success: () => {},
+      fail: () => {}
+    })
+  },
+
+  /**
+   * 将单个订单标记为已读（打开订单详情时调用）
+   */
+  markOrderRead(orderId) {
+    const app = getApp()
+    if (!app.globalData.isLoggedIn || !orderId) return
+    const token = wx.getStorageSync('token')
+    const baseUrl = getMpApiBaseUrl()
+    wx.request({
+      url: `${baseUrl}/orders/${orderId}/read`,
+      method: 'PUT',
+      header: { 'Authorization': token ? `Bearer ${token}` : '' },
+      success: () => {},
+      fail: () => {}
+    })
   },
 
   /**
@@ -213,7 +444,7 @@ Page({
           const profile = await userApi.getUserInfo()
           return {
             userInfo: {
-              avatarUrl: normalizeAvatarUrl(profile.avatar_url),
+              avatarUrl: normalizeAvatarUrl(profile.avatar_url || profile.avatarUrl),
               nickName: profile.nickname || '微信用户'
             },
             isAdmin: profile.role === 'super_admin' || profile.role === 'admin',
@@ -582,6 +813,9 @@ Page({
    */
   goToOrders(e) {
     const status = e.currentTarget.dataset.status || 'all'
+    if (status && status !== 'all') {
+      this.markStatusRead(status)
+    }
     wx.navigateTo({
       url: `/pages/orders/orders?status=${status}`
     })
@@ -605,10 +839,10 @@ Page({
         force,
         fetcher: async () => {
           const token = wx.getStorageSync('token');
-          const baseUrl = getDefaultBaseUrl() || 'http://8.155.24.202:3001';
+          const baseUrl = getMpApiBaseUrl();
           const res = await new Promise((resolve, reject) => {
             wx.request({
-              url: `${baseUrl}/api/orders/quoted-count`,
+              url: `${baseUrl}/orders/quoted-count`,
               method: 'GET',
               header: {
                 'Authorization': token ? `Bearer ${token}` : ''
@@ -621,7 +855,9 @@ Page({
           if (res.statusCode === 200 && res.data && res.data.success) {
             return res.data.count || 0
           }
-          throw new Error('获取报价数量失败')
+          // 后端未部署该路由 / 无数据（如生产仍 404）时，角标保持为空而非抛错刷屏；
+          // 该接口为 best-effort，失败不影响主流程。
+          return 0
         }
       })
       this.syncQuotedCount(count)
@@ -641,6 +877,7 @@ Page({
    * 跳转到待确认报价的订单列表
    */
   goToQuotedOrders() {
+    this.markStatusRead('quoted')
     wx.navigateTo({
       url: '/pages/orders/orders?status=quoted'
     });
@@ -799,6 +1036,7 @@ Page({
       wx.showToast({ title: '请先登录', icon: 'none' })
       return
     }
+    this.markStatusRead('internal_pending')
     wx.navigateTo({
       url: '/pages/repair/repair?internal=1'
     })
@@ -813,6 +1051,7 @@ Page({
       wx.showToast({ title: '请先登录', icon: 'none' })
       return
     }
+    this.markStatusRead('internal_pending')
     wx.navigateTo({
       url: '/pages/repair/repair?internal=1&tab=recycle'
     })
@@ -1095,11 +1334,11 @@ Page({
     try {
       const app = getApp()
       const token = wx.getStorageSync('token')
-      const baseUrl = app.globalData.baseUrl || app.globalData.apiUrl
+      const baseUrl = getMpApiBaseUrl()
 
       const res = await new Promise((resolve, reject) => {
         wx.request({
-          url: `${baseUrl}/api/user/delete-account`,
+          url: `${baseUrl}/user/delete-account`,
           method: 'DELETE',
           header: {
             'Authorization': token ? `Bearer ${token}` : ''
@@ -1143,6 +1382,9 @@ Page({
       });
       return;
     }
+
+    // 打开订单详情即视为已读，清除该订单未读角标
+    this.markOrderRead(orderId);
 
     console.log('查看订单详情:', orderId);
 

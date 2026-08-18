@@ -4,6 +4,7 @@ const {
   getCache,
   fetchWithCache
 } = require('../utils/mineDataCache.js')
+const { getMpApiBaseUrl } = require('../utils/mpApi.js')
 
 Component({
   data: {
@@ -102,10 +103,10 @@ Component({
           requestKey: 'mine:quotedCount',
           ttl: CACHE_TTL.badge,
           fetcher: async () => {
-            const baseUrl = getApp().globalData.baseUrl || getApp().globalData.apiUrl;
+            const baseUrl = getMpApiBaseUrl();
             const res = await new Promise((resolve, reject) => {
               wx.request({
-                url: `${baseUrl}/api/orders/quoted-count`,
+                url: `${baseUrl}/orders/quoted-count`,
                 method: 'GET',
                 header: {
                   'Authorization': token ? `Bearer ${token}` : ''

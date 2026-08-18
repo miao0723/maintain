@@ -136,3 +136,4 @@
     </button>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

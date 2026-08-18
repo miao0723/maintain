@@ -56,6 +56,15 @@ class Database {
           namedPlaceholders: false
         });
 
+        // 捕获连接池级错误，避免未监听的 'error' 事件触发未捕获异常导致进程退出
+        this.pool.on('error', (err) => {
+          console.error('[DB] 连接池错误（已捕获，不崩溃进程）:', err.code || err.message);
+          // 仅对连接断开类错误尝试自动重连；协议/语法错误不重试
+          if (['PROTOCOL_CONNECTION_LOST', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND'].includes(err.code)) {
+            this.scheduleRetry();
+          }
+        });
+
         // 测试连接
         const connection = await this.pool.getConnection();
         await connection.ping();

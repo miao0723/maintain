@@ -15,8 +15,8 @@ page {
   justify-content: space-between;
   align-items: center;
   padding: 32rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.3);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
+  box-shadow: 0 4rpx 16rpx rgba(67, 111, 149, 0.3);
 }
 
 .header-left {
@@ -56,7 +56,7 @@ page {
   justify-content: center;
   font-size: 28rpx;
   font-weight: 600;
-  color: #667eea;
+  color: #436f95;
   background: #fff;
   padding: 12rpx 24rpx;
   border-radius: 32rpx;
@@ -74,9 +74,9 @@ page {
   gap: 16rpx;
   margin: 20rpx 24rpx 0;
   padding: 24rpx 28rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
   border-radius: 20rpx;
-  box-shadow: 0 6rpx 20rpx rgba(102, 126, 234, 0.35);
+  box-shadow: 0 6rpx 20rpx rgba(67, 111, 149, 0.35);
 }
 
 .quick-create-bar:active {
@@ -140,7 +140,7 @@ page {
 
 .search-btn {
   padding: 16rpx 32rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
   color: #fff;
   font-size: 28rpx;
   font-weight: 500;
@@ -195,7 +195,7 @@ page {
 }
 
 .stat-amount.pending {
-  color: #6366f1;
+  color: #436f95;
 }
 
 .stat-sub {
@@ -264,6 +264,7 @@ page {
 }
 
 .tab-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8rpx;
@@ -275,7 +276,7 @@ page {
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
   color: #fff;
 }
 
@@ -291,6 +292,27 @@ page {
   border-radius: 32rpx;
   min-width: 32rpx;
   text-align: center;
+}
+
+/* 未读角标：该状态有新订单 / 状态更新时的红点提示，点击 tab / 打开订单后清零 */
+.tab-unread {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  padding: 0 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e23b3b;
+  color: #ffffff;
+  font-size: 20rpx;
+  font-weight: 700;
+  border-radius: 16rpx;
+  border: 2rpx solid #ffffff;
+  box-shadow: 0 3rpx 8rpx rgba(226, 59, 59, 0.35);
+  z-index: 12;
 }
 
 /* 订单列表 */
@@ -479,7 +501,7 @@ page {
 .progress-value {
   font-size: 24rpx;
   font-weight: 600;
-  color: #667eea;
+  color: #436f95;
 }
 
 .progress-bar {
@@ -492,7 +514,7 @@ page {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #436f95 0%, #6a9abb 100%);
   border-radius: 12rpx;
   transition: width 0.3s ease;
 }
@@ -529,7 +551,7 @@ page {
 }
 
 .action-btn.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
   color: #fff;
 }
 
@@ -795,7 +817,7 @@ page {
 
 .progress-fill-large {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #436f95 0%, #6a9abb 100%);
   border-radius: 16rpx;
   transition: width 0.3s ease;
 }
@@ -803,7 +825,7 @@ page {
 .progress-text-large {
   font-size: 28rpx;
   font-weight: 600;
-  color: #667eea;
+  color: #436f95;
 }
 
 /* 底部操作 */
@@ -833,7 +855,7 @@ page {
 }
 
 .modal-btn.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
   color: #fff;
 }
 
@@ -850,7 +872,7 @@ page {
   align-items: center;
   gap: 6rpx;
   padding: 6rpx 12rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
   color: #fff;
   border-radius: 16rpx;
   font-size: 22rpx;
@@ -1264,7 +1286,7 @@ page {
 
 .progress-fill-detail {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #436f95 0%, #6a9abb 100%);
   border-radius: 24rpx;
   transition: width 0.3s ease;
   position: relative;
@@ -1340,7 +1362,7 @@ page {
 }
 
 .form-input:focus {
-  border-color: #667eea;
+  border-color: #436f95;
   outline: none;
 }
 
@@ -1356,7 +1378,7 @@ page {
 }
 
 .form-textarea:focus {
-  border-color: #667eea;
+  border-color: #436f95;
   outline: none;
 }
 
@@ -1381,8 +1403,8 @@ page {
 }
 
 .priority-option.active {
-  border-color: #667eea;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #436f95;
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
 }
 
 .priority-option.active .priority-label {
@@ -1451,7 +1473,7 @@ page {
 .progress-percent {
   font-size: 32rpx;
   font-weight: 600;
-  color: #667eea;
+  color: #436f95;
   min-width: 80rpx;
   text-align: right;
 }
@@ -1485,13 +1507,13 @@ page {
 }
 
 .step.active .step-dot {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 0 12rpx rgba(102, 126, 234, 0.5);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
+  box-shadow: 0 0 12rpx rgba(67, 111, 149, 0.5);
 }
 
 .step-text {
   font-size: 22rpx;
-  color: #6366f1;
+  color: #436f95;
 }
 
 /* 退款按钮 */
@@ -1571,7 +1593,7 @@ page {
 }
 
 .refund-reason-item.active {
-  border-color: #667eea;
+  border-color: #436f95;
   background: #f5f3ff;
 }
 
@@ -1587,14 +1609,14 @@ page {
 }
 
 .refund-reason-item.active .reason-radio {
-  border-color: #667eea;
+  border-color: #436f95;
 }
 
 .reason-radio-checked {
   width: 22rpx;
   height: 22rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
 }
 
 .reason-text {
@@ -2150,6 +2172,6 @@ page {
 
 .detail-image-tip .tip-text {
   font-size: 24rpx;
-  color: #667eea;
+  color: #436f95;
   font-weight: 500;
 }

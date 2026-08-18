@@ -176,7 +176,7 @@
 
         <block wx:elif="{{item.status === 'quoted'}}">
           <view class="action-btn info" catchtap="viewOrderDetail" data-id="{{item.id}}">查看详情</view>
-          <view class="action-btn" style="background: #8b5cf6; color: #fff;">等待用户确认</view>
+          <view class="action-btn" style="background: #436f95; color: #fff;">等待用户确认</view>
         </block>
 
         <block wx:elif="{{item.quote_status === 'rejected'}}">
@@ -678,3 +678,4 @@
     </view>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

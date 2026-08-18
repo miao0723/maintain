@@ -1,0 +1,47 @@
+<!--pages/admin-prices/admin-prices.wxml-->
+<view class="page-container">
+  <view class="page-head">
+    <view class="head-title">价格管理</view>
+    <view class="add-btn" bindtap="openAdd">+ 新增</view>
+  </view>
+
+  <scroll-view class="price-list" scroll-y wx:if="{{list.length>0}}">
+    <view class="price-item" wx:for="{{list}}" wx:key="id">
+      <view class="price-top">
+        <text class="price-type">{{item.device_type}} · {{item.fault_category}}</text>
+        <text class="price-value">{{item.priceText}}</text>
+      </view>
+      <view class="price-sub" wx:if="{{item.device_model}}">型号：{{item.device_model}}</view>
+      <view class="price-sub" wx:if="{{item.description}}">{{item.description}}</view>
+      <view class="price-foot">
+        <text class="price-time">{{item.updatedAt}}</text>
+        <view class="price-actions">
+          <view class="mini-btn" data-item="{{item}}" bindtap="openEdit">编辑</view>
+          <view class="mini-btn danger" data-id="{{item.id}}" data-name="{{item.device_type}}" bindtap="deletePrice">删除</view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="empty-state" wx:if="{{list.length===0 && !loading}}">
+    <view class="empty-icon">💰</view>
+    <text class="empty-text">暂无价格记录</text>
+  </view>
+
+  <!-- 新增/编辑弹窗 -->
+  <view class="modal-mask" wx:if="{{showModal}}" bindtap="closeModal">
+    <view class="modal" catchtap="noop">
+      <view class="modal-title">{{editingId ? '编辑价格' : '新增价格'}}</view>
+      <view class="form-row"><text class="form-label">设备类型</text><input class="form-input" value="{{form.device_type}}" data-field="device_type" bindinput="onFieldInput" placeholder="如 手机" /></view>
+      <view class="form-row"><text class="form-label">故障类别</text><input class="form-input" value="{{form.fault_category}}" data-field="fault_category" bindinput="onFieldInput" placeholder="如 屏幕" /></view>
+      <view class="form-row"><text class="form-label">设备型号</text><input class="form-input" value="{{form.device_model}}" data-field="device_model" bindinput="onFieldInput" placeholder="选填" /></view>
+      <view class="form-row"><text class="form-label">参考价格</text><input class="form-input" type="digit" value="{{form.price}}" data-field="price" bindinput="onFieldInput" placeholder="0" /></view>
+      <view class="form-row"><text class="form-label">说明</text><input class="form-input" value="{{form.description}}" data-field="description" bindinput="onFieldInput" placeholder="选填" /></view>
+      <view class="modal-actions">
+        <view class="modal-btn cancel" bindtap="closeModal">取消</view>
+        <view class="modal-btn confirm" bindtap="save">保存</view>
+      </view>
+    </view>
+  </view>
+</view>
+<confirm-modal id="confirmModal" />

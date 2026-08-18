@@ -1,0 +1,53 @@
+<!--pages/admin-settings/admin-settings.wxml-->
+<view class="page-container">
+  <view class="page-head">
+    <view class="head-title">系统设置</view>
+  </view>
+
+  <!-- 账户 -->
+  <view class="card account">
+    <image class="avatar" src="{{account.avatar}}" mode="aspectFill" />
+    <view class="account-info">
+      <text class="account-name">{{account.nickname}}</text>
+      <text class="account-role">{{account.role === 'super_admin' ? '超级管理员' : (account.role === 'admin' ? '管理员' : '用户')}}</text>
+    </view>
+  </view>
+
+  <!-- 通知与偏好 -->
+  <view class="card">
+    <view class="card-title">通知与偏好</view>
+    <view class="switch-row">
+      <view class="switch-label">报价通知</view>
+      <switch checked="{{settings.quoteNotify}}" color="#4f6b84" data-key="quoteNotify" bindtap="onToggle" />
+    </view>
+    <view class="switch-row">
+      <view class="switch-label">进度通知</view>
+      <switch checked="{{settings.progressNotify}}" color="#4f6b84" data-key="progressNotify" bindtap="onToggle" />
+    </view>
+    <view class="switch-row">
+      <view class="switch-label">调试模式</view>
+      <switch checked="{{settings.devMode}}" color="#4f6b84" data-key="devMode" bindtap="onToggle" />
+    </view>
+  </view>
+
+  <!-- 服务信息 -->
+  <view class="card">
+    <view class="card-title">服务信息</view>
+    <view class="info-row" bindtap="copyBaseUrl">
+      <text class="info-label">接口地址</text>
+      <text class="info-value">{{baseUrl}}</text>
+    </view>
+    <view class="info-tip">点击可复制接口地址</view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">数据</view>
+    <view class="action-row" bindtap="clearCache">
+      <text class="action-label">清除本地缓存</text>
+      <text class="action-arrow">›</text>
+    </view>
+  </view>
+
+  <view class="foot-note">设置仅保存在本机，用于个性化体验，不影响服务器数据。</view>
+</view>
+<confirm-modal id="confirmModal" />

@@ -254,8 +254,9 @@ function sanitizeAvatarUrl(avatarUrl) {
         }
 
         const fileName = path.basename(avatarPath);
-        const absolutePath = path.join(uploadDir, fileName);
-        return fs.existsSync(absolutePath);
+        // 仅校验文件名格式合法（防止目录穿越），不再强制要求本机磁盘存在：
+        // 反代 / CDN / 集群部署下文件可能落在其它节点，existsSync 误判会把合法头像地址清空。
+        return /^[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp|gif)$/i.test(fileName);
       } catch (e) {
         return false;
       }
@@ -502,13 +503,15 @@ router.put('/info', authenticateToken, async (req, res) => {
       [req.user.userId]
     );
 
+    const updatedRow = updatedUser[0] || {};
     res.json({
-      ...updatedUser[0],
-      avatar_url: sanitizeAvatarUrl(updatedUser[0].avatar_url)
+      ...updatedRow,
+      avatar_url: sanitizeAvatarUrl(updatedRow.avatar_url)
     });
   } catch (error) {
     console.error('更新用户信息错误:', error);
-    res.status(500).json({ error: 'Failed to update user info' });
+    const detail = process.env.NODE_ENV === 'production' ? undefined : (error.sqlMessage || error.message);
+    res.status(500).json({ error: 'Failed to update user info', detail });
   }
 });
 

@@ -8,7 +8,8 @@ const ROLES = {
   USER: 'user',
   ADMIN: 'admin',
   SUPER_ADMIN: 'super_admin',
-  INTERNAL: 'internal' // 公司内部人员（发起维修/回收订单免付款，仅需申请）
+  INTERNAL: 'internal', // 公司内部人员（发起维修/回收订单免付款，仅需申请）
+  REPAIR: 'repair'     // 维修人员（负责处理维修/回收工单）
 };
 
 /**

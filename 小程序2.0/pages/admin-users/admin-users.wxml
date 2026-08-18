@@ -1,0 +1,50 @@
+<!--pages/admin-users/admin-users.wxml-->
+<view class="page-container">
+  <view class="page-head">
+    <view class="head-title">用户管理</view>
+    <view class="head-count">共 {{total}} 人</view>
+  </view>
+
+  <!-- 搜索 + 筛选 -->
+  <view class="toolbar">
+    <view class="search-box">
+      <input class="search-input" placeholder="搜索昵称/手机/姓名" value="{{keyword}}" bindinput="onSearchInput" confirm-type="search" bindconfirm="onSearch" />
+      <view class="search-btn" bindtap="onSearch">搜索</view>
+    </view>
+    <scroll-view class="filter-row" scroll-x>
+      <view class="filter-chip {{roleFilter==='all'?'active':''}}" data-role="all" bindtap="onRoleFilter">全部</view>
+      <view class="filter-chip {{roleFilter==='user'?'active':''}}" data-role="user" bindtap="onRoleFilter">普通</view>
+      <view class="filter-chip {{roleFilter==='admin'?'active':''}}" data-role="admin" bindtap="onRoleFilter">管理员</view>
+      <view class="filter-chip {{roleFilter==='super_admin'?'active':''}}" data-role="super_admin" bindtap="onRoleFilter">超管</view>
+    </scroll-view>
+  </view>
+
+  <!-- 用户列表 -->
+  <scroll-view class="user-list" scroll-y wx:if="{{users.length>0}}">
+    <view class="user-item" wx:for="{{users}}" wx:key="id">
+      <image class="user-avatar" src="{{item.avatar}}" mode="aspectFill" binderror="onAvatarError" data-index="{{index}}" />
+      <view class="user-main">
+        <view class="user-top">
+          <text class="user-name">{{item.nickname || item.real_name || '微信用户'}}</text>
+          <text class="role-badge role-{{item.role}}">{{item.roleLabel}}</text>
+        </view>
+        <view class="user-sub">
+          <text wx:if="{{item.phone}}">📞 {{item.phone}}</text>
+          <text class="status {{item.statusClass}}">{{item.statusLabel}}</text>
+          <text class="time">{{item.createdAt}}</text>
+        </view>
+      </view>
+      <view class="user-actions">
+        <view class="mini-btn" data-id="{{item.id}}" data-role="{{item.role}}" bindtap="changeRole">改角色</view>
+        <view class="mini-btn {{item.status===0?'warn':''}}" data-id="{{item.id}}" data-status="{{item.status}}" bindtap="toggleStatus">{{item.status===0?'启用':'禁用'}}</view>
+        <view class="mini-btn danger" data-id="{{item.id}}" data-name="{{item.nickname}}" bindtap="deleteUser">删除</view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="empty-state" wx:if="{{users.length===0 && !loading}}">
+    <view class="empty-icon">👥</view>
+    <text class="empty-text">暂无用户</text>
+  </view>
+</view>
+<confirm-modal id="confirmModal" />

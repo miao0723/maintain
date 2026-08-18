@@ -1,0 +1,46 @@
+<!--pages/admin-devices/admin-devices.wxml-->
+<view class="page-container">
+  <view class="page-head">
+    <view class="head-title">设备管理</view>
+    <view class="add-btn" bindtap="openAdd">+ 新增</view>
+  </view>
+
+  <scroll-view class="dev-list" scroll-y wx:if="{{list.length>0}}">
+    <view class="dev-item" wx:for="{{list}}" wx:key="id">
+      <text class="dev-icon">{{item.icon}}</text>
+      <view class="dev-main">
+        <text class="dev-name">{{item.name}}</text>
+        <text class="dev-time">ID {{item.id}} · {{item.createdAt}}</text>
+      </view>
+      <view class="dev-actions">
+        <view class="mini-btn" data-item="{{item}}" bindtap="openEdit">编辑</view>
+        <view class="mini-btn danger" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="deleteDevice">删除</view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="empty-state" wx:if="{{list.length===0 && !loading}}">
+    <view class="empty-icon">📱</view>
+    <text class="empty-text">暂无设备类型</text>
+  </view>
+
+  <!-- 新增/编辑弹窗 -->
+  <view class="modal-mask" wx:if="{{showModal}}" bindtap="closeModal">
+    <view class="modal" catchtap="noop">
+      <view class="modal-title">{{editingId ? '编辑设备类型' : '新增设备类型'}}</view>
+      <view class="form-row">
+        <text class="form-label">图标</text>
+        <input class="form-input" value="{{formIcon}}" bindinput="onIconInput" placeholder="emoji" maxlength="4" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">名称</text>
+        <input class="form-input" value="{{formName}}" bindinput="onNameInput" placeholder="如 手机 / 电脑" />
+      </view>
+      <view class="modal-actions">
+        <view class="modal-btn cancel" bindtap="closeModal">取消</view>
+        <view class="modal-btn confirm" bindtap="save">保存</view>
+      </view>
+    </view>
+  </view>
+</view>
+<confirm-modal id="confirmModal" />

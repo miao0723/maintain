@@ -456,6 +456,10 @@
             <text class="price-value waiting-price" wx:if="{{isWaitingPrice}}">等待报价</text>
             <text class="price-value" wx:else>¥{{formattedEstimatedPrice}}</text>
           </view>
+          <view class="price-range" wx:if="{{!isWaitingPrice && priceRange.max > 0}}">
+            <text class="price-range-text">参考区间 ¥{{priceRange.min}} ~ ¥{{priceRange.max}}</text>
+            <text class="price-range-note">（最终以维修管理员报价为准）</text>
+          </view>
           <view class="price-badge" wx:if="{{isWaitingPrice}}">
             <text class="badge-icon">⏰</text>
             <text class="badge-text">存在自定义项，管理员会人工确认价格</text>
@@ -773,6 +777,9 @@
         <text class="price-symbol">¥</text>
         <text class="price-amount">{{recyclablePrice}}</text>
       </view>
+      <view class="price-range" wx:if="{{recyclePriceRange.max > 0}}">
+        <text class="price-range-text">参考区间 ¥{{recyclePriceRange.min}} ~ ¥{{recyclePriceRange.max}}</text>
+      </view>
       <text class="price-note">最终价格以检测后实际报价为准</text>
     </view>
 
@@ -904,3 +911,4 @@
     </view>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

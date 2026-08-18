@@ -3,7 +3,7 @@
   <view class="header">
     <text class="page-title" wx:if="{{mode === 'create'}}">新建进度申请</text>
     <text class="page-title" wx:if="{{mode === 'view'}}">申请详情</text>
-    <text class="page-desc" wx:if="{{mode === 'create'}}">选择订单后提交进度查询</text>
+    <text class="page-desc" wx:if="{{mode === 'create'}}">关联维修中的订单，发起进度查询</text>
     <text class="page-desc" wx:if="{{mode === 'view'}}">申请编号: {{applyDetail.apply_no}}</text>
   </view>
 
@@ -30,7 +30,25 @@
       </view>
     </view>
 
-    <!-- 已选订单卡片 (仅创建模式有选中时显示) -->
+    <!-- 步骤引导（仅创建模式） -->
+    <view wx:if="{{mode === 'create'}}" class="guide">
+      <view class="guide-step {{!selectedOrder ? 'active' : 'done'}}">
+        <view class="guide-dot">1</view>
+        <text class="guide-text">选订单</text>
+      </view>
+      <view class="guide-line {{selectedOrder ? 'filled' : ''}}"></view>
+      <view class="guide-step {{selectedOrder ? 'active' : ''}}">
+        <view class="guide-dot">2</view>
+        <text class="guide-text">填申请</text>
+      </view>
+      <view class="guide-line"></view>
+      <view class="guide-step">
+        <view class="guide-dot">3</view>
+        <text class="guide-text">提交</text>
+      </view>
+    </view>
+
+    <!-- 已选订单卡片 (仅创建模式) -->
     <view wx:if="{{mode === 'create' && selectedOrder}}" class="order-card" bindtap="selectOrder">
       <view class="order-card-icon">📦</view>
       <view class="order-card-body">
@@ -39,6 +57,7 @@
           <text class="order-card-status processing">维修中</text>
         </view>
         <text class="order-card-device">{{selectedOrder.deviceTypeName || selectedOrder.device_name || selectedOrder.device_model || '未知设备'}}</text>
+        <text class="order-card-model" wx:if="{{formData.device_model}}">型号：{{formData.device_model}}</text>
         <text class="order-card-time">创建时间: {{selectedOrder.createdAt || selectedOrder.created_at || ''}}</text>
       </view>
       <text class="order-card-arrow" wx:if="{{!editDisabled}}">›</text>
@@ -58,33 +77,39 @@
       </view>
     </view>
 
-    <!-- 基础信息 -->
+    <!-- 查看模式：设备信息卡 (订单与设备均来自系统，无需手填) -->
+    <view wx:if="{{mode === 'view'}}" class="order-card view-only">
+      <view class="order-card-icon">📦</view>
+      <view class="order-card-body">
+        <text class="order-card-device">{{formData.device_name || '未知设备'}}</text>
+        <text class="order-card-model" wx:if="{{formData.device_model}}">型号：{{formData.device_model}}</text>
+        <text class="order-card-time">关联订单 #{{formData.order_id}}</text>
+      </view>
+    </view>
+
+    <!-- 联系信息 (姓名/电话来自登录资料，自动获取只读展示) -->
     <view class="form-section">
       <view class="section-header">
         <text class="section-title">联系信息</text>
+        <text class="section-tip" wx:if="{{autoName || autoPhone}}">已自动获取</text>
       </view>
 
-      <view class="compact-grid">
-        <view class="form-group compact-col">
-          <text class="form-label">您的姓名 <text class="required">*</text></text>
-          <input class="form-input" data-field="customer_name" value="{{formData.customer_name}}" placeholder="请输入姓名" disabled="{{editDisabled}}" bindinput="onInput"/>
+      <view class="form-group">
+        <text class="form-label">申请人</text>
+        <view wx:if="{{autoName || editDisabled}}" class="auto-field">
+          <text class="auto-field-value">{{formData.customer_name || '—'}}</text>
+          <text wx:if="{{autoName}}" class="auto-pill">✓ 自动获取</text>
         </view>
-        <view class="form-group compact-col">
-          <text class="form-label">联系电话 <text class="required">*</text></text>
-          <input class="form-input" data-field="phone" type="number" value="{{formData.phone}}" placeholder="请输入电话" maxlength="11" disabled="{{editDisabled}}" bindinput="onInput"/>
-        </view>
+        <input wx:else class="form-input" data-field="customer_name" value="{{formData.customer_name}}" placeholder="请输入姓名" bindinput="onInput"/>
       </view>
 
-      <!-- 设备信息 (折叠式辅助字段) -->
-      <view class="compact-grid">
-        <view class="form-group compact-col">
-          <text class="form-label">设备名称</text>
-          <input class="form-input" data-field="device_name" value="{{formData.device_name}}" placeholder="自动填写" disabled="{{editDisabled}}" bindinput="onInput"/>
+      <view class="form-group">
+        <text class="form-label">联系电话</text>
+        <view wx:if="{{autoPhone || editDisabled}}" class="auto-field">
+          <text class="auto-field-value">{{formData.phone || '—'}}</text>
+          <text wx:if="{{autoPhone}}" class="auto-pill">✓ 自动获取</text>
         </view>
-        <view class="form-group compact-col">
-          <text class="form-label">设备型号</text>
-          <input class="form-input" data-field="device_model" value="{{formData.device_model}}" placeholder="自动填写" disabled="{{editDisabled}}" bindinput="onInput"/>
-        </view>
+        <input wx:else class="form-input" data-field="phone" type="number" value="{{formData.phone}}" placeholder="请输入电话" maxlength="11" bindinput="onInput"/>
       </view>
     </view>
 
@@ -101,6 +126,7 @@
           <text class="type-display-icon">{{selectedType.icon}}</text>
           <text class="type-display-label">{{selectedType.label}}</text>
         </view>
+        <view wx:elif="{{editDisabled}}" class="readonly-text">{{formData.progress_type || '—'}}</view>
         <view wx:else class="type-grid">
           <view class="type-item {{formData.progress_type === item.value ? 'active' : ''}}" wx:for="{{progressTypes}}" wx:key="value" data-value="{{item.value}}" bindtap="onTypeSelect">
             <text class="type-item-icon">{{item.icon}}</text>
@@ -112,20 +138,22 @@
       <!-- 申请原因 -->
       <view class="form-group">
         <text class="form-label">申请原因 <text class="required">*</text></text>
-        <textarea class="form-textarea" data-field="apply_reason" value="{{formData.apply_reason}}" placeholder="例如：配件是否到货、预计何时完成" maxlength="500" disabled="{{editDisabled}}" bindinput="onInput"/>
-        <text class="char-count">{{formData.apply_reason.length || 0}}/500</text>
+        <textarea wx:if="{{!editDisabled}}" class="form-textarea" data-field="apply_reason" value="{{formData.apply_reason}}" placeholder="例如：配件是否到货、预计何时完成" maxlength="500" bindinput="onInput"/>
+        <view wx:else class="readonly-text">{{formData.apply_reason || '—'}}</view>
+        <text wx:if="{{!editDisabled}}" class="char-count">{{formData.apply_reason.length || 0}}/500</text>
       </view>
 
       <!-- 期望时间 -->
       <view class="form-group">
         <text class="form-label">期望反馈时间</text>
-        <picker mode="date" data-field="expected_time" value="{{formData.expected_time}}" disabled="{{editDisabled}}" bindchange="onInput">
+        <picker wx:if="{{!editDisabled}}" mode="date" data-field="expected_time" value="{{formData.expected_time}}" bindchange="onInput">
           <view class="date-picker {{formData.expected_time ? 'filled' : ''}}">
             <text wx:if="{{formData.expected_time}}" class="picker-value">{{formData.expected_time}}</text>
             <text wx:else class="picker-placeholder">请选择期望的反馈时间（选填）</text>
             <text class="picker-arrow">›</text>
           </view>
         </picker>
+        <view wx:else class="readonly-text">{{formData.expected_time || '未填写'}}</view>
       </view>
     </view>
 
@@ -174,3 +202,4 @@
     </view>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

@@ -411,7 +411,7 @@ Page({
   getStatusColor(status) {
     const colors = {
       'pending': '#ff9800',
-      'quoted': '#8b5cf6',
+      'quoted': '#436f95',
       'confirmed': '#06b6d4',
       'processing': '#2196f3',
       'completed': '#4caf50',
@@ -457,7 +457,8 @@ Page({
   request(url, data, method = 'GET', token = '') {
     return new Promise((resolve, reject) => {
       wx.request({
-        url: (app.globalData.baseUrl || app.globalData.apiUrl) + url,
+        // 网关 /mp-api 已映射到后端 /api；路径不再重复写 /api，否则会变成 /mp-api/api/... 而 404
+        url: (app.globalData.baseUrl || app.globalData.apiUrl) + (url.startsWith('/api/') ? url.slice(4) : url),
         method: method,
         data: data,
         header: {

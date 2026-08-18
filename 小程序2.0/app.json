@@ -1,34 +1,12 @@
 {
+  "usingComponents": {
+    "confirm-modal": "/components/confirm-modal/confirm-modal"
+  },
   "pages": [
     "pages/home/home",
     "pages/repair/repair",
     "pages/service/service",
-    "pages/mine/mine",
-    "pages/login/login",
-    "pages/welcome/welcome",
-    "pages/admin/admin",
-    "pages/adminservice/adminservice",
-    "pages/adminservice-chat/adminservice-chat",
-    "pages/admin-login/admin-login",
-    "pages/admin-orders/admin-orders",
-    "pages/admin-orders/order-assign",
-    "pages/my-orders/my-orders",
-    "pages/order-detail/order-detail",
-    "pages/order-list/order-list",
-    "pages/super-admin/super-admin",
-    "pages/repair-records/repair-records",
-    "pages/delivery-assign/delivery-assign",
-    "pages/progress-feedback/progress-feedback",
-    "pages/progress-detail/progress-detail",
-    "pages/progress-apply-list/progress-apply-list",
-    "pages/progress-apply-create/progress-apply-create",
-    "pages/admin-progress-apply/admin-progress-apply",
-    "pages/video-player/video-player",
-    "pages/diagnose/diagnose",
-    "pages/recycle/recycle",
-    "pages/recycle-guide/recycle-guide",
-    "pages/scan/scan",
-    "pages/device-detail/device-detail"
+    "pages/mine/mine"
   ],
   "subPackages": [
     {
@@ -73,7 +51,6 @@
         "address-edit"
       ]
     },
-
     {
       "root": "pages/order-review",
       "name": "order-review",
@@ -86,6 +63,20 @@
       "name": "review",
       "pages": [
         "review"
+      ]
+    },
+    {
+      "root": "pages/recycle",
+      "name": "recycle",
+      "pages": [
+        "recycle"
+      ]
+    },
+    {
+      "root": "pages/recycle-guide",
+      "name": "recycle-guide",
+      "pages": [
+        "recycle-guide"
       ]
     },
     {
@@ -108,9 +99,206 @@
       "pages": [
         "device-edit"
       ]
+    },
+    {
+      "root": "pages/login",
+      "name": "login",
+      "pages": [
+        "login"
+      ]
+    },
+    {
+      "root": "pages/welcome",
+      "name": "welcome",
+      "pages": [
+        "welcome"
+      ]
+    },
+    {
+      "root": "pages/admin",
+      "name": "admin",
+      "pages": [
+        "admin"
+      ]
+    },
+    {
+      "root": "pages/adminservice",
+      "name": "adminservice",
+      "pages": [
+        "adminservice"
+      ]
+    },
+    {
+      "root": "pages/adminservice-chat",
+      "name": "adminservice-chat",
+      "pages": [
+        "adminservice-chat"
+      ]
+    },
+    {
+      "root": "pages/admin-login",
+      "name": "admin-login",
+      "pages": [
+        "admin-login"
+      ]
+    },
+    {
+      "root": "pages/admin-users",
+      "name": "admin-users",
+      "pages": ["admin-users"]
+    },
+    {
+      "root": "pages/admin-devices",
+      "name": "admin-devices",
+      "pages": ["admin-devices"]
+    },
+    {
+      "root": "pages/admin-prices",
+      "name": "admin-prices",
+      "pages": ["admin-prices"]
+    },
+    {
+      "root": "pages/admin-stats",
+      "name": "admin-stats",
+      "pages": ["admin-stats"]
+    },
+    {
+      "root": "pages/admin-settings",
+      "name": "admin-settings",
+      "pages": ["admin-settings"]
+    },
+    {
+      "root": "pages/admin-orders",
+      "name": "admin-orders",
+      "pages": [
+        "admin-orders",
+        "order-assign"
+      ]
+    },
+    {
+      "root": "pages/my-orders",
+      "name": "my-orders",
+      "pages": [
+        "my-orders"
+      ]
+    },
+    {
+      "root": "pages/order-detail",
+      "name": "order-detail",
+      "pages": [
+        "order-detail"
+      ]
+    },
+    {
+      "root": "pages/order-list",
+      "name": "order-list",
+      "pages": [
+        "order-list"
+      ]
+    },
+    {
+      "root": "pages/super-admin",
+      "name": "super-admin",
+      "pages": [
+        "super-admin"
+      ]
+    },
+    {
+      "root": "pages/repair-records",
+      "name": "repair-records",
+      "pages": [
+        "repair-records"
+      ]
+    },
+    {
+      "root": "pages/delivery-assign",
+      "name": "delivery-assign",
+      "pages": [
+        "delivery-assign"
+      ]
+    },
+    {
+      "root": "pages/progress-feedback",
+      "name": "progress-feedback",
+      "pages": [
+        "progress-feedback"
+      ]
+    },
+    {
+      "root": "pages/progress-detail",
+      "name": "progress-detail",
+      "pages": [
+        "progress-detail"
+      ]
+    },
+    {
+      "root": "pages/progress-apply-list",
+      "name": "progress-apply-list",
+      "pages": [
+        "progress-apply-list"
+      ]
+    },
+    {
+      "root": "pages/progress-apply-create",
+      "name": "progress-apply-create",
+      "pages": [
+        "progress-apply-create"
+      ]
+    },
+    {
+      "root": "pages/admin-progress-apply",
+      "name": "admin-progress-apply",
+      "pages": [
+        "admin-progress-apply"
+      ]
+    },
+    {
+      "root": "pages/video-player",
+      "name": "video-player",
+      "pages": [
+        "video-player"
+      ]
+    },
+    {
+      "root": "pages/diagnose",
+      "name": "diagnose",
+      "pages": [
+        "diagnose"
+      ]
+    },
+    {
+      "root": "pages/scan",
+      "name": "scan",
+      "pages": [
+        "scan"
+      ]
+    },
+    {
+      "root": "pages/device-detail",
+      "name": "device-detail",
+      "pages": [
+        "device-detail"
+      ]
     }
   ],
-  "preloadRule": {},
+  "preloadRule": {
+    "pages/home/home": {
+      "network": "all",
+      "packages": ["recycle", "recycle-guide", "diagnose", "scan", "map-picker"]
+    },
+    "pages/repair/repair": {
+      "network": "all",
+      "packages": ["repair-records", "device-detail", "my-devices", "device-edit", "recycle"]
+    },
+    "pages/service/service": {
+      "network": "all",
+      "packages": ["adminservice", "my-orders", "my-devices", "recycle"]
+    },
+    "pages/mine/mine": {
+      "network": "all",
+      "packages": ["profile-edit", "my-orders", "order-detail", "address", "address-edit", "units", "unit-edit", "my-devices", "device-edit", "progress-apply-list"]
+    }
+  },
   "window": {
     "navigationBarTextStyle": "white",
     "navigationBarTitleText": "电子维修",

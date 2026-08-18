@@ -47,7 +47,7 @@ const SERVICE_TYPE_MAP = {
 // 状态颜色映射
 const STATUS_COLOR_MAP = {
   'pending': '#f39c12',
-  'quoted': '#8b5cf6',
+  'quoted': '#436f95',
   'confirmed': '#06b6d4',
   'processing': '#3498db',
   'completed': '#27ae60',
@@ -240,6 +240,14 @@ Page({
     userKeyword: '',
     showUserList: false,
 
+    // 用户编辑/新增表单
+    showUserForm: false,
+    userFormMode: 'add', // add | edit
+    userFormId: null,
+    userForm: { nickname: '', real_name: '', phone: '', email: '', role: 'user', status: 1 },
+    userFormOriginal: { role: 'user', status: 1 },
+    savingUser: false,
+
     // 工单列表弹窗
     showOrderList: false,
     orderListFilter: 'all',
@@ -272,6 +280,8 @@ Page({
     confirmTitle: '',
     confirmContent: '',
     confirmAction: null,
+    confirmType: 'info',      // info | danger | success，控制图标与强调色
+    confirmOkText: '确定',
 
     // 价格编辑器
     showPriceEditor: false,
@@ -554,9 +564,11 @@ Page({
   request(options) {
     return new Promise((resolve, reject) => {
       const baseUrl = this.getApiBaseUrl();
-      console.log('[super-admin] request url:', baseUrl + options.url);
+      // 网关 /mp-api 已映射到后端 /api；路径不再重复写 /api，否则会变成 /mp-api/api/... 而 404
+      const apiPath = options.url && options.url.startsWith('/api/') ? options.url.slice(4) : options.url;
+      console.log('[super-admin] request url:', baseUrl + apiPath);
       wx.request({
-        url: `${baseUrl}${options.url}`,
+        url: `${baseUrl}${apiPath}`,
         method: options.method || 'GET',
         data: options.data || {},
         header: {
@@ -1066,18 +1078,18 @@ Page({
     }
 
     const statusMap = {
-      'pending': '待处理',
-      'processing': '处理中',
-      'completed': '已完成',
-      'cancelled': '已取消',
-      'review': '待评价'
+      ...STATUS_MAP,
+      'internal_pending': '内部申请待确认',
+      'admin_created': '待填写地址'
     };
 
     const confirmMessages = {
       'processing': '确定要将此工单状态改为"处理中"吗？开始处理后会分配给当前管理员。',
       'completed': '确定要完成此工单吗？完成后需要填写实际价格。',
       'cancelled': '确定要取消此工单吗？此操作不可撤销。',
-      'review': '确定要将工单状态改为"待评价"吗？'
+      'review': '确定要将工单状态改为"待评价"吗？',
+      'quoted': '确定要提交报价吗？提交后订单将进入"待确认报价"，等待用户确认。',
+      'confirmed': '确定要将工单状态改为"已确认报价"吗？'
     };
 
     // 如果是完成状态,先检查是否有实际价格
@@ -1148,7 +1160,8 @@ Page({
           console.error('状态修改失败:', err);
           wx.showToast({ title: '状态修改失败', icon: 'none' });
         }
-      }
+      },
+      { type: status === 'cancelled' ? 'danger' : 'info' }
     );
   },
 
@@ -1339,20 +1352,21 @@ Page({
       return;
     }
 
-    wx.showModal({
-      title: '确认提交报价',
-      content: `报价金额：¥${quoteFormData.price}`,
-      success: async (res) => {
-        if (!res.confirm) return;
+    const price = parseFloat(quoteFormData.price);
+    const priceText = price.toFixed(2);
 
+    this.showConfirmDialog(
+      '确认提交报价',
+      `报价金额 ¥${priceText}，提交后订单将进入「待确认报价」状态，等待用户确认。`,
+      async () => {
         wx.showLoading({ title: '提交中...', mask: true });
 
         try {
-          const res = await this.request({
+          await this.request({
             url: `/api/admin/orders/${quoteOrderData.id}/quote`,
             method: 'PUT',
             data: {
-              quote_price: parseFloat(quoteFormData.price),
+              quote_price: price,
               quote_description: quoteFormData.description
             }
           });
@@ -1371,8 +1385,9 @@ Page({
           console.error('提交报价失败:', err);
           wx.showToast({ title: '报价提交失败', icon: 'none' });
         }
-      }
-    });
+      },
+      { type: 'info', okText: '提交报价' }
+    );
   },
 
   // 获取价格差异样式
@@ -1741,39 +1756,6 @@ Page({
     this.loadUsers(1);
   },
 
-  onChangeUserRole(e) {
-    const userId = e.currentTarget.dataset.id;
-    const currentRole = e.currentTarget.dataset.role;
-    // 角色在 user -> admin -> internal 之间循环切换
-    const ROLE_CYCLE = {
-      'user': 'admin',
-      'admin': 'internal',
-      'internal': 'user',
-      'super_admin': 'user'
-    };
-    const ROLE_TEXT = {
-      'admin': '管理员',
-      'internal': '公司内部人员（免付款）',
-      'user': '普通用户'
-    };
-    const newRole = ROLE_CYCLE[currentRole] || 'user';
-    const roleText = ROLE_TEXT[newRole] || newRole;
-
-    this.showConfirmDialog('修改角色', `确定要将该用户角色改为"${roleText}"吗？`, async () => {
-      try {
-        await this.request({
-          url: `/api/super-admin/users/${userId}/role`,
-          method: 'PUT',
-          data: { role: newRole }
-        });
-        wx.showToast({ title: '修改成功', icon: 'success' });
-        this.loadUsers(this.data.userPage);
-      } catch (err) {
-        // 错误已在request中处理
-      }
-    });
-  },
-
   onToggleUserStatus(e) {
     const userId = e.currentTarget.dataset.id;
     const currentStatus = e.currentTarget.dataset.status;
@@ -1806,6 +1788,155 @@ Page({
     if (this.data.userPage < totalPages) {
       this.loadUsers(this.data.userPage + 1);
     }
+  },
+
+  // ===================== 用户新增 / 编辑 / 删除 =====================
+
+  // 打开新增用户表单
+  onAddUser() {
+    this.setData({
+      showUserForm: true,
+      userFormMode: 'add',
+      userFormId: null,
+      userForm: { nickname: '', real_name: '', phone: '', email: '', role: 'user', status: 1 },
+      userFormOriginal: { role: 'user', status: 1 },
+      savingUser: false
+    });
+  },
+
+  // 打开编辑用户表单（回填当前用户资料）
+  onEditUser(e) {
+    const id = e.currentTarget.dataset.id;
+    const user = (this.data.users || []).find(u => u.id === id);
+    if (!user) return;
+    const form = {
+      nickname: user.nickname || '',
+      real_name: user.real_name || '',
+      phone: user.phone || '',
+      email: user.email || '',
+      role: user.role || 'user',
+      status: user.status === undefined ? 1 : user.status
+    };
+    this.setData({
+      showUserForm: true,
+      userFormMode: 'edit',
+      userFormId: id,
+      userForm: form,
+      userFormOriginal: { role: user.role, status: user.status },
+      savingUser: false
+    });
+  },
+
+  // 表单输入
+  onUserFormInput(e) {
+    const field = e.currentTarget.dataset.field;
+    this.setData({ [`userForm.${field}`]: e.detail.value });
+  },
+
+  // 选择角色
+  onUserFormRole(e) {
+    this.setData({ 'userForm.role': e.currentTarget.dataset.role });
+  },
+
+  // 选择状态
+  onUserFormStatus(e) {
+    this.setData({ 'userForm.status': Number(e.currentTarget.dataset.status) });
+  },
+
+  // 关闭表单弹窗
+  closeUserForm() {
+    this.setData({ showUserForm: false });
+  },
+
+  // 保存（新增或编辑）
+  async onSaveUser() {
+    const form = this.data.userForm;
+    const mode = this.data.userFormMode;
+
+    if (!form.nickname || !form.nickname.trim()) {
+      wx.showToast({ title: '昵称不能为空', icon: 'none' });
+      return;
+    }
+    if (!form.phone || !/^1[3-9]\d{9}$/.test(form.phone.trim())) {
+      wx.showToast({ title: '手机号格式不正确', icon: 'none' });
+      return;
+    }
+    const email = (form.email || '').trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      wx.showToast({ title: '邮箱格式不正确', icon: 'none' });
+      return;
+    }
+
+    this.setData({ savingUser: true });
+    try {
+      if (mode === 'add') {
+        await this.request({
+          url: '/api/super-admin/users',
+          method: 'POST',
+          data: {
+            nickname: form.nickname.trim(),
+            real_name: (form.real_name || '').trim(),
+            phone: form.phone.trim(),
+            email: email || undefined,
+            role: form.role || 'user',
+            status: form.status !== undefined ? form.status : 1
+          }
+        });
+        wx.showToast({ title: '创建成功', icon: 'success' });
+      } else {
+        const id = this.data.userFormId;
+        // 基础信息走 PUT /:userId（该接口不支持 internal 角色，故角色/状态单独调用专用接口）
+        await this.request({
+          url: `/api/super-admin/users/${id}`,
+          method: 'PUT',
+          data: {
+            nickname: form.nickname.trim(),
+            real_name: (form.real_name || '').trim(),
+            phone: form.phone.trim(),
+            email: email || undefined
+          }
+        });
+        if (form.role !== this.data.userFormOriginal.role) {
+          await this.request({
+            url: `/api/super-admin/users/${id}/role`,
+            method: 'PUT',
+            data: { role: form.role }
+          });
+        }
+        if (form.status !== this.data.userFormOriginal.status) {
+          await this.request({
+            url: `/api/super-admin/users/${id}/status`,
+            method: 'PUT',
+            data: { status: form.status }
+          });
+        }
+        wx.showToast({ title: '保存成功', icon: 'success' });
+      }
+      this.setData({ showUserForm: false });
+      this.loadUsers(this.data.userPage);
+    } catch (err) {
+      // 错误已在 request 中统一提示
+    } finally {
+      this.setData({ savingUser: false });
+    }
+  },
+
+  // 删除用户
+  onDeleteUser(e) {
+    const id = e.currentTarget.dataset.id;
+    const name = e.currentTarget.dataset.name || '该用户';
+    this.showConfirmDialog('删除用户', `确定要删除「${name}」吗？此操作不可撤销。`, async () => {
+      try {
+        await this.request({
+          url: `/api/super-admin/users/${id}`,
+          method: 'DELETE'
+        });
+        wx.showToast({ title: '已删除', icon: 'success' });
+        this.loadUsers(this.data.userPage);
+      } catch (err) {
+        // 错误已在 request 中统一提示
+      }
+    }, { type: 'danger', okText: '删除' });
   },
 
   // ===================== 工单列表弹窗 =====================
@@ -1873,24 +2004,26 @@ Page({
     return DEVICE_TYPE_MAP[Number(typeId)] || `设备(${typeId})`;
   },
 
-  showConfirmDialog(title, content, action) {
+  showConfirmDialog(title, content, action, options = {}) {
     this.setData({
       showConfirm: true,
       confirmTitle: title,
       confirmContent: content,
-      confirmAction: action
+      confirmAction: action,
+      confirmType: options.type || 'info',
+      confirmOkText: options.okText || '确定'
     });
   },
 
   onConfirmOk() {
-    this.setData({ showConfirm: false });
+    this.setData({ showConfirm: false, confirmType: 'info', confirmOkText: '确定' });
     if (typeof this.data.confirmAction === 'function') {
       this.data.confirmAction();
     }
   },
 
   onConfirmCancel() {
-    this.setData({ showConfirm: false });
+    this.setData({ showConfirm: false, confirmType: 'info', confirmOkText: '确定' });
   },
 
   formatTime(date) {
@@ -2412,6 +2545,9 @@ Page({
   },
 
   connectAdminSocket() {
+    // 本次会话内该接口已确认连不上（服务端未开启 /ws/chat）则不再反复重连，
+    // 避免每次进入页面都在控制台刷 WebSocket 连接错误。
+    if (this._adminSocketFailed) return
     this.closeAdminSocket();
 
     const socketTask = wx.connectSocket({
@@ -2419,8 +2555,12 @@ Page({
     });
 
     this._adminSocketTask = socketTask;
+    this._adminSocketOpened = false;
 
     socketTask.onOpen(() => {
+      // 连接成功说明服务端已支持，重置失败标记（便于后续异常恢复后自动重连）
+      this._adminSocketFailed = false
+      this._adminSocketOpened = true;
       console.log('[super-admin] WebSocket 连接成功');
       this.setData({ adminSocketConnected: true });
 
@@ -2444,23 +2584,29 @@ Page({
     });
 
     socketTask.onClose(() => {
+      this._adminSocketOpened = false;
       console.log('[super-admin] WebSocket 连接关闭');
       this.setData({ adminSocketConnected: false });
     });
 
     socketTask.onError((error) => {
-      console.error('[super-admin] WebSocket 连接错误:', error);
+      // 标记失败并静默处理：该连接为"实时通知"增强能力，连不上不影响管理后台主流程
+      this._adminSocketOpened = false;
+      this._adminSocketFailed = true
       this.setData({ adminSocketConnected: false });
     });
   },
 
   closeAdminSocket() {
     if (this._adminSocketTask) {
-      try {
-        this._adminSocketTask.close({});
-      } catch (error) {}
+      const task = this._adminSocketTask;
       this._adminSocketTask = null;
+      // 只有真正建立过连接（onOpen 触发过）才调用 close，否则会抛 closeSocket:fail task not found
+      if (this._adminSocketOpened) {
+        try { task.close({}); } catch (error) {}
+      }
     }
+    this._adminSocketOpened = false;
     this.setData({ adminSocketConnected: false });
   },
 

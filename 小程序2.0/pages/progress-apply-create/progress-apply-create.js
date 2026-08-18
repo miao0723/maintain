@@ -40,6 +40,10 @@ Page({
     preselectOrderId: null,
     selectedType: null,
 
+    // 自动获取标记（来自登录用户资料，无需手填）
+    autoName: false,
+    autoPhone: false,
+
     // 状态
     submitting: false,
     loading: false,
@@ -77,7 +81,7 @@ Page({
     }
   },
 
-  /** 从缓存填充用户姓名和电话 */
+  /** 从缓存填充用户姓名和电话（已登录即可读取，无需手填） */
   fillUserInfo() {
     try {
       const userInfo = wx.getStorageSync('userInfo');
@@ -86,7 +90,9 @@ Page({
         const phone = userInfo.phone || userInfo.mobile || '';
         this.setData({
           'formData.customer_name': name,
-          'formData.phone': phone
+          'formData.phone': phone,
+          autoName: !!name,
+          autoPhone: !!phone
         });
       }
     } catch (e) {

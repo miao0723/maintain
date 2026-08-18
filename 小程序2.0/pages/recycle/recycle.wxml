@@ -95,19 +95,10 @@
                 bindtap="onModelTap"
                 data-model="{{model}}"
                 data-brand="{{item}}">
-                <!-- 产品图片（纯色渐变背景） -->
-                <view class="model-image-wrap" style="background: linear-gradient(145deg, {{model.heroTone || '#5b9e8a'}}, {{model.color ? (model.color + 'cc') : '#80c8b2'}});">
-                  <view class="model-visual-shape model-visual-shape-a"></view>
-                  <view class="model-visual-shape model-visual-shape-b"></view>
-                  <view class="model-visual-top">
-                    <image class="model-visual-icon" src="{{model.visualImageUrl}}" mode="aspectFit"></image>
-                    <text class="model-visual-badge">{{model.visualBadge}}</text>
-                  </view>
-                  <view class="model-device-frame {{currentCategory.id}}"></view>
-                  <view class="model-visual-bottom">
-                    <text class="model-family-label">{{model.familyLabel}}</text>
-                    <text class="model-scene">{{model.visualScene}}</text>
-                  </view>
+                <!-- 产品图片（写实设备图） -->
+                <view class="model-image-wrap">
+                  <image class="model-product-image" src="{{model.visualImageUrl}}" mode="aspectFit" binderror="onCategoryImgError" data-index="{{index}}"></image>
+                  <text class="model-visual-badge" wx:if="{{model.visualBadge}}">{{model.visualBadge}}</text>
                 </view>
                 <view class="model-info">
                   <text class="model-name">{{model.name}}</text>
@@ -203,11 +194,8 @@
               wx:key="modelId"
               bindtap="onSearchResultTap"
               data-item="{{item}}">
-              <view class="search-result-image" style="background: linear-gradient(145deg, {{item.modelColor || '#5b9e8a'}}, {{item.modelColor ? (item.modelColor + 'cc') : '#80c8b2'}});">
-                <view class="search-result-shape search-result-shape-a"></view>
-                <view class="search-result-shape search-result-shape-b"></view>
-                <image class="search-result-icon" src="{{item.modelVisualImageUrl}}" mode="aspectFit"></image>
-                <text class="search-result-scene">{{item.modelVisualScene}}</text>
+              <view class="search-result-image">
+                <image class="search-result-product-image" src="{{item.modelVisualImageUrl}}" mode="aspectFit"></image>
               </view>
               <view class="search-result-info">
                 <view class="search-result-name-row">
@@ -236,3 +224,4 @@
     </view>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

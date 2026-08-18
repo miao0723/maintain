@@ -1,5 +1,6 @@
 const app = getApp();
 const { getProgressStamp, syncProgressUnreadState } = require('../../utils/progressUnread.js');
+const { getMpApiBaseUrl } = require('../../utils/mpApi.js');
 
 Page({
   data: {
@@ -91,7 +92,7 @@ Page({
    */
   loadOrderInfo() {
     wx.request({
-      url: `${app.globalData.baseUrl}/api/orders/${this.data.orderId}/detail`,
+      url: `${getMpApiBaseUrl()}/orders/${this.data.orderId}/detail`,
       method: 'GET',
       header: {
         'Authorization': `Bearer ${this.data.token}`,
@@ -141,7 +142,7 @@ Page({
     if (!this.data.token || !this.data.orderId) return;
     if (Number(this.data.orderInfo?.progress_unread) !== 1) return;
     wx.request({
-      url: `${app.globalData.baseUrl}/api/orders/${this.data.orderId}/progress-read`,
+      url: `${getMpApiBaseUrl()}/orders/${this.data.orderId}/progress-read`,
       method: 'PUT',
       header: {
         'Authorization': `Bearer ${this.data.token}`,
@@ -158,7 +159,7 @@ Page({
    */
   loadHistory() {
     wx.request({
-      url: `${app.globalData.baseUrl}/api/progress/feedbacks/${this.data.orderId}`,
+      url: `${getMpApiBaseUrl()}/progress/feedbacks/${this.data.orderId}`,
       method: 'GET',
       header: {
         'Authorization': `Bearer ${this.data.token}`,
@@ -328,7 +329,7 @@ Page({
     let videosLoaded = false;
 
     wx.request({
-      url: `${app.globalData.baseUrl}/api/progress/photos/${orderId}`,
+      url: `${getMpApiBaseUrl()}/progress/photos/${orderId}`,
       method: 'GET',
       header: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       success: (res) => {
@@ -344,7 +345,7 @@ Page({
     });
 
     wx.request({
-      url: `${app.globalData.baseUrl}/api/progress/videos/${orderId}`,
+      url: `${getMpApiBaseUrl()}/progress/videos/${orderId}`,
       method: 'GET',
       header: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       success: (res) => {
@@ -567,7 +568,7 @@ Page({
   uploadSingleImage(filePath, feedbackGroupId) {
     return new Promise((resolve) => {
       wx.uploadFile({
-        url: `${app.globalData.baseUrl}/api/progress/photos/upload`,
+        url: `${getMpApiBaseUrl()}/progress/photos/upload`,
         filePath: filePath,
         name: 'images',
         formData: {
@@ -611,7 +612,7 @@ Page({
   uploadVideoFile(filePath, feedbackGroupId) {
     return new Promise((resolve) => {
       wx.uploadFile({
-        url: `${app.globalData.baseUrl}/api/progress/videos/upload`,
+        url: `${getMpApiBaseUrl()}/progress/videos/upload`,
         filePath: filePath,
         name: 'video',
         formData: {
@@ -728,7 +729,7 @@ Page({
       wx.showLoading({ title: '更新进度...', mask: true });
       const progressRes = await new Promise((resolve) => {
         wx.request({
-          url: `${app.globalData.baseUrl}/api/orders/${this.data.orderId}/progress`,
+          url: `${getMpApiBaseUrl()}/orders/${this.data.orderId}/progress`,
           method: 'PUT',
           header: {
             'Authorization': `Bearer ${this.data.token}`,

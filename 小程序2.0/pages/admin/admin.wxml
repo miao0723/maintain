@@ -7,7 +7,7 @@
       <text class="header-subtitle">电子维修管理系统</text>
     </view>
     <view class="admin-avatar">
-      <image class="avatar-img" src="{{userInfo.avatar_url || userInfo.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill" binderror="onAvatarError"></image>
+      <image class="avatar-img" src="{{userInfo.avatar_url || userInfo.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill" binderror="onAvatarError"></image>
     </view>
   </view>
 
@@ -180,7 +180,7 @@
     <view class="technicians-list">
       <view class="technician-item" wx:for="{{technicians}}" wx:key="id">
         <view class="tech-avatar">
-          <image class="tech-avatar-img" src="{{item.avatar_url || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <image class="tech-avatar-img" src="{{item.avatar_url || '/images/avatar-repair.png'}}" mode="aspectFill"></image>
         </view>
         <view class="tech-info">
           <text class="tech-name">{{item.real_name || item.nickname}}</text>
@@ -253,3 +253,4 @@
     </button>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

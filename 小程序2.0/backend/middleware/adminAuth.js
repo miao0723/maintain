@@ -9,13 +9,15 @@ const ROLES = {
   USER: 'user',           // 普通用户
   ADMIN: 'admin',         // 管理员
   SUPER_ADMIN: 'super_admin', // 超级管理员
-  INTERNAL: 'internal'    // 公司内部人员（发起维修/回收订单免付款，仅需申请）
+  INTERNAL: 'internal',    // 公司内部人员（发起维修/回收订单免付款，仅需申请）
+  REPAIR: 'repair'        // 维修人员（负责处理维修/回收工单）
 };
 
 // 权限等级映射（数值越大权限越高）
 const ROLE_LEVELS = {
   [ROLES.USER]: 1,
   [ROLES.INTERNAL]: 1,    // 内部人员视为普通用户等级（仅免付款下单，无管理权限）
+  [ROLES.REPAIR]: 2,      // 维修人员可处理工单，等同管理员业务等级
   [ROLES.ADMIN]: 2,
   [ROLES.SUPER_ADMIN]: 3
 };

@@ -100,13 +100,23 @@ Page({
   },
 
   connectSocket() {
+    // 本轮会话已确认连不上（服务端未开启 /ws/chat），不再反复重连刷错误
+    if (this._socketFailed) {
+      this.setData({ socketConnected: false });
+      return;
+    }
+    this.closeSocket();
+
     const socketTask = wx.connectSocket({
       url: this.getSocketUrl()
     });
 
     this.socketTask = socketTask;
+    this._socketOpened = false;
 
     socketTask.onOpen(() => {
+      this._socketOpened = true;
+      this._socketFailed = false;
       this.setData({ socketConnected: true });
       socketTask.send({
         data: JSON.stringify({
@@ -127,22 +137,30 @@ Page({
     });
 
     socketTask.onClose(() => {
+      this._socketOpened = false;
       this.setData({ socketConnected: false });
     });
 
     socketTask.onError((error) => {
-      console.error('人工客服 Socket 错误:', error);
+      // 标记失败并静默：连不上不影响该客服页主流程，避免调试器刷 WebSocket 错误
+      this._socketOpened = false;
+      this._socketFailed = true;
+      console.warn('[adminservice-chat] 人工客服 Socket 连接失败（已忽略）:', error);
       this.setData({ socketConnected: false });
     });
   },
 
   closeSocket() {
     if (this.socketTask) {
-      try {
-        this.socketTask.close({});
-      } catch (error) {}
+      const task = this.socketTask;
       this.socketTask = null;
+      // 只有真正建立过连接（onOpen 触发过）才调用 close，否则会抛 closeSocket:fail task not found
+      if (this._socketOpened) {
+        try { task.close({}); } catch (error) {}
+      }
     }
+    this._socketOpened = false;
+    this.setData({ socketConnected: false });
   },
 
   async openConversation() {

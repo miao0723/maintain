@@ -40,7 +40,7 @@ page {
 
 .meta-time {
   font-size: 26rpx;
-  color: #667eea;
+  color: #436f95;
   font-weight: 500;
 }
 
@@ -59,7 +59,7 @@ page {
 
 .photo-tag {
   background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  color: #436f95;
 }
 
 .video-tag {

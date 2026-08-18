@@ -13,7 +13,8 @@ async function compressImage(file, options = {}) {
     maxWidth = 200,
     maxHeight = 200,
     quality = 80,
-    format = 'jpeg'
+    format = 'jpeg',
+    fit = 'cover'
   } = options;
 
   try {
@@ -28,7 +29,7 @@ async function compressImage(file, options = {}) {
     // 使用sharp进行压缩
     let transform = sharp(inputPath)
       .resize(maxWidth, maxHeight, {
-        fit: 'cover',
+        fit,
         position: 'center'
       });
 

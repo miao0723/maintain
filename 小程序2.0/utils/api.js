@@ -16,19 +16,26 @@ function isDevtoolsEnvironment() {
 function buildConnectionErrorMessage(candidates, errMsg = '') {
   const primary = candidates[0] || ''
   const isDevtools = isDevtoolsEnvironment()
-  const looksLikeTimeout = errMsg.includes('timeout')
+  const looksLikeTimeout = errMsg.includes('timeout') || errMsg.includes('timed out')
+  const looksLikeDomainBlock = errMsg.includes('domain') || errMsg.includes('not in domain')
+
+  if (looksLikeDomainBlock) {
+    return isDevtools
+      ? `请求被拦截：${primary} 不在小程序 request 合法域名中。请在开发者工具「详情-本地设置」勾选"不校验合法域名"，或到小程序后台加入白名单`
+      : `请求被拦截：${primary} 不在小程序 request 合法域名中，请到小程序后台(mp.weixin.qq.com)「开发-开发设置-服务器域名」加入该域名`
+  }
 
   if (looksLikeTimeout) {
     return isDevtools
-      ? `请求超时，请检查后端和网络：${primary}`
-      : `请求超时，请确认手机与电脑在同一 Wi-Fi，并可访问 ${primary}`
+      ? `请求超时，多为后端节点宕机/域名解析到不可达 IP：${primary}`
+      : `请求超时，请确认手机与电脑在同一 Wi-Fi，且 ${primary} 在线`
   }
 
   if (isDevtools) {
-    return `服务器连接失败，请确认后端已启动：${primary}`
+    return `连接失败(${errMsg || 'request:fail'})。后端通常在线，多为"域名解析到宕机节点"或被网络拦截；请检查 ${primary} 的 DNS 是否含有超时/不可达的 IP`
   }
 
-  return `真机无法连接接口，请确认手机与电脑在同一 Wi-Fi：${primary}`
+  return `真机无法连接接口，请将 ${primary} 加入小程序后台 request 合法域名，并确认该域名解析到的后端节点都在线`
 }
 
 /**
@@ -47,15 +54,19 @@ function request(url, method = 'GET', data = null, options = {}) {
     : [];
   const suppressErrorToast = !!options.suppressErrorToast
   const resolveOnHttpError = !!options.resolveOnHttpError
-  // 超时时间（毫秒），默认 30s。微信真机网络可能波动较大
-  const timeout = options.timeout || 30000
+  // 超时时间（毫秒），默认 12s。真机网络波动大，过长的超时只会让用户干等几十秒；
+  // 命中超时后由上层提示重试，比长时间阻塞体验更好
+  const timeout = options.timeout || 12000
 
   return new Promise((resolve, reject) => {
+    const devMode = isDevtoolsEnvironment()
+    const t0 = Date.now();
     const baseCandidates = getApiBaseCandidates()
-    const candidates = [
-      ...(activeBaseUrl ? [activeBaseUrl] : []),
-      ...baseCandidates.filter(base => base !== activeBaseUrl)
-    ]
+    // DevTools 下固定「生产优先、本地兜底」（baseCandidates 已是该顺序），不使用 activeBaseUrl 记忆，
+    // 否则 activeBaseUrl 恰好等于生产网关时会被 filter 误删，候选列表只剩本地死地址 → ERR_CONNECTION_REFUSED。
+    const candidates = devMode
+      ? baseCandidates
+      : [...new Set(activeBaseUrl ? [activeBaseUrl, ...baseCandidates.filter(b => b !== activeBaseUrl)] : baseCandidates)]
 
     // 避免把 null/undefined 序列化成字符串 "null" 作为请求体（会导致后端 JSON 解析失败）
     const hasBody = data !== null && data !== undefined
@@ -73,7 +84,8 @@ function request(url, method = 'GET', data = null, options = {}) {
     }
 
     const tryRequest = (index, retryCount = 0) => {
-      const MAX_RETRIES = 2; // 每个候选地址最多重试 2 次（共 3 次尝试）
+      const attemptStart = Date.now();
+      const MAX_RETRIES = 1; // 每个候选地址最多重试 1 次（共 2 次尝试），避免长时间阻塞
       const baseUrl = candidates[index];
       const fullUrl = baseUrl + url;
       const attemptLabel = retryCount > 0 ? ` (重试${retryCount}/${MAX_RETRIES})` : '';
@@ -90,7 +102,10 @@ function request(url, method = 'GET', data = null, options = {}) {
         },
         success: (res) => {
           const { statusCode, data: responseData } = res;
-          console.log('CODEBUDDY_DEBUG response statusCode=', statusCode, 'url=', url);
+          console.log('CODEBUDDY_DEBUG response statusCode=', statusCode, 'url=', url, '耗时=', (Date.now() - attemptStart) + 'ms', '累计=', (Date.now() - t0) + 'ms');
+          if (statusCode >= 400) {
+            console.log('CODEBUDDY_DEBUG 响应体(错误详情):', JSON.stringify(responseData));
+          }
 
           if (retryOnHttpStatus.includes(statusCode) && index < candidates.length - 1) {
             console.log('CODEBUDDY_DEBUG 命中HTTP状态重试，尝试下一个地址:', candidates[index + 1], 'statusCode=', statusCode);
@@ -119,7 +134,7 @@ function request(url, method = 'GET', data = null, options = {}) {
             }, 1500);
             reject(new Error('Unauthorized'));
           } else {
-            const errorMsg = responseData?.message || `请求失败(${statusCode})`;
+            const errorMsg = responseData?.message || responseData?.error || `请求失败(${statusCode})`;
             if (resolveOnHttpError) {
               resolve({
                 success: false,
@@ -139,20 +154,21 @@ function request(url, method = 'GET', data = null, options = {}) {
           }
         },
         fail: (err) => {
-          console.log('CODEBUDDY_DEBUG request fail err=', err, 'url=', fullUrl, 'tryIndex=', index, 'retryCount=', retryCount);
+          console.log('CODEBUDDY_DEBUG request fail err=', err, 'url=', fullUrl, 'tryIndex=', index, 'retryCount=', retryCount, '耗时=', (Date.now() - attemptStart) + 'ms', '累计=', (Date.now() - t0) + 'ms');
 
-          // 先尝试同地址重试（退避延迟：1s, 2s）
+          // 网络层失败（连接被拒绝/超时/无网络）：若还有下一个候选地址，立即切换，
+          // 不再对死地址做 1s/2s 退避重试，避免无谓等待（如本机后端未启动）
+          if (index < candidates.length - 1) {
+            console.log('CODEBUDDY_DEBUG 网络失败，立即尝试下一个地址:', candidates[index + 1]);
+            tryRequest(index + 1, 0);
+            return;
+          }
+
+          // 已是最后一个候选地址：对同地址做有限退避重试（仅最后兜底，避免对死地址空等）
           if (retryCount < MAX_RETRIES) {
             const delay = (retryCount + 1) * 1000; // 1s, 2s 递增
             console.log('CODEBUDDY_DEBUG 同地址重试, 延迟', delay, 'ms');
             setTimeout(() => tryRequest(index, retryCount + 1), delay);
-            return;
-          }
-
-          // 同地址重试耗尽，尝试下一个候选地址
-          if (index < candidates.length - 1) {
-            console.log('CODEBUDDY_DEBUG 尝试下一个地址:', candidates[index + 1]);
-            tryRequest(index + 1, 0);
             return;
           }
 
@@ -179,14 +195,17 @@ function request(url, method = 'GET', data = null, options = {}) {
 function uploadFileWithCandidates(pathname, filePath, formData = {}, options = {}) {
   const token = wx.getStorageSync('token') || '';
   const suppressErrorToast = !!options.suppressErrorToast
-  const timeout = options.timeout || 20000
+  const timeout = options.timeout || 15000
 
   return new Promise((resolve, reject) => {
+    const devMode = isDevtoolsEnvironment()
+    const t0 = Date.now();
     const baseCandidates = getApiBaseCandidates()
-    const candidates = [
-      ...(activeBaseUrl ? [activeBaseUrl] : []),
-      ...baseCandidates.filter(base => base !== activeBaseUrl)
-    ]
+    // DevTools 下固定「生产优先、本地兜底」（baseCandidates 已是该顺序），不使用 activeBaseUrl 记忆，
+    // 否则 activeBaseUrl 恰好等于生产网关时会被 filter 误删，候选列表只剩本地死地址 → ERR_CONNECTION_REFUSED。
+    const candidates = devMode
+      ? baseCandidates
+      : [...new Set(activeBaseUrl ? [activeBaseUrl, ...baseCandidates.filter(b => b !== activeBaseUrl)] : baseCandidates)]
 
     if (candidates.length === 0) {
       if (!suppressErrorToast) {
@@ -200,11 +219,12 @@ function uploadFileWithCandidates(pathname, filePath, formData = {}, options = {
     }
 
     const tryUpload = (index, retryCount = 0) => {
+      const attemptStart = Date.now();
       const MAX_UPLOAD_RETRIES = 1; // 上传重试次数比普通请求少
       const baseUrl = candidates[index]
       const uploadUrl = `${baseUrl}${pathname}`
 
-      wx.uploadFile({
+      const uploadTask = wx.uploadFile({
         url: uploadUrl,
         filePath,
         name: options.fieldName || 'file',
@@ -221,6 +241,8 @@ function uploadFileWithCandidates(pathname, filePath, formData = {}, options = {
           } catch (error) {
             parsed = null
           }
+
+          console.log('CODEBUDDY_DEBUG upload', uploadUrl, 'statusCode=', res.statusCode, '耗时=', (Date.now() - attemptStart) + 'ms', '累计=', (Date.now() - t0) + 'ms');
 
           if (res.statusCode >= 200 && res.statusCode < 300 && parsed) {
             activeBaseUrl = baseUrl
@@ -243,16 +265,18 @@ function uploadFileWithCandidates(pathname, filePath, formData = {}, options = {
           reject(new Error(errorMsg))
         },
         fail: (err) => {
-          // 同地址重试
+          console.log('CODEBUDDY_DEBUG upload fail', uploadUrl, 'err=', err, '耗时=', (Date.now() - attemptStart) + 'ms', '累计=', (Date.now() - t0) + 'ms');
+          // 网络层失败：若还有下一个候选地址，立即切换（避免对死地址退避等待）
+          if (index < candidates.length - 1) {
+            console.log('CODEBUDDY_DEBUG 上传网络失败，立即尝试下一个地址:', candidates[index + 1]);
+            tryUpload(index + 1, 0)
+            return
+          }
+          // 已是最后一个候选地址：同地址有限退避重试（仅兜底）
           if (retryCount < MAX_UPLOAD_RETRIES) {
             const delay = (retryCount + 1) * 1500;
             setTimeout(() => tryUpload(index, retryCount + 1), delay);
             return;
-          }
-          // 尝试下一个候选
-          if (index < candidates.length - 1) {
-            tryUpload(index + 1, 0)
-            return
           }
 
           const originalErrMsg = err.errMsg || ''
@@ -267,6 +291,11 @@ function uploadFileWithCandidates(pathname, filePath, formData = {}, options = {
           reject(new Error(`[${originalErrMsg}] ${toastTitle} | candidates: ${candidates.join(', ')}`))
         }
       })
+
+      // 进度回调：把上传进度透传给调用方（用于头像上传显示进度）
+      if (typeof options.onProgress === 'function' && uploadTask && typeof uploadTask.onProgressUpdate === 'function') {
+        uploadTask.onProgressUpdate(options.onProgress)
+      }
     }
 
     tryUpload(0)
@@ -291,49 +320,14 @@ const userApi = {
     return request('/user/info', 'PUT', data);
   },
 
-  // 上传头像（带进度提示）
-  uploadAvatar(filePath) {
-    return new Promise((resolve, reject) => {
-      const token = wx.getStorageSync('token') || '';
-      const uploadBaseUrl = activeBaseUrl || getApiBaseCandidates()[0];
-
-      if (!uploadBaseUrl) {
-        reject(new Error('API base URL is not configured'));
-        return;
-      }
-
-      wx.showLoading({ title: '上传中...', mask: true })
-
-      const uploadTask = wx.uploadFile({
-        url: uploadBaseUrl + '/user/avatar',
-        filePath: filePath,
-        name: 'avatar',
-        header: {
-          'Authorization': token ? `Bearer ${token}` : ''
-        },
-        success: (res) => {
-          if (res.statusCode === 200) {
-            const data = JSON.parse(res.data);
-            resolve(data);
-          } else {
-            reject(new Error('上传失败'));
-          }
-        },
-        fail: (err) => {
-          reject(err);
-        },
-        complete: () => {
-          wx.hideLoading();
-        }
-      });
-
-      // 监听上传进度
-      uploadTask.onProgressUpdate((res) => {
-        console.log('上传进度:', res.progress + '%');
-        if (res.progress < 100) {
-          wx.showLoading({ title: `上传中 ${res.progress}%`, mask: true });
-        }
-      });
+  // 上传头像（带进度提示 + 超时保护 + 候选地址容错）
+  // 默认超时 15s（原 20s 过长，弱网会干等；上传已在选图后立即后台进行，保存时不再阻塞）
+  uploadAvatar(filePath, options = {}) {
+    return uploadFileWithCandidates('/user/avatar', filePath, {}, {
+      fieldName: 'avatar',
+      timeout: options.timeout || 15000,
+      suppressErrorToast: options.suppressErrorToast || false,
+      ...options
     });
   }
 };
@@ -600,7 +594,7 @@ const knowledgeApi = {
 const adminApi = {
   // 获取仪表板统计数据
   getDashboardStats() {
-    return request('/admin/dashboard', 'GET');
+    return request('/super-admin/dashboard', 'GET');
   },
 
   // 获取所有用户
@@ -609,18 +603,23 @@ const adminApi = {
       .filter(key => params[key] !== undefined && params[key] !== null)
       .map(key => `${key}=${encodeURIComponent(params[key])}`)
       .join('&');
-    const url = queryString ? `/admin/users?${queryString}` : '/admin/users';
+    const url = queryString ? `/super-admin/users?${queryString}` : '/super-admin/users';
     return request(url, 'GET');
   },
 
   // 更新用户角色
   updateUserRole(userId, role) {
-    return request(`/admin/users/${userId}/role`, 'PUT', { role });
+    return request(`/super-admin/users/${userId}/role`, 'PUT', { role });
   },
 
   // 禁用/启用用户
   toggleUserStatus(userId, status) {
-    return request(`/admin/users/${userId}/status`, 'PUT', { status });
+    return request(`/super-admin/users/${userId}/status`, 'PUT', { status });
+  },
+
+  // 删除用户
+  deleteUser(userId) {
+    return request(`/super-admin/users/${userId}`, 'DELETE');
   },
 
   // 获取所有订单
@@ -659,23 +658,23 @@ const adminApi = {
       .filter(key => params[key] !== undefined && params[key] !== null)
       .map(key => `${key}=${encodeURIComponent(params[key])}`)
       .join('&');
-    const url = queryString ? `/admin/devices?${queryString}` : '/admin/devices';
+    const url = queryString ? `/super-admin/device-types?${queryString}` : '/super-admin/device-types';
     return request(url, 'GET');
   },
 
   // 创建设备
   createDevice(data) {
-    return request('/admin/devices', 'POST', data);
+    return request('/super-admin/device-types', 'POST', data);
   },
 
   // 更新设备
   updateDevice(deviceId, data) {
-    return request(`/admin/devices/${deviceId}`, 'PUT', data);
+    return request(`/super-admin/device-types/${deviceId}`, 'PUT', data);
   },
 
   // 删除设备
   deleteDevice(deviceId) {
-    return request(`/admin/devices/${deviceId}`, 'DELETE');
+    return request(`/super-admin/device-types/${deviceId}`, 'DELETE');
   },
 
   // 获取价格列表
@@ -684,23 +683,23 @@ const adminApi = {
       .filter(key => params[key] !== undefined && params[key] !== null)
       .map(key => `${key}=${encodeURIComponent(params[key])}`)
       .join('&');
-    const url = queryString ? `/admin/prices?${queryString}` : '/admin/prices';
+    const url = queryString ? `/super-admin/prices?${queryString}` : '/super-admin/prices';
     return request(url, 'GET');
   },
 
   // 创建价格
   createPrice(data) {
-    return request('/admin/prices', 'POST', data);
+    return request('/super-admin/prices', 'POST', data);
   },
 
   // 更新价格
   updatePrice(priceId, data) {
-    return request(`/admin/prices/${priceId}`, 'PUT', data);
+    return request(`/super-admin/prices/${priceId}`, 'PUT', data);
   },
 
   // 删除价格
   deletePrice(priceId) {
-    return request(`/admin/prices/${priceId}`, 'DELETE');
+    return request(`/super-admin/prices/${priceId}`, 'DELETE');
   },
 
   // 获取统计数据
@@ -709,7 +708,7 @@ const adminApi = {
       .filter(key => params[key] !== undefined && params[key] !== null)
       .map(key => `${key}=${encodeURIComponent(params[key])}`)
       .join('&');
-    const url = queryString ? `/admin/statistics/${type}?${queryString}` : `/admin/statistics/${type}`;
+    const url = queryString ? `/super-admin/dashboard?${queryString}` : '/super-admin/dashboard';
     return request(url, 'GET');
   },
 

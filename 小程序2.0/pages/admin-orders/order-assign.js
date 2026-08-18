@@ -1,5 +1,6 @@
 // pages/admin-orders/order-assign.js
 const app = getApp();
+const { getMpApiBaseUrl } = require('../../utils/mpApi.js');
 
 // 状态配置
 const STATUS_CONFIG = {
@@ -139,8 +140,8 @@ Page({
 
       // 如果是mine模式，使用my-orders接口获取自己的订单
       const apiUrl = orderFilter === 'mine'
-        ? `${app.globalData.baseUrl}/api/admin/my-orders`
-        : `${app.globalData.baseUrl}/api/admin/all-orders`;
+        ? `${getMpApiBaseUrl()}/admin/my-orders`
+        : `${getMpApiBaseUrl()}/admin/all-orders`;
 
       if (orderFilter === 'mine') {
         requestData.filter = 'mine';
@@ -189,7 +190,7 @@ Page({
   async loadStats() {
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/admin/dashboard-stats`,
+        url: `${getMpApiBaseUrl()}/admin/dashboard-stats`,
         method: 'GET',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -211,7 +212,7 @@ Page({
   async loadAdmins() {
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/admin/admins`,
+        url: `${getMpApiBaseUrl()}/admin/admins`,
         method: 'GET',
         header: {
           'Authorization': `Bearer ${this.data.token}`,
@@ -325,7 +326,7 @@ Page({
 
     try {
       const res = await wx.request({
-        url: `${app.globalData.baseUrl}/api/admin/orders/${this.data.currentOrderId}/assign`,
+        url: `${getMpApiBaseUrl()}/admin/orders/${this.data.currentOrderId}/assign`,
         method: 'PUT',
         header: {
           'Authorization': `Bearer ${this.data.token}`,

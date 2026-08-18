@@ -10,7 +10,7 @@
     <text class="section-title">维修进度</text>
     <view class="progress-display-bar">
       <view class="progress-bar-bg">
-        <view class="progress-bar-fill-display" style="width: {{progress}}%; background: linear-gradient(90deg, #667eea, #764ba2)"></view>
+        <view class="progress-bar-fill-display" style="width: {{progress}}%; background: linear-gradient(90deg, #436f95, #436f95)"></view>
       </view>
       <text class="progress-display-text">{{progress}}%</text>
     </view>
@@ -26,7 +26,7 @@
           <slider class="progress-slider-bar"
             min="0" max="100"
             value="{{progress}}"
-            activeColor="#667eea"
+            activeColor="#436f95"
             backgroundColor="#e5e7eb"
             blockSize="20"
             bindchange="onProgressChange"
@@ -215,3 +215,4 @@
     <text wx:else>提交进度</text>
   </button>
 </view>
+<confirm-modal id="confirmModal" />

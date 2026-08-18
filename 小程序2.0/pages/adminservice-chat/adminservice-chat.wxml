@@ -57,3 +57,4 @@
     <button class="complete-btn" bindtap="completeConversation">结束人工对话</button>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

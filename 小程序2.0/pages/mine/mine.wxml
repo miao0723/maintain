@@ -115,27 +115,62 @@
       <view class="order-type-item pending-card" bindtap="goToOrders" data-status="pending">
         <view class="order-icon">📋</view>
         <text class="order-name">待处理</text>
-        <view class="order-badge" wx:if="{{orderCount.pending > 0}}">{{orderCount.pending}}</view>
+        <view class="order-badge unread-badge" wx:if="{{statusBadges.pending > 0}}">{{statusBadges.pending}}</view>
       </view>
       <view class="order-type-item quoted-entry" bindtap="goToQuotedOrders">
         <view class="order-icon quoted-icon">💰</view>
         <text class="order-name">待确认</text>
-        <view class="order-badge quoted-badge" wx:if="{{quotedCount > 0}}">{{quotedCount}}</view>
+        <view class="order-badge unread-badge" wx:if="{{statusBadges.quoted > 0}}">{{statusBadges.quoted}}</view>
       </view>
       <view class="order-type-item processing-card" bindtap="goToOrders" data-status="processing">
         <view class="order-icon">🔧</view>
         <text class="order-name">维修中</text>
-        <view class="order-badge" wx:if="{{orderCount.processing > 0}}">{{orderCount.processing}}</view>
+        <view class="order-badge unread-badge" wx:if="{{statusBadges.processing > 0}}">{{statusBadges.processing}}</view>
       </view>
       <view class="order-type-item completed-card" bindtap="goToOrders" data-status="completed">
         <view class="order-icon">✅</view>
         <text class="order-name">已完成</text>
-        <view class="order-badge" wx:if="{{orderCount.completed > 0}}">{{orderCount.completed}}</view>
+        <view class="order-badge unread-badge" wx:if="{{statusBadges.completed > 0}}">{{statusBadges.completed}}</view>
       </view>
       <view class="order-type-item review-card" bindtap="goToOrders" data-status="review">
         <view class="order-icon">⭐</view>
         <text class="order-name">待评价</text>
-        <view class="order-badge" wx:if="{{orderCount.review > 0}}">{{orderCount.review}}</view>
+        <view class="order-badge unread-badge" wx:if="{{statusBadges.review > 0}}">{{statusBadges.review}}</view>
+      </view>
+    </view>
+
+    <!-- 进度反馈动态通知卡片 -->
+    <view class="progress-feed-card" wx:if="{{progressFeed.length > 0}}">
+      <view class="feed-header">
+        <view class="feed-header-left">
+          <text class="feed-header-icon">📷</text>
+          <text class="feed-header-title">进度动态</text>
+          <view class="feed-count-pill">{{progressFeedTotal}} 条新反馈</view>
+        </view>
+        <text class="feed-read-all" bindtap="markAllProgressRead">全部已读</text>
+      </view>
+      <view class="feed-list">
+        <view class="feed-item" wx:for="{{progressFeed}}" wx:key="order_id"
+              data-order-id="{{item.order_id}}" data-feedback-at="{{item.feedback_at}}"
+              bindtap="goToProgressDetail">
+          <view class="feed-thumb">
+            <image wx:if="{{item.thumbUrl}}" class="feed-thumb-img" src="{{item.thumbUrl}}" mode="aspectFill" lazy-load="true"></image>
+            <text wx:else class="feed-thumb-fallback">📷</text>
+          </view>
+          <view class="feed-body">
+            <view class="feed-line1">
+              <text class="feed-order-no">订单 #{{item.order_no}}</text>
+              <text class="feed-status-tag">{{item.status_label}}</text>
+            </view>
+            <view class="feed-line2">
+              <text class="feed-text">{{item.feedback_text}}</text>
+            </view>
+          </view>
+          <view class="feed-meta">
+            <view class="feed-unread-dot" wx:if="{{item.is_unread}}"></view>
+            <text class="feed-time">{{item.timeText}}</text>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -286,6 +321,7 @@
         </view>
       </view>
       <view class="menu-item-right">
+        <view class="menu-corner-badge" wx:if="{{internalPending > 0}}">{{internalPending}}</view>
         <text class="menu-arrow">></text>
       </view>
     </view>
@@ -300,6 +336,7 @@
         </view>
       </view>
       <view class="menu-item-right">
+        <view class="menu-corner-badge" wx:if="{{internalPending > 0}}">{{internalPending}}</view>
         <text class="menu-arrow">></text>
       </view>
     </view>
@@ -384,7 +421,7 @@
                 <text class="settings-item-desc">接收订单状态变更推送</text>
               </view>
             </view>
-            <switch class="settings-switch" checked="{{settings.orderNotify}}" bindchange="toggleOrderNotify" color="#5a6e8a"/>
+            <switch class="settings-switch" checked="{{settings.orderNotify}}" bindchange="toggleOrderNotify" color="#4f6b84"/>
           </view>
           <view class="settings-item">
             <view class="settings-item-left">
@@ -394,7 +431,7 @@
                 <text class="settings-item-desc">接收维修进度更新推送</text>
               </view>
             </view>
-            <switch class="settings-switch" checked="{{settings.progressNotify}}" bindchange="toggleProgressNotify" color="#5a6e8a"/>
+            <switch class="settings-switch" checked="{{settings.progressNotify}}" bindchange="toggleProgressNotify" color="#4f6b84"/>
           </view>
           <view class="settings-item">
             <view class="settings-item-left">
@@ -404,7 +441,7 @@
                 <text class="settings-item-desc">接收维修报价通知推送</text>
               </view>
             </view>
-            <switch class="settings-switch" checked="{{settings.quoteNotify}}" bindchange="toggleQuoteNotify" color="#5a6e8a"/>
+            <switch class="settings-switch" checked="{{settings.quoteNotify}}" bindchange="toggleQuoteNotify" color="#4f6b84"/>
           </view>
         </view>
 
@@ -473,3 +510,4 @@
     </view>
   </view>
 </view>
+<confirm-modal id="confirmModal" />

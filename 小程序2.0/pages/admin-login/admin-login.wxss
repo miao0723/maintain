@@ -1,7 +1,7 @@
 /* pages/admin-login/admin-login.wxss */
 .login-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -91,13 +91,13 @@
 .login-btn {
   width: 100%;
   padding: 35rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
   color: white;
   border-radius: 40rpx;
   font-size: 36rpx;
   font-weight: bold;
   border: none;
-  box-shadow: 0 10rpx 30rpx rgba(102, 126, 234, 0.4);
+  box-shadow: 0 10rpx 30rpx rgba(67, 111, 149, 0.4);
 }
 
 .login-btn.loading {

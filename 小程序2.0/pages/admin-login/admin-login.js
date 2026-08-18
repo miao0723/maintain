@@ -77,7 +77,7 @@ Page({
       }
 
       const baseUrl = candidates[index];
-      const fullUrl = baseUrl + '/api/admin/login';
+      const fullUrl = baseUrl + '/admin/login';
       console.log('管理员登录尝试:', fullUrl, 'index:', index);
 
       wx.request({

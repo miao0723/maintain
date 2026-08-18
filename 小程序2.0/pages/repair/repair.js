@@ -44,7 +44,8 @@ Page({
     showUnitSelector: false, // 是否显示单位选择器
 
     estimatedPrice: 0,
-    formattedEstimatedPrice: '0.0', // 格式化后的预估价格
+    formattedEstimatedPrice: '0', // 格式化后的预估价格（整数，避免假精度）
+    priceRange: { min: 0, max: 0 }, // 预估维修价格合理浮动区间
     canSubmit: false, // 是否可以提交维修订单
     canSubmitRecycle: false, // 是否可以提交回收订单
 
@@ -286,6 +287,7 @@ Page({
     deviceModel: '',
     deviceCondition: '',
     recyclablePrice: 0,
+    recyclePriceRange: { min: 0, max: 0 },
     isRecycleWaitingPrice: false,
 
     // 自定义回收相关
@@ -551,7 +553,7 @@ Page({
         const priceRate = matchedModel.priceRate || 1.0
         const updatedProblems = (this.data.allProblems[deviceTypeId] || []).map(problem => ({
           ...problem,
-          formattedPrice: (problem.basePrice * priceRate).toFixed(1)
+          formattedPrice: Math.round(problem.basePrice * priceRate)
         }))
         activePriceRate = priceRate
         activeProblems = updatedProblems
@@ -600,13 +602,14 @@ Page({
 
     const matchedProblem = this.findProblemMatch(deviceTypeId, [problemName, problemDescription].filter(Boolean).join(' '))
     if (matchedProblem) {
-      const estimatedPrice = Math.round((matchedProblem.basePrice || 0) * activePriceRate * 10) / 10
+      const { estimatedPrice, formattedEstimatedPrice, priceRange } = this.computeRepairEstimate(matchedProblem.basePrice, activePriceRate)
       this.setData({
         selectedProblem: matchedProblem,
         isCustomProblem: false,
         customProblemDesc: '',
         estimatedPrice,
-        formattedEstimatedPrice: estimatedPrice.toFixed(1),
+        formattedEstimatedPrice,
+        priceRange,
         showProblemDrawer: false
       })
     } else if (problemName || problemDescription) {
@@ -1264,7 +1267,7 @@ Page({
     // 从allProblems中找到对应设备类型的故障问题
     const commonProblems = (this.data.allProblems[deviceId] || []).map(problem => ({
       ...problem,
-      formattedPrice: problem.basePrice.toFixed(1) // 初始显示基础价格
+      formattedPrice: Math.round(problem.basePrice) // 初始显示基础价格（整数）
     }));
 
     this.setData({
@@ -1355,7 +1358,7 @@ Page({
     // 重新计算每个故障问题的价格
     const commonProblems = (this.data.allProblems[this.data.selectedDevice.id] || []).map(problem => ({
       ...problem,
-      formattedPrice: (problem.basePrice * priceRate).toFixed(1)
+      formattedPrice: Math.round(problem.basePrice * priceRate)
     }));
 
     this.setData({
@@ -1377,6 +1380,25 @@ Page({
     this.maybeAutoAdvanceRepairStep(1);
   },
 
+  // 根据故障基础价与机型倍率计算维修估价：
+  // - 取整，避免 “638.4” 这类假精度小数
+  // - 给出合理浮动区间（±15% 左右），贴近真实门店“看机报价”的浮动范围
+  computeRepairEstimate(basePrice, priceRate) {
+    const estimate = Math.round((basePrice || 0) * (priceRate || 1));
+    if (!estimate) {
+      return { estimatedPrice: 0, formattedEstimatedPrice: '0', priceRange: { min: 0, max: 0 } };
+    }
+    const range = {
+      min: Math.round(estimate * 0.85),
+      max: Math.round(estimate * 1.15)
+    };
+    return {
+      estimatedPrice: estimate,
+      formattedEstimatedPrice: String(estimate),
+      priceRange: range
+    };
+  },
+
   selectProblem(e) {
     const problemId = e.currentTarget.dataset.id;
     console.log('选择故障问题ID:', problemId);
@@ -1392,9 +1414,7 @@ Page({
 
     const basePrice = problem.basePrice || 0;
     const priceRate = this.data.selectedModelPriceRate || 1.0;
-    // 保留一位小数
-    const estimatedPrice = Math.round(basePrice * priceRate * 10) / 10;
-    const formattedEstimatedPrice = estimatedPrice.toFixed(1);
+    const { estimatedPrice, formattedEstimatedPrice, priceRange } = this.computeRepairEstimate(basePrice, priceRate);
 
     console.log('基础价格:', basePrice, '价格倍率:', priceRate, '估算价格:', estimatedPrice);
 
@@ -1403,7 +1423,8 @@ Page({
       isCustomProblem: false,
       showProblemDrawer: false,
       estimatedPrice: estimatedPrice,
-      formattedEstimatedPrice: formattedEstimatedPrice
+      formattedEstimatedPrice: formattedEstimatedPrice,
+      priceRange: priceRange
     });
 
     this.updateDisplayValues();
@@ -1808,7 +1829,7 @@ Page({
           title: '提交内部维修申请',
           content: '您是公司内部人员，本次提交仅作为免付款维修申请，无需支付。提交后由管理员确认并安排维修。是否提交？',
           confirmText: '确认提交',
-          confirmColor: '#5a6e8a',
+          confirmColor: '#4f6b84',
           cancelText: '再看看',
           success: (r) => resolve(!!r.confirm)
         });
@@ -1820,7 +1841,7 @@ Page({
         const isWaiting = this.data.isWaitingPrice;
         const priceText = isWaiting
           ? '待报价（提交后由维修管理员评估报价）'
-          : '¥' + (Number(this.data.estimatedPrice) || 0).toFixed(2);
+          : '¥' + (Number(this.data.estimatedPrice) || 0) + (this.data.priceRange && this.data.priceRange.max ? `（参考区间 ¥${this.data.priceRange.min} ~ ¥${this.data.priceRange.max}）` : '');
         const content = isWaiting
           ? '您选择"等待报价"。提交后维修管理员会先评估故障并给出报价，确认后再维修。是否提交？'
           : `维修预估金额：${priceText}\n（最终以维修管理员报价为准）\n请确认金额是否合理。`;
@@ -1828,7 +1849,7 @@ Page({
           title: '确认维修金额',
           content,
           confirmText: '确认提交',
-          confirmColor: '#5a6e8a',
+          confirmColor: '#4f6b84',
           cancelText: '再看看',
           success: (r) => resolve(!!r.confirm)
         });
@@ -1934,7 +1955,8 @@ Page({
 
     const app = getApp();
     const baseUrl = app.globalData.baseUrl || app.globalData.apiUrl;
-    const uploadUrl = baseUrl + '/api/upload/image';
+    // 网关 /mp-api 已映射到后端 /api；路径不再重复写 /api，否则会变成 /mp-api/api/... 而 404
+    const uploadUrl = baseUrl + '/upload/image';
     const token = wx.getStorageSync('token') || '';
 
     wx.showLoading({ title: '上传图片中...' });
@@ -2259,22 +2281,22 @@ Page({
       return;
     }
 
-    // 根据回收类型设定基础价格
+    // 根据回收类型设定参考基准价（贴近该类目真实二手市场均价，非虚高）
     const basePriceMap = {
-      1: 3000,  // 手机
-      2: 4000,  // 笔记本
-      3: 2000,  // 平板
+      1: 4000,  // 手机
+      2: 5000,  // 笔记本
+      3: 2500,  // 平板
       4: 1500,  // 手表
-      5: 1000,  // 耳机/音响
-      6: 5000,  // 相机
-      7: 1500,  // 游戏机
+      5: 800,   // 耳机/音响
+      6: 4000,  // 相机
+      7: 2000,  // 游戏机
       9: 3500,  // 无人机
-      12: 8000,  // 服务器
-      13: 500,   // 网络设备
+      12: 6000,  // 服务器
+      13: 400,   // 网络设备
       14: 4000   // 显卡
     }
     const categoryId = this.data.recycleType.categoryId || 1
-    const basePrice = basePriceMap[categoryId] || 2000
+    const basePrice = basePriceMap[categoryId] || 2500
 
     const rate = this.data.conditionRate || 0.6;
     const modelRate = Number(this.data.recycleModelRate || 0);
@@ -2283,14 +2305,21 @@ Page({
       return;
     }
 
-    const price = Math.round(basePrice * modelRate * rate);
+    // 叠加二手回收基准系数（0.9），即使是“全新”也不等于 100% 参考价
+    const RECYCLE_BASE_FACTOR = 0.9;
+    const price = Math.round(basePrice * modelRate * rate * RECYCLE_BASE_FACTOR);
+    const priceRange = {
+      min: Math.round(price * 0.9),
+      max: Math.round(price * 1.05)
+    };
 
     this.setData({
       recyclablePrice: price,
+      recyclePriceRange: priceRange,
       isRecycleWaitingPrice: false
     });
 
-    console.log('计算回收价格:', { categoryId, basePrice, modelRate, rate, price });
+    console.log('计算回收价格:', { categoryId, basePrice, modelRate, rate, price, priceRange });
   },
 
   // 回收图片上传
@@ -2628,7 +2657,7 @@ ${recycleImageList.length > 0 ? '\n已上传' + recycleImageList.length + '张�
         content: internalContent.trim(),
         confirmText: '确认提交',
         cancelText: '再看看',
-        confirmColor: '#5a6e8a',
+        confirmColor: '#4f6b84',
         success: (res) => {
           if (res.confirm) {
             // 标记已确认，避免 submitRecycleOrder 再次弹窗

@@ -2,18 +2,18 @@
 const { categories } = require('../../utils/recycleData.js');
 
 const CATEGORY_VISUALS = {
-  phone:    { icon: '📱', scene: '双摄旗舰', badge: '手机', imageUrl: 'https://img.icons8.com/color/144/smartphone--v1.png' },
-  computer: { icon: '💻', scene: '轻薄性能', badge: '电脑', imageUrl: 'https://img.icons8.com/color/144/laptop--v1.png' },
-  tablet:   { icon: '📟', scene: '大屏便携', badge: '平板', imageUrl: 'https://img.icons8.com/color/144/ipad-pro--v1.png' },
-  wearable: { icon: '⌚', scene: '腕上智能', badge: '穿戴', imageUrl: 'https://img.icons8.com/color/144/smartwatch--v1.png' },
-  display:  { icon: '🖥️', scene: '高清大屏', badge: '显示器', imageUrl: 'https://img.icons8.com/color/144/monitor--v1.png' },
-  home:     { icon: '🎧', scene: '生活设备', badge: '数码', imageUrl: 'https://img.icons8.com/color/144/headphones--v1.png' },
-  camera:   { icon: '📷', scene: '影像器材', badge: '相机', imageUrl: 'https://img.icons8.com/color/144/camera--v1.png' },
-  gaming:   { icon: '🎮', scene: '娱乐主机', badge: '游戏', imageUrl: 'https://img.icons8.com/color/144/xbox-controller--v1.png' },
-  drone:    { icon: '🚁', scene: '航拍飞行', badge: '无人机', imageUrl: 'https://img.icons8.com/color/144/drone--v1.png' },
-  server:   { icon: '🖥️', scene: '企业算力', badge: '服务器', imageUrl: 'https://img.icons8.com/color/144/server.png' },
-  network:  { icon: '📡', scene: '网络互联', badge: '网络设备', imageUrl: 'https://img.icons8.com/color/144/router.png' },
-  gpu:      { icon: '🎛️', scene: '图形算力', badge: '显卡', imageUrl: 'https://img.icons8.com/color/144/graphics-card.png' }
+  phone:    { icon: '📱', scene: '双摄旗舰', badge: '手机', imageUrl: '/pages/recycle/images/phone.webp' },
+  computer: { icon: '💻', scene: '轻薄性能', badge: '电脑', imageUrl: '/pages/recycle/images/computer.webp' },
+  tablet:   { icon: '📟', scene: '大屏便携', badge: '平板', imageUrl: '/pages/recycle/images/tablet.webp' },
+  wearable: { icon: '⌚', scene: '腕上智能', badge: '穿戴', imageUrl: '/pages/recycle/images/wearable.webp' },
+  display:  { icon: '🖥️', scene: '高清大屏', badge: '显示器', imageUrl: '/pages/recycle/images/display.webp' },
+  home:     { icon: '🎧', scene: '生活设备', badge: '数码', imageUrl: '/pages/recycle/images/home.webp' },
+  camera:   { icon: '📷', scene: '影像器材', badge: '相机', imageUrl: '/pages/recycle/images/camera.webp' },
+  gaming:   { icon: '🎮', scene: '娱乐主机', badge: '游戏', imageUrl: '/pages/recycle/images/gaming.webp' },
+  drone:    { icon: '🚁', scene: '航拍飞行', badge: '无人机', imageUrl: '/pages/recycle/images/drone.webp' },
+  server:   { icon: '🖥️', scene: '企业算力', badge: '服务器', imageUrl: '/pages/recycle/images/server.webp' },
+  network:  { icon: '📡', scene: '网络互联', badge: '网络设备', imageUrl: '/pages/recycle/images/network.webp' },
+  gpu:      { icon: '🎛️', scene: '图形算力', badge: '显卡', imageUrl: '/pages/recycle/images/gpu.webp' }
 };
 
 function getCategoryVisual(category) {

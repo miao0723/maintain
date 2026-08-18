@@ -1,0 +1,31 @@
+<!-- components/confirm-modal/confirm-modal.wxml -->
+<view
+  wx:if="{{visible}}"
+  class="cm-mask {{closing ? 'cm-mask--closing' : 'cm-mask--show'}}"
+  catchtap="noop"
+>
+  <view class="cm-card {{closing ? 'cm-card--closing' : 'cm-card--show'}}" catchtap="noop">
+    <view wx:if="{{iconType !== 'none'}}" class="cm-icon cm-icon--{{iconType}}">
+      <text class="cm-icon-text">{{iconText}}</text>
+    </view>
+
+    <view wx:if="{{title}}" class="cm-title">{{title}}</view>
+    <view wx:if="{{content}}" class="cm-content">{{content}}</view>
+
+    <view class="cm-actions">
+      <view
+        wx:if="{{showCancel}}"
+        class="cm-btn cm-btn--cancel"
+        style="color:{{cancelColor}}"
+        catchtap="onCancel"
+        hover-class="cm-btn--cancel-hover"
+      >{{cancelText}}</view>
+      <view
+        class="cm-btn cm-btn--confirm"
+        style="background:{{confirmBg}};color:{{confirmColor}}"
+        catchtap="onConfirm"
+        hover-class="cm-btn--confirm-hover"
+      >{{confirmText}}</view>
+    </view>
+  </view>
+</view>

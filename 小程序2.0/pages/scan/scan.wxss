@@ -53,7 +53,7 @@
 }
 
 .select-card:active {
-  border-color: #5a6e8a;
+  border-color: #4f6b84;
   transform: scale(0.96);
   background: #f0f3ff;
 }
@@ -127,14 +127,14 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #5a6e8a 0%, #6e85a5 100%);
+  background: linear-gradient(135deg, #4f6b84 0%, #6a9abb 100%);
   color: #ffffff;
   box-shadow: 0 6rpx 20rpx rgba(90,110,138,0.26);
 }
 
 .btn-outline {
   background: #ffffff;
-  color: #5a6e8a;
+  color: #4f6b84;
   border: 2rpx solid #dce0e5;
 }
 
@@ -148,7 +148,7 @@
 .tips-title {
   font-size: 26rpx;
   font-weight: 600;
-  color: #5a6e8a;
+  color: #4f6b84;
   margin-bottom: 16rpx;
 }
 
@@ -398,7 +398,7 @@
 
 /* 系列标签 */
 .series-tag {
-  background: linear-gradient(135deg, #5a6e8a, #6e85a5);
+  background: linear-gradient(135deg, #4f6b84, #6a9abb);
   border-radius: 20rpx;
   padding: 4rpx 16rpx;
 }
@@ -451,7 +451,7 @@
 .confidence-value {
   font-size: 24rpx;
   font-weight: 700;
-  color: #5a6e8a;
+  color: #4f6b84;
   min-width: 60rpx;
   text-align: right;
 }
@@ -492,7 +492,7 @@
 }
 
 .detail-highlight .detail-label {
-  color: #5a6e8a;
+  color: #4f6b84;
   font-weight: 600;
 }
 
@@ -564,7 +564,7 @@
 
 .trigger-current {
   font-size: 24rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -582,7 +582,7 @@
 }
 
 .trigger-action.done {
-  color: #5a6e8a;
+  color: #4f6b84;
 }
 
 .trigger-arrow {
@@ -738,7 +738,7 @@
 
 .match-text {
   font-size: 24rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
   font-weight: 500;
 }
 
@@ -795,7 +795,7 @@
 
 /* 按钮颜色区分（浅色左边框 + 轻量图标色） */
 .act-device {
-  border-left: 6rpx solid #6366f1;
+  border-left: 6rpx solid #436f95;
   background: linear-gradient(90deg, rgba(99,102,241,0.04) 0%, #fff 15%);
 }
 
@@ -814,7 +814,7 @@
   text-align: center;
   padding: 24rpx;
   font-size: 26rpx;
-  color: #5a6e8a;
+  color: #4f6b84;
   font-weight: 500;
 }
 
