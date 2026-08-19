@@ -1,6 +1,9 @@
 <!-- pages/login/login.wxml -->
 <view class="login-container">
-  <view class="login-card">
+
+  <!-- ===== 步骤一：微信一键登录 ===== -->
+  <view class="login-card" wx:if="{{step === 'login'}}">
+    <view class="login-glow"></view>
     <view class="login-logo">🔧</view>
     <view class="login-title">电子维修服务</view>
     <view class="login-desc">登录后可使用故障自检、报价确认、进度反馈与设备回收</view>
@@ -22,27 +25,57 @@
     </view>
   </view>
 
-  <!-- 资料补全弹层：读取微信头像与昵称 -->
-  <view class="fill-mask" wx:if="{{showProfileFill}}">
-    <view class="fill-card">
-      <view class="fill-glow"></view>
-      <view class="fill-emoji">🙂</view>
-      <text class="fill-title">完善微信资料</text>
-      <text class="fill-sub">点击下方头像获取微信头像，昵称可一键填入</text>
+  <!-- ===== 步骤二：授权微信头像与昵称（内联，解析后立即展示） ===== -->
+  <view class="login-card fill-card" wx:if="{{step === 'profile'}}">
+    <view class="fill-glow"></view>
 
-      <button class="fill-avatar" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" loading="{{isFilling}}" disabled="{{isFilling}}">
-        <image class="fill-avatar-img" src="{{fillAvatarUrl || defaultAvatarUrl}}" mode="aspectFill"></image>
-        <view class="fill-avatar-hint">点击选择微信头像</view>
-      </button>
+    <view class="fill-emoji">🙂</view>
+    <text class="fill-title">完善微信资料</text>
+    <text class="fill-sub">点击下方头像授权微信头像，昵称可一键填入</text>
 
-      <view class="fill-nick">
-        <text class="fill-nick-label">昵称</text>
-        <input class="fill-nick-input" type="nickname" placeholder="点此填入微信昵称" placeholder-class="fill-nick-ph" value="{{fillNickName}}" bindnickname="onFillNickName" bindinput="onFillNickNameInput" maxlength="20"/>
+    <!-- 头像：open-type=chooseAvatar 直接拉起微信头像授权，选完即解析展示 -->
+    <button
+      class="fill-avatar {{fillAvatarUrl ? 'fill-avatar--set' : ''}}"
+      open-type="chooseAvatar"
+      bindchooseavatar="onChooseAvatar"
+      disabled="{{isFilling}}"
+    >
+      <image
+        class="fill-avatar-img"
+        src="{{fillAvatarUrl || defaultAvatarUrl}}"
+        mode="aspectFill"
+      ></image>
+      <view class="fill-avatar-ring"></view>
+      <view class="fill-avatar-hint">{{fillAvatarUrl ? '点击可重新选择' : '点击授权微信头像'}}</view>
+    </button>
+
+    <!-- 昵称：type=nickname 可一键填入微信昵称，bindnickname 解析后即时回显 -->
+    <view class="fill-nick">
+      <text class="fill-nick-label">昵称</text>
+      <view class="fill-nick-box">
+        <input
+          class="fill-nick-input"
+          type="nickname"
+          placeholder="点此填入微信昵称"
+          placeholder-class="fill-nick-ph"
+          value="{{fillNickName}}"
+          bindnickname="onFillNickName"
+          bindinput="onFillNickNameInput"
+          maxlength="20"
+        />
+        <view class="fill-nick-icon" wx:if="{{fillNickName}}">✓</view>
       </view>
-
-      <button class="fill-save" bindtap="saveProfileFill" loading="{{isFilling}}" disabled="{{isFilling}}">{{isFilling ? '保存中...' : '保存并进入'}}</button>
-      <view class="fill-skip" bindtap="skipProfileFill">跳过，先用默认资料进入 ›</view>
     </view>
+
+    <button
+      class="fill-save"
+      bindtap="saveProfileFill"
+      loading="{{isFilling}}"
+      disabled="{{isFilling}}"
+    >{{isFilling ? '保存中...' : '保存并进入'}}</button>
+
+    <view class="fill-skip" bindtap="skipProfileFill">跳过，先用默认资料进入 ›</view>
   </view>
+
 </view>
 <confirm-modal id="confirmModal" />

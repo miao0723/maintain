@@ -1,6 +1,7 @@
 // utils/api.js - API服务层封装（真实API模式）
 const USE_LOCAL_STORAGE = false; // 设置为 true 使用本地存储模式
 const { getApiBaseCandidates } = require('./runtimeConfig.js')
+const { getMpApiBaseUrl } = require('./mpApi.js')
 
 let activeBaseUrl = '';
 
@@ -302,6 +303,79 @@ function uploadFileWithCandidates(pathname, filePath, formData = {}, options = {
   })
 }
 
+/**
+ * 上传文件到【恒定线上网关】(getMpApiBaseUrl)。
+ *
+ * 与 uploadFileWithCandidates 不同，本函数不走候选地址回退列表，而是直接上传到
+ * 恒定的生产网关 https://zych.net.cn/mp-api。原因见 utils/mpApi.js 的设计说明：
+ * 候选列表可能把本地 127.0.0.1:3001 排在前面（如真机预览时 activeBaseUrl 记忆为本地、
+ * 或本地存储/全局地址残留），一旦本地后端未启动，wx.uploadFile 会直接
+ * ERR_CONNECTION_REFUSED(ECONNREFUSED 127.0.0.1:3001)。语音转写等功能性上传
+ * 对线上网关有强依赖，固定走线上可彻底避免误命中本地死地址。
+ *
+ * @param {string} pathname - 接口路径（不再写 /api，网关已映射）
+ * @param {string} filePath - 待上传的本地临时文件路径
+ * @param {object} formData - 附加表单字段
+ * @param {object} options - 其他选项（fieldName/timeout/header/suppressErrorToast）
+ * @returns {Promise}
+ */
+function uploadFileFixed(pathname, filePath, formData = {}, options = {}) {
+  const token = wx.getStorageSync('token') || ''
+  const suppressErrorToast = !!options.suppressErrorToast
+  const timeout = options.timeout || 15000
+
+  return new Promise((resolve, reject) => {
+    const baseUrl = getMpApiBaseUrl()
+    const uploadUrl = `${baseUrl}${pathname}`
+
+    console.log('CODEBUDDY_DEBUG uploadFixed', uploadUrl, 'filePath=', filePath)
+
+    const uploadTask = wx.uploadFile({
+      url: uploadUrl,
+      filePath,
+      name: options.fieldName || 'file',
+      timeout: timeout,
+      formData,
+      header: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        ...(options.header || {})
+      },
+      success: (res) => {
+        let parsed
+        try {
+          parsed = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+        } catch (error) {
+          parsed = null
+        }
+
+        if (res.statusCode >= 200 && res.statusCode < 300 && parsed) {
+          resolve(parsed)
+          return
+        }
+
+        const errorMsg = parsed?.message || `上传失败(${res.statusCode})`
+        if (!suppressErrorToast) {
+          wx.showToast({ title: errorMsg, icon: 'none' })
+        }
+        reject(new Error(errorMsg))
+      },
+      fail: (err) => {
+        const originalErrMsg = err.errMsg || ''
+        const toastTitle = `语音转写上传失败：${originalErrMsg}（已直连线上网关 ${baseUrl}）`
+        console.error('[Service] uploadFixed fail:', originalErrMsg, 'url=', uploadUrl)
+        if (!suppressErrorToast) {
+          wx.showToast({ title: toastTitle, icon: 'none', duration: 3000 })
+        }
+        reject(new Error(`[${originalErrMsg}] ${toastTitle} | candidates: ${baseUrl}`))
+      }
+    })
+
+    if (typeof options.onProgress === 'function' && uploadTask && typeof uploadTask.onProgressUpdate === 'function') {
+      uploadTask.onProgressUpdate(options.onProgress)
+    }
+  })
+}
+
 // 用户相关API
 const userApi = {
   // 微信登录
@@ -504,8 +578,9 @@ const chatApi = {
   },
 
   // 上传音频并转写为文字
+  // 直连恒定线上网关(见 uploadFileFixed 说明)，避免候选列表误命中本地 127.0.0.1:3001 死地址
   transcribeAudio(filePath, formData = {}) {
-    return uploadFileWithCandidates('/chat/transcribe', filePath, formData, {
+    return uploadFileFixed('/chat/transcribe', filePath, formData, {
       fieldName: 'file'
     })
   },

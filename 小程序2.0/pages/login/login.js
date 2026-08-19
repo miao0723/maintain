@@ -10,8 +10,8 @@ Page({
   data: {
     compactLayout: false,
     loading: false,
-    // 资料补全弹层
-    showProfileFill: false,
+    // 登录流程步骤：login(一键登录) -> profile(授权头像昵称)
+    step: 'login',
     fillAvatarUrl: '',
     fillNickName: '',
     isFilling: false,
@@ -180,12 +180,12 @@ Page({
           duration: 1200
         })
 
-        // 新用户或资料不完整 -> 弹出资料补全层（读取微信名和头像）
+        // 新用户或资料不完整 -> 切换到「授权头像昵称」步骤（读取微信名和头像，解析后立即展示）
         // 用户曾经主动「跳过」则不再打扰，可在「我的资料」页随时补填
         const skippedBefore = wx.getStorageSync('profileFillSkipped')
         if (!skippedBefore && this.needProfileFill(normalizedUser)) {
           this.setData({
-            showProfileFill: true,
+            step: 'profile',
             fillAvatarUrl: normalizedUser.avatarUrl || '',
             fillNickName: ''
           })
@@ -248,7 +248,7 @@ Page({
   skipProfileFill() {
     // 记录用户主动跳过，避免每次登录都重复弹资料补全层（仍可到「我的资料」页补填）
     wx.setStorageSync('profileFillSkipped', true)
-    this.setData({ showProfileFill: false })
+    this.setData({ step: 'login' })
     this.navigateToHome()
   },
 
@@ -353,7 +353,7 @@ Page({
 
     wx.hideLoading()
     wx.showToast({ title: '已登录', icon: 'success', duration: 1200 })
-    this.setData({ showProfileFill: false, isFilling: false })
+    this.setData({ step: 'login', isFilling: false })
     setTimeout(() => this.navigateToHome(), 1200)
   },
 

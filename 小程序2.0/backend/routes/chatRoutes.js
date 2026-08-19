@@ -43,10 +43,17 @@ function resolveVoiceConfig() {
   const backendEnvPath = path.join(__dirname, '../.env')
   const rootEnv = readEnvFile(rootEnvPath)
   const backendEnv = readEnvFile(backendEnvPath)
+  // 合并优先级（高 -> 低）：
+  //   1. process.env        —— 部署时通过环境变量/密钥注入，永远最优先，
+  //                            可覆盖镜像内 COPY 进来的陈旧 .env（无需重新构建镜像即可生效）
+  //   2. backend/.env       —— 后端目录下的 .env（开发/单机部署常用）
+  //   3. 根目录 .env         —— 根目录下的 .env
+  // 注意：早期实现把 process.env 放在最低优先级，导致 Docker 容器内 COPY 进来的旧 .env
+  // 始终覆盖部署环境变量，改了 backend/.env 后容器内仍报“缺少 DASHSCOPE_API_KEY”。
   const merged = {
-    ...process.env,
     ...rootEnv,
-    ...backendEnv
+    ...backendEnv,
+    ...process.env
   }
 
   const provider = merged.VOICE_PROVIDER || 'qwen'

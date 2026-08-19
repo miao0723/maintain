@@ -5,51 +5,31 @@
 # 或手动: docker compose up -d --build
 
 services:
-  # ===== 本地 MySQL（开箱即用）=====
-  mysql:
-    image: mysql:8.0
-    container_name: repair_mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: repair
-      TZ: Asia/Shanghai
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot123"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+  # 注意：服务器数据库为独立运行的 sqfe2-mysql-1，本 compose 不再包含 mysql 服务，
+  # 后端通过挂载的 backend/.env 中的 DB_HOST=sqfe2-mysql-1 连接。
 
-  # ===== 后端 Node 服务（连接本地 MySQL）=====
+  # ===== 后端 Node 服务 =====
+  # 说明：本 compose 用于「服务器部署」。所有配置（数据库、语音转写、PUBLIC_BASE_URL 等）
+  # 统一以挂载进容器的 backend/.env 为准，这里【不再写死 environment 覆盖项】，
+  # 否则会盖掉 .env 里真正的服务器配置（典型坑：本地 DB_HOST=mysql/root 覆盖服务器
+  # sqfe2-mysql-1/sqfe2_user，导致后端连不上数据库）。
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: repair_backend
     restart: unless-stopped
-    depends_on:
-      mysql:
-        condition: service_healthy
+    # 服务器已独立运行 sqfe2-mysql-1，这里不再 depends_on 本地 mysql 服务
     environment:
-      # 与 .env 保持一致，使用 docker 服务名 mysql
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: root
-      DB_PASSWORD: root123
-      DB_NAME: repair
+      # 仅保留端口/宿主等运行期必要项；业务配置一律走挂载的 .env
       PORT: 3001
-      HOST: http://localhost:3001
-      NODE_ENV: development
+      NODE_ENV: production
     ports:
       - "3001:3001"
     volumes:
       # 上传文件持久化到宿主机，避免重建容器后丢失
       - ./uploads:/app/uploads
-
-volumes:
-  mysql_data:
+      # 挂载 .env，使对 backend/.env 的修改（如 DASHSCOPE_API_KEY、PUBLIC_BASE_URL）
+      # 能实时生效，无需重新构建镜像。后端每次请求都从磁盘读取 .env，
+      # 若不挂载，容器内跑的是镜像构建时 COPY 进来的旧 .env。
+      - ./backend/.env:/app/.env:ro
