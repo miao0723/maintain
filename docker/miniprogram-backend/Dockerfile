@@ -10,18 +10,18 @@ RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.li
 WORKDIR /app
 
 # 先安装依赖，充分利用镜像层缓存
-COPY 电子维修2.0/backend/package.json 电子维修2.0/backend/package-lock.json* ./
+COPY 小程序2.0/backend/package.json 小程序2.0/backend/package-lock.json* ./
 RUN npm config set registry https://registry.npmmirror.com \
     && npm install --omit=dev
 
 # 复制业务代码（.env 已在 .dockerignore 中排除，配置一律由 env_file 注入）
-COPY 电子维修2.0/backend/ ./
+COPY 小程序2.0/backend/ ./
 
 # scanRoutes.js 依赖小程序根目录的共享模块 ../../utils/deviceData.js
-COPY 电子维修2.0/utils/ /utils/
+COPY 小程序2.0/utils/ /utils/
 
-# 上传目录（与 PHP 后台共享的 uploads 由 compose 挂载到 /uploads）
-RUN mkdir -p /uploads/reviews /uploads/quotes /uploads/repairs
+# 上传目录由 compose 挂载宿主机的 小程序2.0/uploads 到 /app/uploads，
+# 子目录（avatars/reviews/quotes/repairs）由后端启动时 mkdirSync 自动创建
 
 ENV NODE_ENV=production \
     PORT=3001 \

@@ -28,7 +28,7 @@ services:
       dockerfile: docker/php/Dockerfile
     volumes:
       - ../backend:/var/www/html
-      - ../电子维修2.0/uploads:/var/www/html/miniprogram-uploads
+      - ../小程序2.0/uploads:/var/www/html/miniprogram-uploads
       - ./rpa_files:/var/www/html/rpa_files
       - ../backend/rpa_files_xhs:/var/www/html/rpa_files_xhs
       - uploads_data:/app/uploads
@@ -74,8 +74,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      # 与 PHP 后台、Nginx 共享同一份上传目录
-      - ../电子维修2.0/uploads:/uploads
+      # 与 PHP 后台、Nginx 共享同一份上传目录。
+      # 后端代码读写的是 backend/uploads（容器内 /app/uploads），
+      # 必须挂到 /app/uploads，否则文件落进容器层、重建即丢失
+      - ../小程序2.0/uploads:/app/uploads
     ports:
       # 仅本机可访问，小程序请求统一走 443 nginx 网关 /mp-api
       - "127.0.0.1:3001:3001"
@@ -202,7 +204,7 @@ services:
       - "127.0.0.1:8080:80"
     volumes:
       - ../backend:/var/www/html
-      - ../电子维修2.0/uploads:/var/www/html/miniprogram-uploads
+      - ../小程序2.0/uploads:/var/www/html/miniprogram-uploads
       - uploads_data:/var/www/html/public/uploads
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/ssl:/etc/nginx/cert

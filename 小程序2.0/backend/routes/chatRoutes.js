@@ -56,7 +56,9 @@ function resolveVoiceConfig() {
     ...process.env
   }
 
-  const provider = merged.VOICE_PROVIDER || 'qwen'
+  // dashscope 与 qwen 是同一平台（灵积/通义，兼容模式接口一致），统一归并为 qwen 分支
+  let provider = (merged.VOICE_PROVIDER || 'qwen').toLowerCase().trim()
+  if (provider === 'dashscope') provider = 'qwen'
   const apiKey = merged.DASHSCOPE_API_KEY || merged.VOICE_API_KEY || ''
   const region = merged.DASHSCOPE_REGION || 'cn-beijing'
   const workspaceId = merged.DASHSCOPE_WORKSPACE_ID || ''
