@@ -187,6 +187,20 @@
         </view>
       </view>
 
+      <!-- 内部人员：设备来源选择 -->
+      <view class="device-source-card" wx:if="{{isInternal}}">
+        <view class="ds-title">设备来源 <text class="required-mark">*</text></view>
+        <view class="ds-options">
+          <view class="ds-option {{deviceSource === item.key ? 'active' : ''}}"
+                wx:for="{{deviceSourceOptions}}" wx:key="key"
+                catchtap="selectDeviceSource" data-key="{{item.key}}">
+            <view class="ds-check {{deviceSource === item.key ? 'checked' : ''}}">✓</view>
+            <text class="ds-label">{{item.label}}</text>
+          </view>
+        </view>
+        <text class="ds-hint">内部免付款申请，提交后由管理员确认，全程无需支付</text>
+      </view>
+
       <!-- 地址选择 -->
       <view class="result-address" bindtap="openAddressPicker">
         <text class="ra-icon">📍</text>
@@ -206,8 +220,8 @@
     <view class="guide-footer">
       <view class="submit-row">
         <button class="contact-btn ghost" bindtap="onContactSupport">联系客服</button>
-        <button class="submit-btn" bindtap="onSubmitOrder" loading="{{submitting}}" disabled="{{!selectedAddress}}">
-          提交回收订单
+        <button class="submit-btn {{isInternal ? 'internal' : ''}}" bindtap="onSubmitOrder" loading="{{submitting}}" disabled="{{!selectedAddress || (isInternal && !deviceSource)}}">
+          {{isInternal ? '提交内部回收申请' : '提交回收订单'}}
         </button>
       </view>
     </view>

@@ -297,6 +297,8 @@ router.get('/my-orders', authenticateToken, async (req, res) => {
           o.service_type,
           o.brand_id,
           o.device_condition,
+          o.is_internal,
+          o.device_source,
           o.status,
           o.assigned_to,
           o.created_at,
@@ -789,6 +791,8 @@ router.get('/orders/:orderId', authenticateToken, requireAdmin, async (req, res)
         o.service_type as serviceType,
         o.brand_id as brandId,
         o.device_condition as deviceCondition,
+        o.is_internal,
+        o.device_source,
         o.status,
         o.assigned_to as assignedTo,
         o.assigned_at as assignedAt,
@@ -1040,6 +1044,8 @@ router.get('/all-orders', authenticateToken, requireAdmin, async (req, res) => {
         o.service_type as serviceType,
         o.brand_id as brandId,
         o.device_condition as deviceCondition,
+        o.is_internal,
+        o.device_source,
         o.images,
         o.created_at as createdAt,
         o.updated_at as updatedAt,
@@ -1640,10 +1646,21 @@ router.get('/pending-count', authenticateToken, requireAdmin, async (req, res) =
  * 内部人员提交的维修/回收申请，管理员确认后正式建单（免付款），并记录确认人/时间
  * PUT /api/admin/orders/:orderId/internal-confirm
  */
-router.put('/orders/:orderId/internal-confirm', authenticateToken, requireAdmin, async (req, res) => {
+router.put('/orders/:orderId/internal-confirm', authenticateToken, async (req, res) => {
   try {
     const orderId = parseInt(req.params.orderId) || 0;
     const adminId = req.user.id;
+
+    // 允许管理员（admin/super_admin）与内部人员（internal）处理内部免付款申请。
+    // 内部人员既可发起申请，也可在同一账号下确认/驳回（小型团队一人多岗场景）。
+    if (!['admin', 'super_admin', 'internal'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        error: '需要管理员或内部人员权限',
+        currentRole: req.user.role
+      });
+    }
+
     const { action, actual_price, remark, reject_reason } = req.body || {};
 
     if (!orderId) {
@@ -1983,7 +2000,7 @@ router.get('/internal-orders', authenticateToken, requireAdmin, async (req, res)
          o.id, o.order_id as order_no, o.user_id, o.order_type, o.device_type,
          o.device_model, o.problem_description, o.custom_description, o.images,
          o.service_type, o.device_condition, o.estimated_price, o.actual_price,
-         o.status, o.payment_status, o.created_at, o.updated_at,
+         o.status, o.payment_status, o.is_internal, o.device_source, o.created_at, o.updated_at,
          u.nickname as user_name, u.phone as user_phone, u.real_name as user_real_name
        FROM orders o
        LEFT JOIN users u ON o.user_id = u.id

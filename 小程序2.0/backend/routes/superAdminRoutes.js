@@ -7,6 +7,30 @@ const router = express.Router();
 const db = require('../database');
 const { ROLES, authenticateToken, requireSuperAdmin, authorizeRole, generateToken } = require('../middleware/auth');
 const { recordOrderIncome, backfillIncome } = require('../services/incomeService');
+// 复用 userRoutes 的头像 URL 归一化：把历史裸域名 /uploads/... 改写为相对路径 /uploads/...，
+// 交给前端 normalizeAvatarUrl 拼正确网关前缀，避免后台列表直接渲染脏数据导致 404。
+const { sanitizeAvatarUrl } = require('./userRoutes');
+
+/**
+ * 后台权限中间件
+ * 日常运营（订单/维修/进度/统计等）：admin 与 super_admin 均可访问。
+ * 治理性操作（改角色/删用户/删库存/改价格/回填收入等）：仅 super_admin。
+ * 用法：router.get('/xxx', authenticateToken, requireManager, ...)   -> 运营级
+ *      router.delete('/xxx', authenticateToken, requireSuperAdmin, ...) -> 治理级
+ */
+const requireManager = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ success: false, error: '需要先登录' });
+  }
+  if (req.user.role !== ROLES.ADMIN && req.user.role !== ROLES.SUPER_ADMIN) {
+    return res.status(403).json({
+      success: false,
+      error: '需要管理员权限',
+      currentRole: req.user.role
+    });
+  }
+  next();
+};
 
 /**
  * 设备类型ID到名称的映射
@@ -100,7 +124,7 @@ router.post('/login', async (req, res) => {
         id: user.id,
         openid: user.openid,
         nickname: user.nickname,
-        avatar_url: user.avatar_url,
+        avatar_url: sanitizeAvatarUrl(user.avatar_url),
         real_name: user.real_name,
         role: user.role,
         phone: user.phone,
@@ -121,7 +145,7 @@ router.post('/login', async (req, res) => {
  * 获取超级管理员个人信息
  * GET /api/super-admin/profile
  */
-router.get('/profile', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.get('/profile', authenticateToken, requireManager, async (req, res) => {
   try {
     const user = await db.query(
       'SELECT id, openid, nickname, avatar_url, real_name, phone, email, role, status, created_at, last_login_at FROM users WHERE id = ?',
@@ -137,7 +161,7 @@ router.get('/profile', authenticateToken, requireSuperAdmin, async (req, res) =>
 
     res.json({
       success: true,
-      user: user[0]
+      user: { ...user[0], avatar_url: sanitizeAvatarUrl(user[0].avatar_url) }
     });
   } catch (error) {
     console.error('获取超级管理员信息错误:', error);
@@ -158,7 +182,7 @@ router.get('/profile', authenticateToken, requireSuperAdmin, async (req, res) =>
  * 获取维修工单列表（分页、搜索、过滤）
  * GET /api/super-admin/repair-orders
  */
-router.get('/repair-orders', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.get('/repair-orders', authenticateToken, requireManager, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const pageSize = parseInt(req.query.pageSize) || 20;
@@ -233,6 +257,7 @@ router.get('/repair-orders', authenticateToken, requireSuperAdmin, async (req, r
 
       return {
         ...order,
+        customer_avatar: sanitizeAvatarUrl(order.customer_avatar),
         device_type_name: getDeviceTypeName(order.device_type, order.device_type_name),
         problem_description: problemDesc,
         estimated_price: formatMoney(order.estimated_price),
@@ -267,7 +292,7 @@ router.get('/repair-orders', authenticateToken, requireSuperAdmin, async (req, r
  * 获取单个维修工单详情
  * GET /api/super-admin/repair-orders/:orderId
  */
-router.get('/repair-orders/:orderId', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.get('/repair-orders/:orderId', authenticateToken, requireManager, async (req, res) => {
   try {
     const { orderId } = req.params;
 
@@ -299,6 +324,7 @@ router.get('/repair-orders/:orderId', authenticateToken, requireSuperAdmin, asyn
 
     const processedOrder = {
       ...orderData,
+      customer_avatar: sanitizeAvatarUrl(orderData.customer_avatar),
       device_type_name: getDeviceTypeName(orderData.device_type, orderData.device_type_name),
       problem_description: problemDesc,
       device_model: orderData.device_model || '未知设备',
@@ -325,7 +351,7 @@ router.get('/repair-orders/:orderId', authenticateToken, requireSuperAdmin, asyn
  * 更新工单状态
  * PUT /api/super-admin/repair-orders/:orderId/status
  */
-router.put('/repair-orders/:orderId/status', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.put('/repair-orders/:orderId/status', authenticateToken, requireManager, async (req, res) => {
   try {
     const { orderId } = req.params;
     const { status } = req.body;
@@ -373,7 +399,7 @@ router.put('/repair-orders/:orderId/status', authenticateToken, requireSuperAdmi
  * 更新工单价格
  * PUT /api/super-admin/repair-orders/:orderId/price
  */
-router.put('/repair-orders/:orderId/price', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.put('/repair-orders/:orderId/price', authenticateToken, requireManager, async (req, res) => {
   try {
     const { orderId } = req.params;
     const { estimatedPrice, actualPrice } = req.body;
@@ -430,7 +456,7 @@ router.put('/repair-orders/:orderId/price', authenticateToken, requireSuperAdmin
  * 更新工单进度
  * PUT /api/super-admin/repair-orders/:orderId/progress
  */
-router.put('/repair-orders/:orderId/progress', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.put('/repair-orders/:orderId/progress', authenticateToken, requireManager, async (req, res) => {
   try {
     const { orderId } = req.params;
     const { progress } = req.body;
@@ -473,7 +499,7 @@ router.put('/repair-orders/:orderId/progress', authenticateToken, requireSuperAd
  * 分配工单给维修人员
  * PUT /api/super-admin/repair-orders/:orderId/assign
  */
-router.put('/repair-orders/:orderId/assign', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.put('/repair-orders/:orderId/assign', authenticateToken, requireManager, async (req, res) => {
   try {
     const { orderId } = req.params;
     const { technicianId } = req.body;
@@ -542,7 +568,7 @@ router.put('/repair-orders/:orderId/assign', authenticateToken, requireSuperAdmi
  * 获取设备状态统计
  * GET /api/super-admin/device-stats
  */
-router.get('/device-stats', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.get('/device-stats', authenticateToken, requireManager, async (req, res) => {
   try {
     // 设备类型分布
     const deviceDistribution = await db.query(`
@@ -654,7 +680,7 @@ router.get('/device-stats', authenticateToken, requireSuperAdmin, async (req, re
  * 获取备件库存列表
  * GET /api/super-admin/parts-inventory
  */
-router.get('/parts-inventory', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.get('/parts-inventory', authenticateToken, requireManager, async (req, res) => {
   try {
     const parts = await db.query(`
       SELECT
@@ -844,7 +870,7 @@ router.delete('/parts-inventory/:partId', authenticateToken, requireSuperAdmin, 
  * 获取维修人员列表
  * GET /api/super-admin/technicians
  */
-router.get('/technicians', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.get('/technicians', authenticateToken, requireManager, async (req, res) => {
   try {
     // 从users表中查询admin和super_admin角色的用户
     const technicians = await db.query(`
@@ -871,6 +897,7 @@ router.get('/technicians', authenticateToken, requireSuperAdmin, async (req, res
 
         return {
           ...tech,
+          avatar_url: sanitizeAvatarUrl(tech.avatar_url),
           processing_orders: stats[0]?.active_orders || 0,
           completed_orders: stats[0]?.completed_orders || 0,
           total_orders: stats[0]?.total_orders || 0,
@@ -906,7 +933,7 @@ router.get('/technicians', authenticateToken, requireSuperAdmin, async (req, res
  * 获取综合统计数据
  * GET /api/super-admin/dashboard
  */
-router.get('/dashboard', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.get('/dashboard', authenticateToken, requireManager, async (req, res) => {
   try {
     // 用户统计
     const userStats = await db.query(`
@@ -1009,7 +1036,7 @@ router.get('/dashboard', authenticateToken, requireSuperAdmin, async (req, res) 
  * GET /api/super-admin/income
  * query: page, pageSize, orderType(repair|recycle), keyword(订单号)
  */
-router.get('/income', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.get('/income', authenticateToken, requireManager, async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize) || 20));
@@ -1229,10 +1256,15 @@ router.get('/users', authenticateToken, requireSuperAdmin, async (req, res) => {
 
     const totalCount = countRows && countRows[0] ? countRows[0].total : 0;
 
+    const sanitizedUsers = (users || []).map(u => ({
+      ...u,
+      avatar_url: sanitizeAvatarUrl(u.avatar_url)
+    }));
+
     res.json({
       success: true,
       data: {
-        users: users || [],
+        users: sanitizedUsers,
         total: totalCount,
         page,
         pageSize,
@@ -1404,7 +1436,7 @@ router.get('/users/:userId', authenticateToken, requireSuperAdmin, async (req, r
 
     res.json({
       success: true,
-      data: users[0]
+      data: { ...users[0], avatar_url: sanitizeAvatarUrl(users[0].avatar_url) }
     });
   } catch (error) {
     console.error('获取用户详情错误:', error);
@@ -1826,7 +1858,7 @@ router.get('/activity-log', authenticateToken, requireSuperAdmin, async (req, re
 
 // ===================== 设备类型管理 =====================
 // device_types 表由 repair.sql 创建，这里提供 CRUD 供管理员维护设备目录
-router.get('/device-types', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.get('/device-types', authenticateToken, requireManager, async (req, res) => {
   try {
     const rows = await db.query(
       'SELECT id, name, icon, created_at FROM device_types ORDER BY id ASC'
@@ -1838,7 +1870,7 @@ router.get('/device-types', authenticateToken, requireSuperAdmin, async (req, re
   }
 });
 
-router.post('/device-types', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.post('/device-types', authenticateToken, requireManager, async (req, res) => {
   try {
     const { name, icon } = req.body || {};
     if (!name || !String(name).trim()) {
@@ -1855,7 +1887,7 @@ router.post('/device-types', authenticateToken, requireSuperAdmin, async (req, r
   }
 });
 
-router.put('/device-types/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.put('/device-types/:id', authenticateToken, requireManager, async (req, res) => {
   try {
     const { name, icon } = req.body || {};
     await db.query(
@@ -1869,7 +1901,7 @@ router.put('/device-types/:id', authenticateToken, requireSuperAdmin, async (req
   }
 });
 
-router.delete('/device-types/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.delete('/device-types/:id', authenticateToken, requireManager, async (req, res) => {
   try {
     await db.query('DELETE FROM device_types WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: '删除成功' });
@@ -1881,7 +1913,7 @@ router.delete('/device-types/:id', authenticateToken, requireSuperAdmin, async (
 
 // ===================== 维修价格管理 =====================
 // prices 表由 migrations/009_prices_table.sql 创建
-router.get('/prices', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.get('/prices', authenticateToken, requireManager, async (req, res) => {
   try {
     const rows = await db.query(
       'SELECT id, device_type, fault_category, device_model, price, description, created_at, updated_at FROM prices ORDER BY id DESC'
@@ -1893,7 +1925,7 @@ router.get('/prices', authenticateToken, requireSuperAdmin, async (req, res) => 
   }
 });
 
-router.post('/prices', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.post('/prices', authenticateToken, requireManager, async (req, res) => {
   try {
     const { device_type, fault_category, device_model, price, description } = req.body || {};
     if (!device_type || !fault_category) {
@@ -1913,7 +1945,7 @@ router.post('/prices', authenticateToken, requireSuperAdmin, async (req, res) =>
   }
 });
 
-router.put('/prices/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.put('/prices/:id', authenticateToken, requireManager, async (req, res) => {
   try {
     const { device_type, fault_category, device_model, price, description } = req.body || {};
     await db.query(
@@ -1930,7 +1962,7 @@ router.put('/prices/:id', authenticateToken, requireSuperAdmin, async (req, res)
   }
 });
 
-router.delete('/prices/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.delete('/prices/:id', authenticateToken, requireManager, async (req, res) => {
   try {
     await db.query('DELETE FROM prices WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: '删除成功' });

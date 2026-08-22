@@ -120,7 +120,7 @@
       bindtap="switchTab"
     >
       <text class="tab-label">内部待确认</text>
-      <text class="tab-badge">{{statusCounts.internal_pending}}</text>
+      <text class="tab-badge" wx:if="{{pendingInternalCount > 0}}">{{pendingInternalCount}}</text>
       <view class="tab-unread" wx:if="{{adminUnread.internal_pending > 0}}">{{adminUnread.internal_pending}}</view>
     </view>
     <view
@@ -132,6 +132,18 @@
       <text class="tab-badge">{{statusCounts.admin_created}}</text>
       <view class="tab-unread" wx:if="{{adminUnread.admin_created > 0}}">{{adminUnread.admin_created}}</view>
     </view>
+  </view>
+
+  <!-- 内部免付款申请待确认提示（全局角标为 0 时也可见，引导管理员处理） -->
+  <view
+    wx:if="{{pendingInternalCount > 0 && currentTab !== 'internal_pending'}}"
+    class="internal-banner"
+    bindtap="switchTab"
+    data-tab="internal_pending"
+  >
+    <text class="internal-banner-icon">🏢</text>
+    <text class="internal-banner-text">有 {{pendingInternalCount}} 笔内部免付款申请待确认（维修/回收），点击处理</text>
+    <text class="internal-banner-arrow">›</text>
   </view>
 
   <!-- 订单列表 -->
@@ -301,6 +313,13 @@
           <button class="action-btn primary share-btn" open-type="share" data-orderno="{{item.orderNo}}" data-orderid="{{item.id}}" data-phone="{{item.customer_phone}}">📤 转发给用户</button>
           <view class="action-btn" style="background:#f4f6f9;color:#475569;" catchtap="copyForward" data-orderno="{{item.orderNo}}" data-id="{{item.id}}">复制订单号</view>
         </block>
+
+        <!-- 内部人员免付款申请：直接同意 / 驳回 -->
+        <block wx:if="{{item.status === 'internal_pending'}}">
+          <view class="action-btn primary" catchtap="confirmInternalOrder" data-id="{{item.id}}">✅ 同意（免付款）</view>
+          <view class="action-btn danger" catchtap="openRejectInternalModal" data-id="{{item.id}}">⛔ 驳回</view>
+          <view class="action-btn info" catchtap="viewOrderDetail" data-id="{{item.id}}">查看详情</view>
+        </block>
       </view>
     </view>
 
@@ -382,6 +401,7 @@
             <text class="device-type-detail">{{currentOrder.deviceTypeName || '未知设备'}}</text>
             <text wx:if="{{currentOrder.brandName}}" class="device-brand-detail">品牌: {{currentOrder.brandName}}</text>
             <text wx:if="{{currentOrder.deviceCondition}}" class="device-condition-detail">成色: {{currentOrder.deviceCondition}}</text>
+            <text wx:if="{{currentOrder.deviceSourceText}}" class="device-condition-detail">来源: {{currentOrder.deviceSourceText}}</text>
           </view>
         </view>
       </view>
@@ -575,6 +595,31 @@
       <view wx:if="{{currentOrder.status === 'confirmed'}}" class="modal-btn primary" catchtap="startProcessing" data-id="{{currentOrder.id}}">开始处理</view>
       <view wx:if="{{currentOrder.status === 'processing' && (!currentOrder.quote_status || currentOrder.quote_status === 'rejected')}}" class="modal-btn quote" catchtap="openQuoteModal">返回报价</view>
       <view wx:if="{{currentOrder.status === 'internal_pending'}}" class="modal-btn primary" catchtap="confirmInternalOrder" data-id="{{currentOrder.id}}">✅ 确认内部订单（免付款）</view>
+      <view wx:if="{{currentOrder.status === 'internal_pending'}}" class="modal-btn danger" catchtap="openRejectInternalModal" data-id="{{currentOrder.id}}">⛔ 驳回申请</view>
+    </view>
+  </view>
+</view>
+
+<!-- 驳回内部申请弹窗 -->
+<view wx:if="{{showRejectInternalModal}}" class="modal-overlay" bindtap="closeRejectInternalModal">
+  <view class="modal-content" catchtap="">
+    <view class="modal-header">
+      <text class="modal-title">驳回内部申请</text>
+      <text class="modal-close" catchtap="closeRejectInternalModal">✕</text>
+    </view>
+    <view class="modal-body">
+      <text class="form-label">请填写驳回原因（将通知申请人）</text>
+      <textarea
+        class="form-textarea"
+        value="{{rejectInternalReason}}"
+        bindinput="onRejectInternalReasonInput"
+        placeholder="如：设备来源填写不清、超出内部维修范围等"
+        maxlength="200"
+      ></textarea>
+    </view>
+    <view class="modal-footer">
+      <view class="modal-btn" catchtap="closeRejectInternalModal">取消</view>
+      <view class="modal-btn danger" catchtap="submitRejectInternal">确认驳回</view>
     </view>
   </view>
 </view>

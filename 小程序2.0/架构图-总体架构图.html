@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>总体架构图</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true, theme:'default', flowchart:{curve:'basis', htmlLabels:true}, themeVariables:{fontSize:'14px'}});</script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",sans-serif; background:#f4f6fb; color:#1f2937; padding:28px; }
+  .page-title { text-align:center; font-size:24px; font-weight:700; margin-bottom:20px; color:#0f172a; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+  .col { background:#fff; border-radius:16px; padding:18px; box-shadow:0 4px 18px rgba(15,23,42,.06); }
+  .col h2 { font-size:15px; color:#4f46e5; margin-bottom:12px; text-align:center; }
+  .mermaid { display:flex; justify-content:center; }
+</style>
+</head>
+<body>
+  <div class="page-title">⚙️ 总体架构图</div>
+  <div class="grid">
+    <div class="col">
+      <h2>系统分层架构</h2>
+      <div class="mermaid">
+flowchart TD
+  A[微信小程序 用户端] --> B[运营后台 管理员/超管]
+  B --> C[后端 API Node+Express]
+  C --> D[(MySQL 数据库)]
+  A -->|HTTPS 请求| C
+  B -->|REST API| C
+  C -->|SQL 读写| D
+  D --> U[(users 用户/角色)]
+  D --> O[(orders 订单)]
+  D --> P[(order_progress_updates 进度)]
+  D --> R[(order_reviews 评价)]
+      </div>
+    </div>
+    <div class="col">
+      <h2>角色与协同</h2>
+      <div class="mermaid">
+flowchart LR
+  U[普通用户] -->|付款下单| O[订单]
+  I[内部人员] -->|免付款申请| O
+  A[管理员] -->|接单/报价/维修| O
+  S[超级管理员] -->|权限/全量管理| O
+  O -->|进度反馈| A
+  O -->|确认报价| U
+  O -->|审批| I
+  O -->|评价| U
+      </div>
+    </div>
+  </div>
+</body>
+</html>

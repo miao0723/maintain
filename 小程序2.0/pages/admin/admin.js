@@ -120,6 +120,15 @@ Page({
   },
 
   /**
+   * 跳转到内部免付款申请待确认（带 status 参数，直接进入有按钮的页签）
+   */
+  goToInternalPending() {
+    wx.navigateTo({
+      url: '/pages/admin-orders/admin-orders?status=internal_pending'
+    });
+  },
+
+  /**
    * 加载待处理计数（红点数据）
    */
   async loadPendingCount() {

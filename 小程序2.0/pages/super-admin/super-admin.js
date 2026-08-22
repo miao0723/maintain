@@ -103,6 +103,7 @@ Page({
     adminInfo: null,
     token: null,
     isSuperAdmin: false,
+    adminRole: null,
 
     // 当前页面
     currentPage: 'dashboard',
@@ -324,6 +325,24 @@ Page({
     });
   },
 
+  onTechnicianAvatarError(e) {
+    const index = e.currentTarget.dataset.index;
+    if (index === undefined) return;
+    this.setData({
+      [`technicians[${index}].avatar_url`]: DEFAULT_AVATAR_URL,
+      [`technicians[${index}].avatarUrl`]: DEFAULT_AVATAR_URL
+    });
+  },
+
+  onUserAvatarError(e) {
+    const index = e.currentTarget.dataset.index;
+    if (index === undefined) return;
+    this.setData({
+      [`users[${index}].avatar_url`]: DEFAULT_AVATAR_URL,
+      [`users[${index}].avatarUrl`]: DEFAULT_AVATAR_URL
+    });
+  },
+
   onLoad() {
     // 启动实时时钟
     this.updateClock();
@@ -337,7 +356,9 @@ Page({
   },
 
   onShow() {
-    if (this.data.isSuperAdmin) {
+    // admin 与 super_admin 进入后前台时都刷新当前页数据
+    // 必须等 checkAuth 已写入 token 后再刷新，否则会以 token=null 请求而 401
+    if (this.data.adminRole && this.data.token) {
       this.refreshCurrentPage();
     }
     this.checkTabsScroll();
@@ -443,13 +464,23 @@ Page({
     }
   },
 
-  // 检查权限
+  // 检查权限：admin 与 super_admin 均可进入统一后台
   checkAuth() {
     const token = wx.getStorageSync('token');
     const userInfo = wx.getStorageSync('userInfo');
 
-    if (!token || !userInfo || userInfo.role !== 'super_admin') {
-      wx.showToast({ title: '需要超级管理员权限', icon: 'none' });
+    if (!token || !userInfo) {
+      wx.showToast({ title: '需要登录', icon: 'none' });
+      setTimeout(() => {
+        wx.reLaunch({ url: '/pages/home/home' });
+      }, 1500);
+      return;
+    }
+
+    const isSuper = userInfo.role === 'super_admin';
+    const isAdmin = userInfo.role === 'admin';
+    if (!isSuper && !isAdmin) {
+      wx.showToast({ title: '需要管理员权限', icon: 'none' });
       setTimeout(() => {
         wx.reLaunch({ url: '/pages/home/home' });
       }, 1500);
@@ -458,8 +489,13 @@ Page({
 
     this.setData({
       token,
-      adminInfo: userInfo,
-      isSuperAdmin: true
+      adminInfo: {
+        ...userInfo,
+        avatar_url: normalizeAvatarUrl(userInfo.avatar_url || userInfo.avatarUrl),
+        avatarUrl: normalizeAvatarUrl(userInfo.avatar_url || userInfo.avatarUrl)
+      },
+      isSuperAdmin: isSuper,
+      adminRole: userInfo.role
     });
 
     this.loadDashboardData();
@@ -629,10 +665,18 @@ Page({
         customer_name: order.customer_name || order.nickname || '未知客户'
       }));
 
+      // 处理最近用户头像：后端返回相对路径 /uploads/...，统一归一化为可访问的绝对地址
+      const processedRecentUsers = (data.recentUsers || []).map(u => ({
+        ...u,
+        avatar_url: normalizeAvatarUrl(u.avatar_url || u.avatarUrl),
+        avatarUrl: normalizeAvatarUrl(u.avatar_url || u.avatarUrl)
+      }));
+
       this.setData({
         dashboardData: {
           ...data,
-          recentOrders: processedRecentOrders
+          recentOrders: processedRecentOrders,
+          recentUsers: processedRecentUsers
         },
         dashboardLoaded: true
       });
@@ -1170,6 +1214,75 @@ Page({
     await this._updateOrderStatus(orderId, status);
   },
 
+  // ===================== 内部免付款申请审批 =====================
+  // 复用后端 PUT /api/admin/orders/:id/internal-confirm
+  // 该接口已对 admin / super_admin / internal 角色放开权限。
+
+  async confirmInternalOrder(e) {
+    const orderId = e.currentTarget.dataset.orderId;
+    if (!orderId) return;
+    const sure = await new Promise((resolve) => {
+      wx.showModal({
+        title: '确认内部免付款申请',
+        content: '确认后开始处理（免付款）：维修单进入处理中，回收单直接完成。',
+        confirmText: '确认',
+        success: (r) => resolve(!!r.confirm)
+      });
+    });
+    if (!sure) return;
+    wx.showLoading({ title: '处理中...' });
+    try {
+      await this.request({
+        url: `/api/admin/orders/${orderId}/internal-confirm`,
+        method: 'PUT',
+        data: { action: 'confirm' }
+      });
+      wx.hideLoading();
+      wx.showToast({ title: '已确认（免付款）', icon: 'success' });
+      this.loadOrders(this.data.orderPage);
+      if (this.data.showOrderDetail) {
+        this.viewOrderDetail({ currentTarget: { dataset: { orderId } } });
+      }
+    } catch (err) {
+      wx.hideLoading();
+    }
+  },
+
+  async rejectInternalOrder(e) {
+    const orderId = e.currentTarget.dataset.orderId;
+    if (!orderId) return;
+    const reason = await new Promise((resolve) => {
+      wx.showModal({
+        title: '驳回内部申请',
+        editable: true,
+        placeholderText: '请填写驳回原因',
+        confirmText: '确认驳回',
+        success: (r) => resolve(r.confirm ? (r.content || '').trim() : null)
+      });
+    });
+    if (reason === null) return; // 点取消
+    if (!reason) {
+      wx.showToast({ title: '请填写驳回原因', icon: 'none' });
+      return;
+    }
+    wx.showLoading({ title: '处理中...' });
+    try {
+      await this.request({
+        url: `/api/admin/orders/${orderId}/internal-confirm`,
+        method: 'PUT',
+        data: { action: 'reject', reject_reason: reason }
+      });
+      wx.hideLoading();
+      wx.showToast({ title: '已驳回', icon: 'success' });
+      this.loadOrders(this.data.orderPage);
+      if (this.data.showOrderDetail) {
+        this.viewOrderDetail({ currentTarget: { dataset: { orderId } } });
+      }
+    } catch (err) {
+      wx.hideLoading();
+    }
+  },
+
   // 查看工单详情
   async viewOrderDetail(e) {
     const { orderId } = e.currentTarget.dataset;
@@ -1423,6 +1536,8 @@ Page({
         const res = await this.request({ url: '/api/super-admin/technicians' });
         technicians = (res.data.technicians || []).map(tech => ({
           ...tech,
+          avatar_url: normalizeAvatarUrl(tech.avatar_url || tech.avatarUrl),
+          avatarUrl: normalizeAvatarUrl(tech.avatar_url || tech.avatarUrl),
           processing_orders: tech.stats?.active_orders || 0,
           completed_orders: tech.stats?.completed_orders || 0,
           total_orders: tech.stats?.total_orders || 0
@@ -1679,6 +1794,8 @@ Page({
       // 处理维修人员数据,添加统计信息
       const technicians = (res.data.technicians || []).map(tech => ({
         ...tech,
+        avatar_url: normalizeAvatarUrl(tech.avatar_url || tech.avatarUrl),
+        avatarUrl: normalizeAvatarUrl(tech.avatar_url || tech.avatarUrl),
         processing_orders: tech.stats?.active_orders || 0,
         completed_orders: tech.stats?.completed_orders || 0,
         total_orders: tech.stats?.total_orders || 0
@@ -1723,7 +1840,11 @@ Page({
         }
       });
       this.setData({
-        users: res.data.users,
+        users: (res.data.users || []).map(u => ({
+          ...u,
+          avatar_url: normalizeAvatarUrl(u.avatar_url || u.avatarUrl),
+          avatarUrl: normalizeAvatarUrl(u.avatar_url || u.avatarUrl)
+        })),
         userTotal: res.data.total
       });
     } catch (err) {

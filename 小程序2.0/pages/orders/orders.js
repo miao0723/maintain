@@ -1,5 +1,5 @@
 // pages/orders/orders.js
-const { orderApi, addressApi } = require('../../utils/api.js')
+const { orderApi, addressApi, adminApi } = require('../../utils/api.js')
 const { isProgressUnread, getUnreadProgressOrders, getProgressStamp, syncProgressUnreadState } = require('../../utils/progressUnread.js')
 const { getMpApiBaseUrl } = require('../../utils/mpApi.js')
 
@@ -392,6 +392,9 @@ Page({
             statusBg: config.bg,
             statusIcon: config.icon,
             isInternalOrder: status === 'internal_pending',
+            isInternal: this.data.isInternal,
+            approvalText: this._internalApprovalText(status, this.data.isInternal),
+            approvalClass: this._internalApprovalClass(status, this.data.isInternal),
             progressSteps: progressInfo.steps,
             progressPercentText: progressInfo.percentText,
             progressPercent: progressInfo.percent,
@@ -435,7 +438,10 @@ Page({
             statusLabel: statusLabel,
             statusBg: config.bg,
             statusIcon: config.icon,
-            isInternalOrder: status === 'internal_pending'
+            isInternalOrder: status === 'internal_pending',
+            isInternal: this.data.isInternal,
+            approvalText: this._internalApprovalText(status, this.data.isInternal),
+            approvalClass: this._internalApprovalClass(status, this.data.isInternal)
           }
         });
         this.setData({
@@ -567,6 +573,26 @@ Page({
    */
   getStatusClass(status) {
     return status
+  },
+
+  /**
+   * 内部免付款申请：是否同意 - 文案
+   */
+  _internalApprovalText(status, isInternal, rejectReason) {
+    if (!isInternal) return '';
+    if (status === 'internal_pending') return '待确认';
+    if (status === 'cancelled') return rejectReason ? '已驳回' : '已撤回';
+    return '已同意';
+  },
+
+  /**
+   * 内部免付款申请：是否同意 - 样式类
+   */
+  _internalApprovalClass(status, isInternal, rejectReason) {
+    if (!isInternal) return '';
+    if (status === 'internal_pending') return 'pending';
+    if (status === 'cancelled') return 'rejected';
+    return 'approved';
   },
 
   /**
@@ -769,6 +795,10 @@ Page({
       price: price ? parseFloat(price).toFixed(1) : '',
       estimatedPrice: rawEp ? parseFloat(rawEp).toFixed(1) : '',
       actualPrice: rawAp ? parseFloat(rawAp).toFixed(1) : '',
+      isInternal: !!orderDetail.is_internal,
+      approvalText: this._internalApprovalText(orderDetail.status, !!orderDetail.is_internal, orderDetail.reject_reason),
+      approvalClass: this._internalApprovalClass(orderDetail.status, !!orderDetail.is_internal, orderDetail.reject_reason),
+      approvalReason: orderDetail.reject_reason || '',
       problemDescription: orderDetail.problem_description || orderDetail.problemDescription || '',
       customDescription: orderDetail.custom_description || orderDetail.customDescription || orderDetail.remark || '',
       deviceModel: deviceModel || '未知型号',
@@ -1478,6 +1508,81 @@ Page({
               this.setData({ cancelSubmitting: false });
             });
         }
+      }
+    });
+  },
+
+  /**
+   * 内部人员（或管理员）在自己的订单列表中直接确认内部免付款申请
+   * 修复：同账号既申请又处理时，申请人视角也能同意/驳回
+   */
+  confirmInternalOrderSelf(e) {
+    const orderId = e.currentTarget.dataset.id;
+    if (!orderId) return;
+
+    wx.showModal({
+      title: '确认内部订单',
+      content: '确认后该订单将正式建单（免付款），维修/回收流程随即开始。是否确认？',
+      confirmText: '确认',
+      confirmColor: '#10b981',
+      success: (res) => {
+        if (!res.confirm) return;
+        wx.showLoading({ title: '确认中...', mask: true });
+        adminApi.confirmInternalOrder(orderId, {})
+          .then(r => {
+            wx.hideLoading();
+            if (r && r.success) {
+              wx.showToast({ title: '已确认（免付款）', icon: 'success' });
+              this.loadOrders();
+            } else {
+              wx.showToast({ title: r?.error || r?.message || '确认失败', icon: 'none' });
+            }
+          })
+          .catch(err => {
+            wx.hideLoading();
+            console.error('确认内部订单失败', err);
+            wx.showToast({ title: '确认失败', icon: 'none' });
+          });
+      }
+    });
+  },
+
+  /**
+   * 内部人员（或管理员）在自己的订单列表中直接驳回内部免付款申请（需填原因）
+   */
+  rejectInternalOrderSelf(e) {
+    const orderId = e.currentTarget.dataset.id;
+    if (!orderId) return;
+
+    wx.showModal({
+      title: '驳回内部申请',
+      editable: true,
+      placeholderText: '请填写驳回原因（将通知申请人）',
+      confirmText: '驳回',
+      confirmColor: '#ef4444',
+      success: (res) => {
+        if (!res.confirm) return;
+        const reason = (res.content || '').trim();
+        if (!reason) {
+          wx.showToast({ title: '请填写驳回原因', icon: 'none' });
+          return;
+        }
+        wx.showLoading({ title: '驳回中...', mask: true });
+        adminApi.confirmInternalOrder(orderId, { action: 'reject', reject_reason: reason })
+          .then(r => {
+            wx.hideLoading();
+            if (r && r.success) {
+              wx.showToast({ title: '已驳回', icon: 'success' });
+              this.loadOrders();
+            } else {
+              wx.showToast({ title: r?.error || r?.message || '驳回失败', icon: 'none' });
+            }
+          })
+          .catch(err => {
+            wx.hideLoading();
+            console.error('驳回内部订单失败', err);
+            wx.showToast({ title: '驳回失败', icon: 'none' });
+          });
       }
     });
   },

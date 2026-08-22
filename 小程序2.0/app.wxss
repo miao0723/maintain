@@ -193,3 +193,93 @@ textarea:focus {
   border-left: 8rpx solid #4f6b84;
   border-bottom: none;
 }
+
+/* =====================================================================
+ * 设计令牌（钢蓝精修 · 单一来源）
+ * 所有页面共享，避免在 20+ 个 wxss 里重复硬编码颜色/圆角/阴影。
+ * 用法：var(--c-primary) 等。
+ * ===================================================================== */
+page {
+  --c-primary: #4f6b84;
+  --c-primary-2: #6a9abb;
+  --c-primary-deep: #2d465e;
+  --c-accent-soft: #eef3f8;
+  --c-bg: #f6f8fb;
+  --c-bg-2: #eef2f6;
+  --c-surface: #ffffff;
+  --c-ink: #1f2f3d;
+  --c-ink-2: #4e6279;
+  --c-muted: #8a96a3;
+  --c-line: rgba(224, 230, 236, 0.92);
+  --c-danger: #c86060;
+  --radius-xl: 34rpx;
+  --radius-lg: 28rpx;
+  --radius-md: 22rpx;
+  --radius-sm: 16rpx;
+  --shadow-card: 0 12rpx 30rpx rgba(102, 118, 138, 0.08);
+  --shadow-card-lg: 0 18rpx 42rpx rgba(67, 89, 111, 0.14);
+  --grad-primary: linear-gradient(135deg, #2d465e 0%, #4f708d 100%);
+  --grad-primary-soft: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
+}
+
+/* =====================================================================
+ * 可复用工具类（钢蓝精修）
+ * ===================================================================== */
+
+/* 通用图标芯片：把功能 emoji 包成有质感的设计元素，而非裸 emoji */
+.icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: var(--radius-md);
+  font-size: 32rpx;
+  background: linear-gradient(160deg, #f3f7fb 0%, #e7eef5 100%);
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.7), 0 4rpx 12rpx rgba(79, 107, 132, 0.1);
+  color: var(--c-primary);
+  flex-shrink: 0;
+}
+
+/* 主色实心图标芯片（用于强调入口） */
+.icon-chip--solid {
+  background: var(--grad-primary-soft);
+  color: #ffffff;
+  box-shadow: 0 6rpx 14rpx rgba(67, 111, 149, 0.22);
+}
+
+/* 卡片轻量按压反馈 */
+.press {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.press:active {
+  transform: scale(0.975);
+  box-shadow: var(--shadow-card);
+}
+
+/* 入场动画：轻微上浮淡入，用于卡片/区块 */
+.fade-up {
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(28rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 细分隔线 */
+.hairline {
+  height: 1rpx;
+  background: var(--c-line);
+}
+
+/* 小药丸标签 */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  font-weight: 600;
+  background: var(--c-accent-soft);
+  color: var(--c-primary);
+}

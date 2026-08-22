@@ -10,13 +10,13 @@ Page({
   },
 
   onLoad() {
-    // 检查是否已登录
-    const token = wx.getStorageSync('admin_token');
-    const userInfo = wx.getStorageSync('admin_info');
+    // 检查是否已登录（兼容手机号登录的 admin_token 与统一后台的 token）
+    const token = wx.getStorageSync('admin_token') || wx.getStorageSync('token');
+    const userInfo = wx.getStorageSync('admin_info') || wx.getStorageSync('userInfo');
 
-    if (token && userInfo && userInfo.role === 'admin') {
+    if (token && userInfo && (userInfo.role === 'admin' || userInfo.role === 'super_admin')) {
       wx.redirectTo({
-        url: '/pages/admin/admin'
+        url: '/pages/super-admin/super-admin'
       });
     }
 
@@ -90,9 +90,11 @@ Page({
         },
         success: (res) => {
           if (res.data && res.data.success) {
-            // 保存token和用户信息
+            // 保存token和用户信息（兼容统一后台 super-admin 的取钥约定）
             wx.setStorageSync('admin_token', res.data.token);
             wx.setStorageSync('admin_info', res.data.user);
+            wx.setStorageSync('token', res.data.token);
+            wx.setStorageSync('userInfo', res.data.user);
 
             wx.showToast({
               title: '登录成功',
@@ -101,7 +103,7 @@ Page({
 
             setTimeout(() => {
               wx.redirectTo({
-                url: '/pages/admin/admin'
+                url: '/pages/super-admin/super-admin'
               });
             }, 1500);
             this.setData({ loading: false });

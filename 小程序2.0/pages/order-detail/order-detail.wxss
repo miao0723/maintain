@@ -417,6 +417,43 @@
 .service-icon { font-size: 40rpx; margin-right: 16rpx; }
 .service-text { font-size: 28rpx; color: #333; font-weight: 500; }
 
+/* 内部免付款申请：是否同意 */
+.approval-card {
+  display: flex;
+  align-items: center;
+  background: #f4f6f9;
+  padding: 24rpx;
+  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+}
+.approval-q { font-size: 28rpx; color: #6b7280; margin-right: 20rpx; }
+.approval-a { font-size: 32rpx; font-weight: 700; }
+.approval-a.approval-pending { color: #d97706; }
+.approval-a.approval-approved { color: #059669; }
+.approval-a.approval-rejected { color: #dc2626; }
+.approval-reason {
+  font-size: 26rpx;
+  color: #ef4444;
+  background: #fef2f2;
+  padding: 16rpx 20rpx;
+  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+}
+/* 弹窗内 是否同意 文本 */
+.approval-text.approval-pending { color: #d97706; font-weight: 600; }
+.approval-text.approval-approved { color: #059669; font-weight: 600; }
+.approval-text.approval-rejected { color: #dc2626; font-weight: 600; }
+/* 匹配信息卡片 */
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  padding: 16rpx 0;
+  border-top: 1rpx solid #f0f3f7;
+}
+.info-item:first-of-type { border-top: none; }
+.info-sub { font-size: 24rpx; color: #9ca3af; font-weight: 400; }
+
 /* ====== 进度条 ====== */
 .progress-row {
   display: flex;
@@ -1092,4 +1129,143 @@
   font-size: 22rpx;
   color: #94a3b8;
   padding: 12rpx 0 4rpx;
+}
+
+/* ===== AI 故障诊断结论卡片 ===== */
+.diagnosis-card {
+  border: 1rpx solid #e0e7ff;
+  background: linear-gradient(180deg, #f5f8ff 0%, #ffffff 60%);
+}
+.diagnosis-loading {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+}
+.diagnosis-loading .dot {
+  width: 12rpx;
+  height: 12rpx;
+  margin-right: 8rpx;
+  border-radius: 50%;
+  background: #6366f1;
+  animation: diag-bounce 1s infinite ease-in-out;
+}
+.diagnosis-loading .dot:nth-child(2) { animation-delay: 0.15s; }
+.diagnosis-loading .dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes diag-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+.diagnosis-loading-text {
+  font-size: 26rpx;
+  color: #6366f1;
+  margin-left: 8rpx;
+}
+.diagnosis-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12rpx 0;
+}
+.diagnosis-error-text {
+  font-size: 26rpx;
+  color: #ef4444;
+}
+.diagnosis-retry-btn {
+  font-size: 24rpx;
+  color: #ffffff;
+  background: #6366f1;
+  padding: 8rpx 24rpx;
+  border-radius: 24rpx;
+}
+.diagnosis-summary {
+  display: flex;
+  align-items: flex-start;
+  background: #eef2ff;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  margin-bottom: 16rpx;
+}
+.diagnosis-summary-icon { font-size: 28rpx; margin-right: 10rpx; }
+.diagnosis-summary-text {
+  flex: 1;
+  font-size: 26rpx;
+  color: #3730a3;
+  line-height: 1.6;
+}
+.diagnosis-section { margin-bottom: 18rpx; }
+.diagnosis-section:last-child { margin-bottom: 0; }
+.diagnosis-section-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #4338ca;
+  margin-bottom: 10rpx;
+}
+.diagnosis-cause {
+  background: #f8fafc;
+  border-radius: 12rpx;
+  padding: 14rpx 16rpx;
+  margin-bottom: 12rpx;
+}
+.diagnosis-cause-head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+.diagnosis-cause-rank {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #6366f1;
+  margin-right: 14rpx;
+}
+.diagnosis-prob {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.diagnosis-prob-bar {
+  flex: 1;
+  height: 14rpx;
+  background: #e2e8f0;
+  border-radius: 8rpx;
+  overflow: hidden;
+  margin-right: 12rpx;
+}
+.diagnosis-prob-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #818cf8, #6366f1);
+  border-radius: 8rpx;
+}
+.diagnosis-prob-text {
+  font-size: 22rpx;
+  color: #6366f1;
+  width: 64rpx;
+  text-align: right;
+}
+.diagnosis-cause-reason {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4rpx;
+}
+.diagnosis-cause-explain {
+  display: block;
+  font-size: 24rpx;
+  color: #64748b;
+  line-height: 1.5;
+}
+.diagnosis-text {
+  display: block;
+  font-size: 26rpx;
+  color: #374151;
+  line-height: 1.6;
+}
+.diagnosis-cost {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #b45309;
+  background: #fffbeb;
+  border-radius: 12rpx;
+  padding: 14rpx 16rpx;
 }

@@ -14,6 +14,7 @@
   padding: 38rpx 28rpx 84rpx;
   background: linear-gradient(160deg, #f7fafc 0%, #edf3f8 54%, #e5edf4 100%);
   border-radius: 0 0 52rpx 52rpx;
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .hero-orb {
@@ -322,6 +323,19 @@
   background: rgba(255, 255, 255, 0.92);
   border: 1rpx solid rgba(221, 228, 236, 0.92);
   box-shadow: 0 12rpx 30rpx rgba(100, 118, 138, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.section-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4rpx;
+  background: linear-gradient(90deg, #4f6b84, #6a9abb);
+  opacity: 0.45;
 }
 
 .compact-section {

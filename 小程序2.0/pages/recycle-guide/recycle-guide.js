@@ -48,7 +48,16 @@ Page({
     // 提交
     submitting: false,
     showExtraInput: false,
-    extraNotes: ''
+    extraNotes: '',
+
+    // 内部人员免付款申请
+    isInternal: false,
+    deviceSourceOptions: [
+      { key: 'project_return', label: '项目返修' },
+      { key: 'warehouse', label: '仓库' },
+      { key: 'fixed_asset', label: '固定资产' }
+    ],
+    deviceSource: ''
   },
 
   onLoad(options) {
@@ -72,17 +81,30 @@ Page({
       stepNumber: i + 1
     }));
 
+    // 内部人员身份判定：入口参数 internal=1 或当前登录用户 role=internal
+    const guideUserInfo = wx.getStorageSync('userInfo') || {};
+    const guideIsInternal = (options && options.internal === '1') || guideUserInfo.role === 'internal';
+
     this.setData({
       product,
       questions,
       totalQuestions: questions.length,
-      estimatedPrice: product.modelPrice
+      estimatedPrice: product.modelPrice,
+      isInternal: guideIsInternal
     });
 
     // 入场动画
     setTimeout(() => {
       this.setData({ questionState: 'visible' });
     }, 300);
+  },
+
+  /**
+   * 内部人员选择设备来源（项目返修 / 仓库 / 固定资产）
+   */
+  selectDeviceSource(e) {
+    const key = e.currentTarget.dataset.key;
+    this.setData({ deviceSource: key });
   },
 
   onShow() {
@@ -393,11 +415,16 @@ Page({
       return;
     }
 
+    if (this.data.isInternal && !this.data.deviceSource) {
+      wx.showToast({ title: '请选择设备来源', icon: 'none' });
+      return;
+    }
+
     this.setData({ submitting: true });
     wx.showLoading({ title: '提交中...' });
 
     try {
-      const { product, answers, selectedAddress, estimatedPrice } = this.data;
+      const { product, answers, selectedAddress, estimatedPrice, isInternal, deviceSource } = this.data;
 
       const description = Object.keys(answers).map(key => {
         const a = answers[key];
@@ -420,28 +447,51 @@ Page({
         images: [],
         serviceType: 'shop',
         addressId: selectedAddress.id,
-        address: `${selectedAddress.name} ${selectedAddress.phone}\n${selectedAddress.province}${selectedAddress.city}${selectedAddress.district} ${selectedAddress.detail}`
+        address: `${selectedAddress.name} ${selectedAddress.phone}\n${selectedAddress.province}${selectedAddress.city}${selectedAddress.district} ${selectedAddress.detail}`,
+        isInternal,
+        is_internal: isInternal ? 1 : 0,
+        paymentStatus: isInternal ? 'waived' : 'unpaid',
+        deviceSource: isInternal ? deviceSource : ''
       };
 
-      // 金额确认（按市场基准价对比，确认回收报价是否合理）
-      const marketBase = product.modelPrice || 0;
-      const pct = marketBase > 0 ? Math.round((estimatedPrice / marketBase) * 100) : 0;
-      const confirmMsg =
-        `市场基准价（全新）：¥${this.formatPrice(marketBase)}\n` +
-        `设备成色：${answers.condition?.label || '未评估'}\n` +
-        `本次回收估价：¥${this.formatPrice(estimatedPrice)}\n` +
-        `（成色折算后约为基准价的 ${pct}%，属合理区间）`;
-
-      const confirmed = await new Promise((resolve) => {
-        wx.showModal({
-          title: '确认回收金额',
-          content: confirmMsg,
-          confirmText: '确认提交',
-          confirmColor: '#3a7a3a',
-          cancelText: '再看看',
-          success: (r) => resolve(!!r.confirm)
+      const sourceLabelMap = {
+        project_return: '项目返修',
+        warehouse: '仓库',
+        fixed_asset: '固定资产'
+      };
+      let confirmed = true;
+      if (isInternal) {
+        confirmed = await new Promise((resolve) => {
+          wx.showModal({
+            title: '提交内部回收申请',
+            content: `设备：${product.brandName} ${product.modelName}\n来源：${sourceLabelMap[deviceSource] || deviceSource}\n提交后免付款，由管理员确认后安排回收。`,
+            confirmText: '确认提交',
+            confirmColor: '#1d4ed8',
+            cancelText: '再看看',
+            success: (r) => resolve(!!r.confirm)
+          });
         });
-      });
+      } else {
+        // 金额确认（按市场基准价对比，确认回收报价是否合理）
+        const marketBase = product.modelPrice || 0;
+        const pct = marketBase > 0 ? Math.round((estimatedPrice / marketBase) * 100) : 0;
+        const confirmMsg =
+          `市场基准价（全新）：¥${this.formatPrice(marketBase)}\n` +
+          `设备成色：${answers.condition?.label || '未评估'}\n` +
+          `本次回收估价：¥${this.formatPrice(estimatedPrice)}\n` +
+          `（成色折算后约为基准价的 ${pct}%，属合理区间）`;
+
+        confirmed = await new Promise((resolve) => {
+          wx.showModal({
+            title: '确认回收金额',
+            content: confirmMsg,
+            confirmText: '确认提交',
+            confirmColor: '#3a7a3a',
+            cancelText: '再看看',
+            success: (r) => resolve(!!r.confirm)
+          });
+        });
+      }
 
       if (!confirmed) {
         wx.hideLoading();
@@ -453,12 +503,24 @@ Page({
       wx.hideLoading();
 
       if (res && res.success) {
-        wx.showToast({ title: '回收订单已提交', icon: 'success' });
-        setTimeout(() => {
-          wx.navigateBack({ delta: 2 });
-        }, 1500);
+        if (isInternal) {
+          wx.showModal({
+            title: '内部回收申请已提交',
+            content: '您的免付款回收申请已提交，等待管理员确认后将安排回收。',
+            showCancel: false,
+            confirmText: '知道了',
+            success: () => {
+              wx.navigateBack({ delta: 2 });
+            }
+          });
+        } else {
+          wx.showToast({ title: '回收订单已提交', icon: 'success' });
+          setTimeout(() => {
+            wx.navigateBack({ delta: 2 });
+          }, 1500);
+        }
       } else {
-        wx.showToast({ title: res?.message || '提交失败', icon: 'none' });
+        wx.showToast({ title: res?.error || res?.message || '提交失败', icon: 'none' });
       }
     } catch (error) {
       wx.hideLoading();

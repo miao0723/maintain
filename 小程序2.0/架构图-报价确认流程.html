@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>报价确认流程</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true, theme:'default', flowchart:{curve:'basis', htmlLabels:true}, themeVariables:{fontSize:'14px'}});</script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",sans-serif; background:#f4f6fb; color:#1f2937; padding:28px; }
+  .page-title { text-align:center; font-size:24px; font-weight:700; margin-bottom:20px; color:#0f172a; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+  .col { background:#fff; border-radius:16px; padding:18px; box-shadow:0 4px 18px rgba(15,23,42,.06); }
+  .col h2 { font-size:15px; color:#4f46e5; margin-bottom:12px; text-align:center; }
+  .mermaid { display:flex; justify-content:center; }
+</style>
+</head>
+<body>
+  <div class="page-title">💰 报价确认流程</div>
+  <div class="grid">
+    <div class="col">
+      <h2>管理员报价</h2>
+      <div class="mermaid">
+flowchart TD
+  A[打开订单 pending/processing] --> B[填金额+说明+附件]
+  B --> C[提交报价]
+  C --> D[quoted 待用户确认]
+  D --> E{用户}
+  E -->|接受| F[confirmed 已确认]
+  E -->|拒绝+原因| G[回 pending 可重报]
+  F --> H[管理员开始维修]
+      </div>
+    </div>
+    <div class="col">
+      <h2>状态流转链</h2>
+      <div class="mermaid">
+flowchart LR
+  P[pending] --> Q[quoted]
+  Q --> C[confirmed]
+  C --> R[processing]
+  R --> D[completed]
+  Q -.取消.-> X[cancelled]
+  P -.取消.-> X
+  Q -.拒绝.-> P
+      </div>
+    </div>
+  </div>
+</body>
+</html>

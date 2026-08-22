@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>进度反馈流程</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true, theme:'default', flowchart:{curve:'basis', htmlLabels:true}, themeVariables:{fontSize:'14px'}});</script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",sans-serif; background:#f4f6fb; color:#1f2937; padding:28px; }
+  .page-title { text-align:center; font-size:24px; font-weight:700; margin-bottom:20px; color:#0f172a; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+  .col { background:#fff; border-radius:16px; padding:18px; box-shadow:0 4px 18px rgba(15,23,42,.06); }
+  .col h2 { font-size:15px; color:#4f46e5; margin-bottom:12px; text-align:center; }
+  .mermaid { display:flex; justify-content:center; }
+</style>
+</head>
+<body>
+  <div class="page-title">📹 进度反馈流程</div>
+  <div class="grid">
+    <div class="col">
+      <h2>维修人员上传</h2>
+      <div class="mermaid">
+flowchart TD
+  A[处理中订单] --> B[点进度反馈]
+  B --> C[设进度百分比]
+  C --> D[填描述+传图/视频]
+  D --> E[提交进度]
+  E --> F[写入进度记录]
+  F --> G[更新订单进度]
+      </div>
+    </div>
+    <div class="col">
+      <h2>用户查看</h2>
+      <div class="mermaid">
+flowchart TD
+  A[订单详情页] --> B[查看进度卡片]
+  B --> C[看百分比/描述/图/视频]
+  C --> D{需要明细?}
+  D -->|图片| E[预览大图]
+  D -->|视频| F[直接播放]
+  C --> G[时间线展示记录]
+      </div>
+    </div>
+  </div>
+</body>
+</html>

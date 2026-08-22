@@ -8,9 +8,9 @@
     <view class="admin-card">
       <image class="admin-avatar" src="{{adminInfo.avatar_url || adminInfo.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill" binderror="onAvatarError"></image>
       <view class="admin-meta">
-        <text class="admin-name">{{adminInfo.nickname || adminInfo.real_name || '超级管理员'}}</text>
+        <text class="admin-name">{{adminInfo.nickname || adminInfo.real_name || '管理员'}}</text>
         <view class="admin-role-row">
-          <text class="admin-role">👑 超级管理员</text>
+          <text class="admin-role">{{isSuperAdmin ? '👑 超级管理员' : '🛠 管理员'}}</text>
           <text class="admin-time">{{currentTime || '--:--:--'}}</text>
         </view>
       </view>
@@ -43,19 +43,19 @@
           <text class="tab-label">我的订单</text>
           <view wx:if="{{approvedApplyCount > 0}}" class="tab-badge my-orders-badge">!</view>
         </view>
-        <view id="tab-device" class="tab {{currentPage === 'device' ? 'active' : ''}}" bindtap="switchPage" data-page="device">
+        <view wx:if="{{isSuperAdmin}}" id="tab-device" class="tab {{currentPage === 'device' ? 'active' : ''}}" bindtap="switchPage" data-page="device">
           <text class="tab-icon-emoji">📱</text>
           <text class="tab-label">设备统计</text>
         </view>
-        <view id="tab-inventory" class="tab {{currentPage === 'inventory' ? 'active' : ''}}" bindtap="switchPage" data-page="inventory">
+        <view wx:if="{{isSuperAdmin}}" id="tab-inventory" class="tab {{currentPage === 'inventory' ? 'active' : ''}}" bindtap="switchPage" data-page="inventory">
           <text class="tab-icon-emoji">📦</text>
           <text class="tab-label">库存管理</text>
         </view>
-        <view id="tab-technicians" class="tab {{currentPage === 'technicians' ? 'active' : ''}}" bindtap="switchPage" data-page="technicians">
+        <view wx:if="{{isSuperAdmin}}" id="tab-technicians" class="tab {{currentPage === 'technicians' ? 'active' : ''}}" bindtap="switchPage" data-page="technicians">
           <text class="tab-icon-emoji">👨‍🔧</text>
           <text class="tab-label">维修人员</text>
         </view>
-        <view id="tab-progressApply" class="tab {{currentPage === 'progressApply' ? 'active' : ''}}" bindtap="switchPage" data-page="progressApply">
+        <view wx:if="{{isSuperAdmin}}" id="tab-progressApply" class="tab {{currentPage === 'progressApply' ? 'active' : ''}}" bindtap="switchPage" data-page="progressApply">
           <text class="tab-icon-emoji">📝</text>
           <text class="tab-label">申请处理</text>
           <view wx:if="{{pendingApplyCount > 0}}" class="tab-badge">{{pendingApplyCount > 99 ? '99+' : pendingApplyCount}}</view>
@@ -65,11 +65,11 @@
           <text class="tab-label">售后管理</text>
           <view wx:if="{{pendingAfterSalesCount > 0}}" class="tab-badge">{{pendingAfterSalesCount > 99 ? '99+' : pendingAfterSalesCount}}</view>
         </view>
-        <view id="tab-income" class="tab {{currentPage === 'income' ? 'active' : ''}}" bindtap="switchPage" data-page="income">
+        <view wx:if="{{isSuperAdmin}}" id="tab-income" class="tab {{currentPage === 'income' ? 'active' : ''}}" bindtap="switchPage" data-page="income">
           <text class="tab-icon-emoji">💰</text>
           <text class="tab-label">收入</text>
         </view>
-        <view id="tab-service" class="tab service-tab" bindtap="goToServiceManagement">
+        <view wx:if="{{isSuperAdmin}}" id="tab-service" class="tab service-tab" bindtap="goToServiceManagement">
           <text class="tab-icon-emoji">💬</text>
           <text class="tab-label">客服管理</text>
           <view wx:if="{{pendingHumanServiceCount > 0}}" class="tab-badge human-service-badge">{{pendingHumanServiceCount > 99 ? '99+' : pendingHumanServiceCount}}</view>
@@ -248,6 +248,7 @@
           <view class="filter-chip {{statusFilter === 'completed' ? 'active' : ''}}" bindtap="onStatusFilterChange" data-value="completed" data-label="已完成">已完成</view>
           <view class="filter-chip {{statusFilter === 'cancelled' ? 'active' : ''}}" bindtap="onStatusFilterChange" data-value="cancelled" data-label="已取消">已取消</view>
           <view class="filter-chip {{statusFilter === 'review' ? 'active' : ''}}" bindtap="onStatusFilterChange" data-value="review" data-label="待评价">待评价</view>
+          <view class="filter-chip internal-chip {{statusFilter === 'internal_pending' ? 'active' : ''}}" bindtap="onStatusFilterChange" data-value="internal_pending" data-label="内部待确认">内部待确认</view>
         </scroll-view>
       </view>
 
@@ -310,6 +311,8 @@
               <button class="action-btn" size="mini" wx:if="{{item.status === 'quoted'}}" style="background: #436f95; color: #fff;">等待确认</button>
               <button class="action-btn success" size="mini" wx:if="{{item.status === 'confirmed'}}" bindtap="updateOrderStatus" data-order-id="{{item.id}}" data-current-status="{{item.status}}">开始处理</button>
               <button class="action-btn feedback" size="mini" wx:if="{{item.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{item.id}}">📹 进度反馈</button>
+              <button class="action-btn success" size="mini" wx:if="{{item.status === 'internal_pending'}}" bindtap="confirmInternalOrder" data-order-id="{{item.id}}">✅ 同意</button>
+              <button class="action-btn danger" size="mini" wx:if="{{item.status === 'internal_pending'}}" bindtap="rejectInternalOrder" data-order-id="{{item.id}}">⛔ 驳回</button>
             </view>
           </view>
         </view>
@@ -423,8 +426,10 @@
               <button class="myo-btn" size="mini" wx:if="{{item.status === 'quoted'}}" style="background: #436f95; color: #fff;">等待确认</button>
               <button class="myo-btn success" size="mini" wx:if="{{item.status === 'confirmed'}}" bindtap="doUpdateOrderStatus" data-order-id="{{item.id}}" data-status="processing">开始处理</button>
               <button class="myo-btn feedback" size="mini" wx:if="{{item.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{item.id}}">📹 进度反馈</button>
+              <button class="myo-btn success" size="mini" wx:if="{{item.status === 'internal_pending'}}" bindtap="confirmInternalOrder" data-order-id="{{item.id}}">✅ 同意</button>
+              <button class="myo-btn danger" size="mini" wx:if="{{item.status === 'internal_pending'}}" bindtap="rejectInternalOrder" data-order-id="{{item.id}}">⛔ 驳回</button>
               <button class="myo-btn success" size="mini" wx:if="{{item.status === 'processing'}}" bindtap="doUpdateOrderStatus" data-order-id="{{item.id}}" data-status="completed">完成</button>
-              <button class="myo-btn danger" size="mini" wx:if="{{item.status !== 'completed' && item.status !== 'quoted'}}" bindtap="doUpdateOrderStatus" data-order-id="{{item.id}}" data-status="cancelled">取消</button>
+              <button class="myo-btn danger" size="mini" wx:if="{{item.status !== 'completed' && item.status !== 'quoted' && item.status !== 'internal_pending'}}" bindtap="doUpdateOrderStatus" data-order-id="{{item.id}}" data-status="cancelled">取消</button>
             </view>
           </view>
         </view>
@@ -591,7 +596,7 @@
       <!-- 维修人员列表 -->
       <view class="technician-list" wx:if="{{technicians.length > 0}}">
         <view class="technician-item" wx:for="{{technicians}}" wx:key="id">
-          <image class="tech-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill"></image>
+          <image class="tech-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill" binderror="onTechnicianAvatarError" data-index="{{index}}"></image>
           <view class="tech-info">
             <view class="tech-name-row">
               <text class="tech-name">{{item.real_name || item.nickname || '维修人员'}}</text>
@@ -1072,7 +1077,7 @@
     <scroll-view class="popup-scroll" scroll-y>
       <view class="user-card" wx:for="{{users}}" wx:key="id">
         <view class="user-card-top">
-          <image class="user-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill"></image>
+          <image class="user-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill" binderror="onUserAvatarError" data-index="{{index}}"></image>
           <view class="user-info">
             <view class="user-name-row">
               <text class="user-name">{{item.nickname || item.real_name || '用户'}}</text>
@@ -1325,7 +1330,9 @@
       <button class="detail-btn success" size="default" wx:if="{{orderDetail.status === 'confirmed'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="processing">开始处理</button>
       <button class="detail-btn feedback" size="default" wx:if="{{orderDetail.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{orderDetail.id}}">📹 进度反馈</button>
       <button class="detail-btn success" size="default" wx:if="{{orderDetail.status === 'processing'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="completed">完成工单</button>
-      <button class="detail-btn danger" size="default" wx:if="{{orderDetail.status !== 'completed' && orderDetail.status !== 'quoted'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="cancelled">取消工单</button>
+      <button class="detail-btn internal-confirm" size="default" wx:if="{{orderDetail.status === 'internal_pending'}}" bindtap="confirmInternalOrder" data-order-id="{{orderDetail.id}}">✅ 同意（免付款）</button>
+      <button class="detail-btn internal-reject" size="default" wx:if="{{orderDetail.status === 'internal_pending'}}" bindtap="rejectInternalOrder" data-order-id="{{orderDetail.id}}">⛔ 驳回申请</button>
+      <button class="detail-btn danger" size="default" wx:if="{{orderDetail.status !== 'completed' && orderDetail.status !== 'quoted' && orderDetail.status !== 'internal_pending'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="cancelled">取消工单</button>
     </view>
   </view>
 </view>

@@ -22,7 +22,7 @@
     </view>
     <!-- 内部人员专属：免付款申请独立归类，不与普通待处理混在一起 -->
     <view wx:if="{{isInternal}}" class="tab-item internal-tab {{currentStatus === 'internal_pending' ? 'active' : ''}}" bindtap="switchStatus" data-status="internal_pending">
-      <text class="tab-text">🏢 内部申请</text>
+      <text class="tab-text">🏢 申请</text>
     </view>
   </view>
 
@@ -54,7 +54,11 @@
             <text class="device-desc" wx:elif="{{item.model}}">{{item.model}}</text>
           </view>
         </view>
-        <view class="order-price" wx:if="{{item.price}}">
+        <view wx:if="{{item.isInternal}}" class="order-approval approval-{{item.approvalClass}}">
+          <text class="approval-label">是否同意</text>
+          <text class="approval-value">{{item.approvalText}}</text>
+        </view>
+        <view class="order-price" wx:elif="{{item.price}}">
           <text class="price-symbol">¥</text>
           <text class="price-value">{{item.price}}</text>
         </view>
@@ -122,8 +126,10 @@
           <button class="action-btn after-sales" wx:if="{{item.status === 'review'}}" catchtap="openAfterSales" data-order="{{item}}">🛠 申请售后</button>
           <!-- 已取消 -->
           <button class="action-btn disabled" wx:if="{{item.status === 'cancelled'}}" disabled>已取消</button>
-          <!-- 内部免付款申请待确认：查看详情 + 撤回申请 -->
+          <!-- 内部免付款申请待确认：同意/驳回（处理）+ 查看详情 + 撤回申请 -->
           <block wx:if="{{item.status === 'internal_pending'}}">
+            <button class="action-btn primary" catchtap="confirmInternalOrderSelf" data-id="{{item.id}}">✅ 同意（免付款）</button>
+            <button class="action-btn danger" catchtap="rejectInternalOrderSelf" data-id="{{item.id}}">⛔ 驳回</button>
             <button class="action-btn detail" catchtap="viewDetail" data-order="{{item}}">查看详情</button>
             <button class="action-btn cancel" catchtap="cancelOrder" data-id="{{item.id}}">撤回申请</button>
           </block>
@@ -636,8 +642,20 @@
           </view>
         </view>
 
+        <!-- 内部免付款申请：是否同意 -->
+        <view class="detail-info-section" wx:if="{{modalOrderDetail.isInternal}}">
+          <view class="section-title">申请确认</view>
+          <view class="info-item">
+            <text class="info-label">是否同意</text>
+            <text class="info-value approval-text approval-{{modalOrderDetail.approvalClass}}">{{modalOrderDetail.approvalText}}</text>
+          </view>
+          <view class="info-item" wx:if="{{modalOrderDetail.approvalReason}}">
+            <text class="info-label">驳回原因</text>
+            <text class="info-value">{{modalOrderDetail.approvalReason}}</text>
+          </view>
+        </view>
         <!-- 金额信息 -->
-        <view class="detail-info-section" wx:if="{{modalOrderDetail.estimatedPrice || modalOrderDetail.actualPrice}}">
+        <view class="detail-info-section" wx:elif="{{modalOrderDetail.estimatedPrice || modalOrderDetail.actualPrice}}">
           <view class="section-title">金额信息</view>
           <view class="info-item" wx:if="{{modalOrderDetail.estimatedPrice}}">
             <text class="info-label">预估价格:</text>

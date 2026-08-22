@@ -1,10 +1,7 @@
 // pages/mine/mine.js
 const { DEFAULT_AVATAR_URL: defaultAvatarUrl, normalizeAvatarUrl } = require('../../utils/avatar.js')
 
-// 会话内记录"锦上添花"接口是否可用（服务端未部署这些路由时会返回 404）。
-// 一旦确认不可用，本次会话内不再重复请求，避免每次 onShow 都在控制台刷 404 红错。
-const _endpointAvailable = {}
-const { userApi } = require('../../utils/api.js')
+const { userApi, request } = require('../../utils/api.js')
 const { getUnreadProgressOrders, syncProgressUnreadState } = require('../../utils/progressUnread.js')
 const {
   CACHE_KEYS,
@@ -13,8 +10,6 @@ const {
   setCache,
   fetchWithCache
 } = require('../../utils/mineDataCache.js')
-const { getDefaultBaseUrl } = require('../../utils/networkConfig.js')
-const { getMpApiBaseUrl } = require('../../utils/mpApi.js')
 
 Page({
   data: {
@@ -43,7 +38,7 @@ Page({
     progressUnreadCount: 0,  // 未读进度更新的订单数
     progressFeed: [],        // 进度反馈动态列表（用于"我的"页通知卡片）
     progressFeedTotal: 0,    // 进度反馈动态真实未读总数（标题展示用）
-    statusBadges: {   // 各状态未读订单数（角标"未读的1"），点击状态格后清零
+    statusBadges: {   // 各状态订单总数角标：始终显示对应状态订单数量，不随点击清除
       pending: 0,
       quoted: 0,
       processing: 0,
@@ -87,7 +82,11 @@ Page({
     const nextData = {}
 
     if (userCache.hasCache && userCache.data) {
-      nextData.userInfo = userCache.data.userInfo || this.data.userInfo
+      const cachedUser = userCache.data.userInfo || {}
+      nextData.userInfo = {
+        avatarUrl: normalizeAvatarUrl(cachedUser.avatarUrl || cachedUser.avatar_url),
+        nickName: cachedUser.nickName || cachedUser.nickname || '微信用户'
+      }
       nextData.isAdmin = !!userCache.data.isAdmin
       nextData.isInternal = !!userCache.data.isInternal
     } else {
@@ -173,23 +172,11 @@ Page({
       this.setData({ progressFeed: [], progressFeedTotal: 0 })
       return
     }
-    // 服务端尚未部署该路由时跳过，避免重复 404
-    if (_endpointAvailable['progress-feed'] === false) return
     try {
-      const token = wx.getStorageSync('token')
-      const baseUrl = getMpApiBaseUrl()
-      const res = await new Promise((resolve, reject) => {
-        wx.request({
-          url: `${baseUrl}/orders/progress-feed?limit=6`,
-          method: 'GET',
-          header: { 'Authorization': token ? `Bearer ${token}` : '' },
-          success: resolve,
-          fail: reject
-        })
-      })
-      if (res.statusCode === 200 && res.data && res.data.success) {
-        _endpointAvailable['progress-feed'] = true
-        const list = (res.data.data && res.data.data.list) || []
+      // 与订单列表同源（本地优先候选地址）
+      const res = await request('/orders/progress-feed?limit=6', 'GET', null, { suppressErrorToast: true })
+      if (res && res.success) {
+        const list = (res.data && res.data.list) || []
         const feed = list.map(item => {
           const thumb = item.thumbnail ? normalizeAvatarUrl(item.thumbnail) : ''
           return {
@@ -200,11 +187,8 @@ Page({
         })
         this.setData({
           progressFeed: feed,
-          progressFeedTotal: Number(res.data.data && res.data.data.total) || feed.length
+          progressFeedTotal: Number(res.data && res.data.total) || feed.length
         })
-      } else if (res.statusCode === 404) {
-        // 路由未部署：标记不可用，后续不再重复请求
-        _endpointAvailable['progress-feed'] = false
       }
     } catch (err) {
       console.error('获取进度动态失败:', err)
@@ -216,15 +200,7 @@ Page({
    */
   markProgressReadForOrder(orderId, feedbackAt) {
     if (!orderId) return
-    const token = wx.getStorageSync('token')
-    const baseUrl = getMpApiBaseUrl()
-    wx.request({
-      url: `${baseUrl}/orders/${orderId}/progress-read`,
-      method: 'PUT',
-      header: { 'Authorization': token ? `Bearer ${token}` : '' },
-      success: () => {},
-      fail: () => {}
-    })
+    request(`/orders/${orderId}/progress-read`, 'PUT', null, { suppressErrorToast: true }).catch(() => {})
     try {
       syncProgressUnreadState(orderId, feedbackAt, { wasUnread: true })
     } catch (e) {}
@@ -289,6 +265,12 @@ Page({
   /**
    * 加载"我的"页状态网格未读角标（按状态统计 user_unread=1 的订单）
    */
+  /**
+   * 刷新"我的订单"各状态角标。
+   * 角标展示的是各状态的订单【总数】（来自订单列表统计 orderCount 与 quotedCount），
+   * 与"未读"无关，因此点击查看不会让角标消失。
+   * 内部人员免付款申请角标(internalPending)仍统计 status='internal_pending' 的订单总数。
+   */
   async loadUnreadBadges(force = false) {
     const app = getApp()
     if (!app.globalData.isLoggedIn) {
@@ -298,40 +280,29 @@ Page({
       })
       return
     }
-    // 服务端尚未部署该路由时跳过，避免重复 404
-    if (_endpointAvailable['unread-counts'] === false) return
-    try {
-      const token = wx.getStorageSync('token')
-      const baseUrl = getMpApiBaseUrl()
-      const res = await new Promise((resolve, reject) => {
-        wx.request({
-          url: `${baseUrl}/orders/unread-counts`,
-          method: 'GET',
-          header: { 'Authorization': token ? `Bearer ${token}` : '' },
-          success: resolve,
-          fail: reject
-        })
+    // 先用本地已加载的订单总数立即刷新角标，避免闪烁/空白
+    const oc = this.data.orderCount || {}
+    const qc = this.data.quotedCount || 0
+    const syncFromTotals = () => {
+      this.setData({
+        statusBadges: {
+          pending: oc.pending || 0,
+          quoted: qc || 0,
+          processing: oc.processing || 0,
+          completed: oc.completed || 0,
+          review: oc.review || 0
+        }
       })
-      if (res.statusCode === 200 && res.data && res.data.success) {
-        _endpointAvailable['unread-counts'] = true
-        const d = res.data.data || {}
-        const counts = d.counts || {}
-        this.setData({
-          statusBadges: {
-            pending: counts.pending || 0,
-            quoted: counts.quoted || 0,
-            processing: counts.processing || 0,
-            completed: counts.completed || 0,
-            review: counts.review || 0
-          },
-          internalPending: d.internalPending || 0
-        })
-      } else if (res.statusCode === 404) {
-        // 路由未部署：标记不可用，后续不再重复请求
-        _endpointAvailable['unread-counts'] = false
+    }
+    syncFromTotals()
+    // internalPending：统计该用户 status='internal_pending' 的订单总数（与未读无关）
+    try {
+      const res = await request('/orders/unread-counts', 'GET', null, { suppressErrorToast: true })
+      if (res && res.success && res.data) {
+        this.setData({ internalPending: Number(res.data.internalPending) || 0 })
       }
     } catch (err) {
-      console.error('获取未读角标失败:', err)
+      console.error('获取内部申请角标失败:', err)
     }
   },
 
@@ -339,25 +310,8 @@ Page({
    * 将某一状态的用户未读订单标记为已读（点击状态格时调用）
    */
   markStatusRead(status) {
-    // 本地立即清零该状态角标，点击后"1"立刻消失，体验更顺滑
-    if (this.data.statusBadges.hasOwnProperty(status)) {
-      this.setData({ [`statusBadges.${status}`]: 0 })
-    }
-    if (status === 'internal_pending') {
-      this.setData({ internalPending: 0 })
-    }
-    const app = getApp()
-    if (!app.globalData.isLoggedIn) return
-    const token = wx.getStorageSync('token')
-    const baseUrl = getMpApiBaseUrl()
-    wx.request({
-      url: `${baseUrl}/orders/read`,
-      method: 'PUT',
-      header: { 'Authorization': token ? `Bearer ${token}` : '', 'Content-Type': 'application/json' },
-      data: { status },
-      success: () => {},
-      fail: () => {}
-    })
+    // 角标展示的是各状态订单【总数】（由 orderCount / quotedCount 驱动），
+    // 与"未读"无关，点击查看不会、也不应该让角标消失，因此这里不做任何清零操作。
   },
 
   /**
@@ -366,15 +320,7 @@ Page({
   markOrderRead(orderId) {
     const app = getApp()
     if (!app.globalData.isLoggedIn || !orderId) return
-    const token = wx.getStorageSync('token')
-    const baseUrl = getMpApiBaseUrl()
-    wx.request({
-      url: `${baseUrl}/orders/${orderId}/read`,
-      method: 'PUT',
-      header: { 'Authorization': token ? `Bearer ${token}` : '' },
-      success: () => {},
-      fail: () => {}
-    })
+    request(`/orders/${orderId}/read`, 'PUT', null, { suppressErrorToast: true }).catch(() => {})
   },
 
   /**
@@ -457,8 +403,17 @@ Page({
       if (userInfo) {
         const app = getApp()
         const rawUserInfo = userInfo.raw || {}
-        app.globalData.userInfo = rawUserInfo
-        wx.setStorageSync('userInfo', rawUserInfo)
+        // 关键修复：写入存储的必须是归一化后的头像地址，避免把后台原始
+        // （可能含裸域名 http://zych.net.cn/uploads/...）的 avatar_url 重新污染本地存储，
+        // 否则 super-admin / admin 等读取点会直接渲染裸域名导致 404。
+        const normalizedAvatar = normalizeAvatarUrl(rawUserInfo.avatar_url || rawUserInfo.avatarUrl)
+        const storedUser = {
+          ...rawUserInfo,
+          avatar_url: normalizedAvatar,
+          avatarUrl: normalizedAvatar
+        }
+        app.globalData.userInfo = storedUser
+        wx.setStorageSync('userInfo', storedUser)
 
         this.setData({
           userInfo: userInfo.userInfo,
@@ -563,11 +518,20 @@ Page({
       }
     })
       .then(({ data }) => {
+        const oc = data.orderCount || {}
         this.setData({
-          orderCount: data.orderCount,
+          orderCount: oc,
           recentOrders: data.recentOrders,
           summaryLoading: false,
-          recentOrdersLoading: false
+          recentOrdersLoading: false,
+          // 角标展示各状态订单【总数】，与未读无关，点击不清除
+          statusBadges: {
+            pending: oc.pending || 0,
+            quoted: this.data.quotedCount || 0,
+            processing: oc.processing || 0,
+            completed: oc.completed || 0,
+            review: oc.review || 0
+          }
         })
       })
       .catch(error => {
@@ -838,22 +802,10 @@ Page({
         ttl: CACHE_TTL.badge,
         force,
         fetcher: async () => {
-          const token = wx.getStorageSync('token');
-          const baseUrl = getMpApiBaseUrl();
-          const res = await new Promise((resolve, reject) => {
-            wx.request({
-              url: `${baseUrl}/orders/quoted-count`,
-              method: 'GET',
-              header: {
-                'Authorization': token ? `Bearer ${token}` : ''
-              },
-              success: (response) => resolve(response),
-              fail: reject
-            });
-          });
-
-          if (res.statusCode === 200 && res.data && res.data.success) {
-            return res.data.count || 0
+          // 与订单列表同源（本地优先候选地址）
+          const res = await request('/orders/quoted-count', 'GET', null, { suppressErrorToast: true })
+          if (res && res.success) {
+            return res.count || 0
           }
           // 后端未部署该路由 / 无数据（如生产仍 404）时，角标保持为空而非抛错刷屏；
           // 该接口为 best-effort，失败不影响主流程。
@@ -869,7 +821,11 @@ Page({
   syncQuotedCount(count) {
     const nextCount = Number(count) || 0;
     setCache(CACHE_KEYS.quotedCount, nextCount)
-    this.setData({ quotedCount: nextCount });
+    this.setData({
+      quotedCount: nextCount,
+      // 角标展示待确认报价【总数】，与未读无关，点击不清除
+      'statusBadges.quoted': nextCount
+    });
     this.syncBadgeToTabBar(nextCount, this.data.progressUnreadCount)
   },
 
@@ -1071,15 +1027,10 @@ Page({
     }
 
     const userInfo = wx.getStorageSync('userInfo')
-    if (userInfo && userInfo.role === 'super_admin') {
-      // 超级管理员跳转到超级管理员页面
+    if (userInfo && (userInfo.role === 'super_admin' || userInfo.role === 'admin')) {
+      // 管理员统一进入后台（admin 与 super_admin 共用同一界面，按角色显隐菜单）
       wx.navigateTo({
         url: '/pages/super-admin/super-admin'
-      })
-    } else if (userInfo && userInfo.role === 'admin') {
-      // 普通管理员跳转到管理员页面
-      wx.navigateTo({
-        url: '/pages/admin/admin'
       })
     } else {
       wx.showToast({
@@ -1334,23 +1285,13 @@ Page({
     try {
       const app = getApp()
       const token = wx.getStorageSync('token')
-      const baseUrl = getMpApiBaseUrl()
 
-      const res = await new Promise((resolve, reject) => {
-        wx.request({
-          url: `${baseUrl}/user/delete-account`,
-          method: 'DELETE',
-          header: {
-            'Authorization': token ? `Bearer ${token}` : ''
-          },
-          success: resolve,
-          fail: reject
-        })
-      })
+      // 与订单列表同源（本地优先候选地址）
+      const res = await request('/user/delete-account', 'DELETE', null, { suppressErrorToast: true })
 
       wx.hideLoading()
 
-      if (res.statusCode === 200 && res.data && res.data.success) {
+      if (res && res.success) {
         // 清除本地所有数据
         wx.clearStorageSync()
         app.globalData.isLoggedIn = false
@@ -1361,7 +1302,7 @@ Page({
           wx.redirectTo({ url: '/pages/welcome/welcome' })
         }, 1500)
       } else {
-        wx.showToast({ title: res.data?.error || '注销失败', icon: 'none' })
+        wx.showToast({ title: res?.error || '注销失败', icon: 'none' })
       }
     } catch (error) {
       wx.hideLoading()

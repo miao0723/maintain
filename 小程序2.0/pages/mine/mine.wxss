@@ -172,6 +172,7 @@
   position: relative;
   overflow: hidden;
   box-shadow: 0 16rpx 34rpx rgba(102, 118, 138, 0.08);
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .user-header::before {
@@ -327,13 +328,26 @@
 
 .mini-overview {
   min-width: 132rpx;
-  background: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(180deg, #ffffff 0%, #f6f9fc 100%);
   border: 1rpx solid rgba(223, 229, 235, 0.92);
   border-radius: 24rpx;
-  padding: 20rpx 18rpx;
+  padding: 22rpx 18rpx;
   box-shadow: 0 10rpx 24rpx rgba(102, 118, 138, 0.06);
   box-sizing: border-box;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.mini-overview::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4rpx;
+  background: linear-gradient(90deg, #4f6b84, #6a9abb);
+  opacity: 0.5;
 }
 
 .mini-overview:active {
@@ -628,16 +642,18 @@
 }
 
 .menu-icon {
-  width: 52rpx;
-  height: 52rpx;
+  width: 56rpx;
+  height: 56rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f2f5f8;
-  border-radius: 16rpx;
-  font-size: 28rpx;
+  border-radius: 18rpx;
+  font-size: 30rpx;
   margin-right: 18rpx;
   flex-shrink: 0;
+  background: linear-gradient(160deg, #f3f7fb 0%, #e7eef5 100%);
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.7), 0 4rpx 12rpx rgba(79, 107, 132, 0.1);
+  color: #4f6b84;
 }
 
 /* 第一组：常用管理 - 各菜单项图标颜色 */

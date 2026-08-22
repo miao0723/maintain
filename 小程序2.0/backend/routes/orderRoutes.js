@@ -156,7 +156,8 @@ router.post('/create', authenticateToken, async (req, res) => {
       addressId: frontendAddressId,
       deviceCondition,
       isWaitingPrice,
-      deviceTypeName
+      deviceTypeName,
+      deviceSource
     } = req.body;
 
     console.log('创建订单 - 完整请求数据:', JSON.stringify(req.body, null, 2));
@@ -239,6 +240,15 @@ router.post('/create', authenticateToken, async (req, res) => {
       initialStatus = 'internal_pending';
       initialPaymentStatus = 'unpaid';
       initialPayAmount = 0;
+    }
+
+    // 内部人员订单必须选择设备来源（项目返修 / 仓库 / 固定资产）
+    const DEVICE_SOURCE_VALUES = ['project_return', 'warehouse', 'fixed_asset'];
+    if (isInternal && (!deviceSource || !DEVICE_SOURCE_VALUES.includes(deviceSource))) {
+      return res.status(400).json({
+        success: false,
+        error: '请选择设备来源（项目返修 / 仓库 / 固定资产）'
+      });
     }
 
     // 获取品牌ID（如果有品牌名称）
@@ -357,8 +367,8 @@ router.post('/create', authenticateToken, async (req, res) => {
         order_id, user_id, device_id, order_type, device_type, device_type_name, problem_description,
         custom_description, images, service_type, brand_id, device_model,
         device_condition, estimated_price, status, address_id, created_at, updated_at, progress, priority,
-        is_warranty, original_order_id, is_internal, payment_status, pay_amount
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), 0, 0, ?, ?, ?, ?, ?)`,
+        is_warranty, original_order_id, is_internal, device_source, payment_status, pay_amount
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), 0, 0, ?, ?, ?, ?, ?, ?)`,
       [
         orderNo,
         userId,
@@ -379,6 +389,7 @@ router.post('/create', authenticateToken, async (req, res) => {
         isWarranty ? 1 : 0,
         originalOrderId ? parseInt(originalOrderId) : null,
         isInternal ? 1 : 0,
+        deviceSource || null,
         initialPaymentStatus,
         initialPayAmount
       ]
@@ -407,6 +418,8 @@ router.post('/create', authenticateToken, async (req, res) => {
         o.estimated_price,
         o.actual_price,
         o.status,
+        o.is_internal,
+        o.device_source,
         o.address_id,
         o.created_at,
         o.updated_at,
@@ -869,6 +882,9 @@ router.get('/:id/detail', authenticateToken, async (req, res) => {
           o.refunded_at,
           o.is_admin_created,
           o.admin_created_by,
+          o.is_internal,
+          o.device_source,
+          o.reject_reason,
           CASE WHEN o.device_type = 0 THEN o.device_type_name ELSE d.name END as device_type_name,
           d.icon as device_type_icon,
           b.name as brand_name,
@@ -949,6 +965,9 @@ router.get('/:id/detail', authenticateToken, async (req, res) => {
           NULL as refunded_at,
           0 as is_admin_created,
           NULL as admin_created_by,
+          0 as is_internal,
+          NULL as device_source,
+          NULL as reject_reason,
           CASE WHEN o.device_type = 0 THEN o.device_type_name ELSE d.name END as device_type_name,
           d.icon as device_type_icon,
           b.name as brand_name,

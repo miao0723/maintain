@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>下单流程</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true, theme:'default', flowchart:{curve:'basis', htmlLabels:true}, themeVariables:{fontSize:'14px'}});</script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",sans-serif; background:#f4f6fb; color:#1f2937; padding:28px; }
+  .page-title { text-align:center; font-size:24px; font-weight:700; margin-bottom:20px; color:#0f172a; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+  .col { background:#fff; border-radius:16px; padding:18px; box-shadow:0 4px 18px rgba(15,23,42,.06); }
+  .col h2 { font-size:15px; color:#4f46e5; margin-bottom:12px; text-align:center; }
+  .mermaid { display:flex; justify-content:center; }
+</style>
+</head>
+<body>
+  <div class="page-title">📝 下单流程</div>
+  <div class="grid">
+    <div class="col">
+      <h2>普通用户（付款）</h2>
+      <div class="mermaid">
+flowchart TD
+  A[维修/回收页] --> B[选产品+故障+图片]
+  B --> C[填服务方式+地址]
+  C --> D[提交订单]
+  D --> E[pending 待管理员确认]
+  E --> F{管理员}
+  F -->|拒绝| G[cancelled 关闭]
+  F -->|确认| H[confirmed 待付款]
+  H --> I[用户付款 paid]
+  I --> J[processing 维修中]
+      </div>
+    </div>
+    <div class="col">
+      <h2>内部人员（免付款）</h2>
+      <div class="mermaid">
+flowchart TD
+  A[维修/回收页] --> B{角色 internal?}
+  B -->|是| C[选设备来源 必填]
+  C --> D[产品+问题+来源]
+  D --> E[确认免付款申请]
+  E --> F[internal_pending 待审批]
+  F --> G{管理员审批}
+  G -->|驳回+原因| H[cancelled]
+  G -->|确认| I[维修中/已完成 免付]
+      </div>
+    </div>
+  </div>
+</body>
+</html>

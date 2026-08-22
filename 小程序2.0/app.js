@@ -33,12 +33,19 @@ wx.showModal = function (options) {
 function normalizeStoredUserInfo(userInfo) {
   if (!userInfo) return null
 
+  // 关键修复：avatar_url 与 avatarUrl 两个字段都必须归一化。
+  // 历史脏数据/后台未归一化时，avatar_url 可能是裸域名绝对地址
+  // （如 http://zych.net.cn/uploads/...），直接渲染会导致 404。
+  // 这里统一把任一有效地址归一化为可访问的网关地址，并回写存储，
+  // 让所有读取点（super-admin 的 adminInfo、admin、mine 等）都拿到干净地址。
+  const normalizedAvatar = normalizeAvatarUrl(userInfo.avatarUrl || userInfo.avatar_url || '')
+
   return {
     ...userInfo,
     nickname: userInfo.nickname || userInfo.nickName || '微信用户',
     nickName: userInfo.nickName || userInfo.nickname || '微信用户',
-    avatar_url: userInfo.avatar_url || userInfo.avatarUrl || '',
-    avatarUrl: normalizeAvatarUrl(userInfo.avatarUrl || userInfo.avatar_url || '')
+    avatar_url: normalizedAvatar,
+    avatarUrl: normalizedAvatar
   }
 }
 

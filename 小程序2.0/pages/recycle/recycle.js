@@ -60,7 +60,8 @@ Page({
     searchKeyword: '',        // 输入框文本
     searchResults: [],        // 搜索结果列表
     searchHistory: [],        // 搜索历史
-    showSearchPanel: false    // 是否显示搜索面板
+    showSearchPanel: false,   // 是否显示搜索面板
+    isInternal: false         // 是否为公司内部人员（免付款申请）
   },
 
   onLoad() {
@@ -123,12 +124,16 @@ Page({
     // 读取搜索历史
     const history = wx.getStorageSync('recycle_search_history') || [];
 
+    // 检测内部人员身份：公司内部人员发起回收免付款申请，无需支付
+    const userInfo = wx.getStorageSync('userInfo') || {};
+
     this.setData({
       categories: processedCategories,
       currentCategory: processedCategories[0],
       currentCategoryIndex: 0,
       searchIndex,
-      searchHistory: history
+      searchHistory: history,
+      isInternal: userInfo.role === 'internal'
     });
   },
 
@@ -186,7 +191,8 @@ Page({
       modelColor: model.color,
       modelBgColor: model.bgColor || '',
       modelVisualIcon: model.visualIcon || '',
-      modelVisualScene: model.visualScene || ''
+      modelVisualScene: model.visualScene || '',
+      internal: this.data.isInternal ? 1 : 0
     };
 
     wx.showLoading({ title: '正在加载...', mask: true });
@@ -303,7 +309,8 @@ Page({
       modelColor: item.modelColor,
       modelBgColor: item.modelBgColor || '',
       modelVisualIcon: item.modelVisualIcon || '',
-      modelVisualScene: item.modelVisualScene || ''
+      modelVisualScene: item.modelVisualScene || '',
+      internal: this.data.isInternal ? 1 : 0
     };
 
     wx.navigateTo({

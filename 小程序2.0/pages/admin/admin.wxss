@@ -91,7 +91,14 @@
   box-shadow: 0 12rpx 35rpx rgba(0, 0, 0, 0.1);
   position: relative;
   transition: all 0.3s ease;
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
+
+.stat-card:nth-child(1) { animation-delay: 0.02s; }
+.stat-card:nth-child(2) { animation-delay: 0.08s; }
+.stat-card:nth-child(3) { animation-delay: 0.14s; }
+.stat-card:nth-child(4) { animation-delay: 0.20s; }
+.stat-card:nth-child(5) { animation-delay: 0.26s; }
 
 .stat-card:active {
   transform: scale(0.95);
@@ -177,14 +184,14 @@
   display: flex;
   align-items: center;
   margin-bottom: 20rpx;
-  padding-left: 10rpx;
+  padding-left: 18rpx;
+  border-left: 8rpx solid #4f6b84;
 }
 
 .title-text {
   font-size: 32rpx;
   font-weight: bold;
-  color: #ffffff;
-  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.3);
+  color: #2d465e;
 }
 
 .modules-grid {
@@ -205,6 +212,8 @@
   transition: all 0.3s ease;
   backdrop-filter: blur(10rpx);
   position: relative;
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: 0.3s;
 }
 
 /* 高亮卡片 - 用于进度申请等需要突出显示的模块 */
@@ -333,6 +342,54 @@
 .pending-banner-arrow {
   font-size: 36rpx;
   color: #b8860b;
+  flex-shrink: 0;
+}
+
+/* 内部免付款申请待确认横幅 */
+.internal-pending-banner {
+  margin: 0 20rpx 24rpx;
+  padding: 24rpx 28rpx;
+  background: linear-gradient(135deg, #e8f0fe 0%, #dbeafe 100%);
+  border-radius: 20rpx;
+  border-left: 8rpx solid #3b82f6;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  box-shadow: 0 6rpx 20rpx rgba(59, 130, 246, 0.18);
+  transition: all 0.3s ease;
+}
+
+.internal-pending-banner:active {
+  transform: scale(0.97);
+}
+
+.ipb-icon {
+  font-size: 40rpx;
+  flex-shrink: 0;
+}
+
+.ipb-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ipb-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1e40af;
+  margin-bottom: 4rpx;
+}
+
+.ipb-desc {
+  display: block;
+  font-size: 22rpx;
+  color: #3b82f6;
+}
+
+.ipb-arrow {
+  font-size: 36rpx;
+  color: #3b82f6;
   flex-shrink: 0;
 }
 

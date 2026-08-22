@@ -317,7 +317,7 @@ Page({
               ...rawUser,
               nickname: rawUser.nickname || '微信用户',
               nickName: rawUser.nickname || rawUser.nickName || '微信用户',
-              avatar_url: rawUser.avatar_url || rawUser.avatarUrl || '',
+              avatar_url: normalizeAvatarUrl(rawUser.avatar_url || rawUser.avatarUrl || ''),
               avatarUrl: normalizeAvatarUrl(rawUser.avatar_url || rawUser.avatarUrl || '')
             }
 
@@ -436,25 +436,28 @@ Page({
       wx.showToast({ title: '请填写微信昵称', icon: 'none' })
       return
     }
+    // 头像必须选择：要求用户点击微信头像授权后再确认
+    if (!fillAvatarUrl) {
+      wx.showToast({ title: '请点击选择微信头像', icon: 'none' })
+      return
+    }
 
     this.setData({ isFilling: true })
     wx.showLoading({ title: '保存中...', mask: true })
 
     try {
-      let finalAvatarUrl = fillAvatarUrl
-      // 优先使用选图时已后台上传的服务端地址，避免保存时阻塞
-      if (this.data.uploadedFillAvatarUrl) {
-        finalAvatarUrl = this.data.uploadedFillAvatarUrl
-      } else if (finalAvatarUrl && (finalAvatarUrl.indexOf('http://tmp/') === 0 || finalAvatarUrl.indexOf('wxfile://') === 0 || finalAvatarUrl.indexOf('tmp/') === 0)) {
-        try {
-          const uploadRes = await userApi.uploadAvatar(finalAvatarUrl, { timeout: 15000 })
-          if (uploadRes && uploadRes.avatar_url) {
-            finalAvatarUrl = uploadRes.avatar_url
-          }
-        } catch (upErr) {
-          console.warn('上传微信头像失败:', upErr)
-          finalAvatarUrl = normalizeAvatarUrl('')
+      let finalAvatarUrl = this.data.uploadedFillAvatarUrl || ''
+      // 选图时若后台上传未成功（或尚未完成），保存时可靠上传（带重试），确保头像真正落盘
+      if (!finalAvatarUrl && fillAvatarUrl && (fillAvatarUrl.indexOf('http://tmp/') === 0 || fillAvatarUrl.indexOf('wxfile://') === 0 || fillAvatarUrl.indexOf('tmp/') === 0)) {
+        for (let i = 0; i <= 2; i++) {
+          try {
+            const res = await userApi.uploadAvatar(fillAvatarUrl, { timeout: 20000, suppressErrorToast: i === 2 })
+            if (res && res.avatar_url) { finalAvatarUrl = res.avatar_url; break }
+          } catch (e) { console.warn('[首页-头像上传] 第' + (i + 1) + '次失败:', e) }
         }
+        if (!finalAvatarUrl) throw new Error('头像上传失败')
+      } else if (!finalAvatarUrl) {
+        finalAvatarUrl = fillAvatarUrl
       }
 
       const updatedUser = await userApi.updateUserInfo({
@@ -462,17 +465,22 @@ Page({
         avatar_url: finalAvatarUrl
       })
 
+      // 读回服务端最新资料，确保「保存即读取」
+      let latestUser = updatedUser
+      try { latestUser = await userApi.getUserInfo() } catch (e) { console.warn('[首页-读回头像] 失败:', e) }
+
       const currentUserInfo = wx.getStorageSync('userInfo') || {}
       const mergedUser = {
         ...currentUserInfo,
-        ...updatedUser,
-        nickname: updatedUser.nickname || fillNickName.trim(),
-        nickName: updatedUser.nickname || fillNickName.trim(),
-        avatar_url: normalizeAvatarUrl(updatedUser.avatar_url || updatedUser.avatarUrl || finalAvatarUrl),
-        avatarUrl: normalizeAvatarUrl(updatedUser.avatar_url || updatedUser.avatarUrl || finalAvatarUrl)
+        ...(latestUser || {}),
+        nickname: (latestUser && latestUser.nickname) || fillNickName.trim(),
+        nickName: (latestUser && latestUser.nickname) || fillNickName.trim(),
+        avatar_url: normalizeAvatarUrl((latestUser && (latestUser.avatar_url || latestUser.avatarUrl)) || finalAvatarUrl),
+        avatarUrl: normalizeAvatarUrl((latestUser && (latestUser.avatar_url || latestUser.avatarUrl)) || finalAvatarUrl)
       }
 
       wx.setStorageSync('userInfo', mergedUser)
+      wx.setStorageSync('profileFilled', true)
       const app = getApp()
       if (app && app.globalData) {
         app.globalData.userInfo = mergedUser
@@ -481,13 +489,13 @@ Page({
 
       wx.hideLoading()
       wx.showToast({ title: '已保存', icon: 'success', duration: 1200 })
-      this.setData({ showProfileFill: false })
+      this.setData({ showProfileFill: false, isFilling: false })
       this.hydrateUserInfo()
     } catch (err) {
       console.error('保存资料失败:', err)
       wx.hideLoading()
       this.setData({ isFilling: false })
-      wx.showToast({ title: '保存失败，请重试', icon: 'none' })
+      wx.showToast({ title: (err && err.message) || '保存失败，请重试', icon: 'none' })
     }
   }
 })

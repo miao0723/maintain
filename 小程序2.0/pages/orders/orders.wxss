@@ -31,6 +31,7 @@
 .tab-text {
   font-size: 26rpx;
   color: #333333;
+  white-space: nowrap;
 }
 
 .tab-item.active .tab-text {
@@ -231,6 +232,35 @@
   color: #ff6b6b;
   font-weight: bold;
 }
+
+/* 内部免付款申请：是否同意 */
+.order-approval {
+  display: flex;
+  align-items: baseline;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  background: #f3f4f6;
+}
+.order-approval .approval-label {
+  font-size: 22rpx;
+  color: #6b7280;
+  margin-right: 10rpx;
+}
+.order-approval .approval-value {
+  font-size: 28rpx;
+  font-weight: bold;
+}
+.order-approval.approval-pending { background: #fef3c7; }
+.order-approval.approval-pending .approval-value { color: #d97706; }
+.order-approval.approval-approved { background: #d1fae5; }
+.order-approval.approval-approved .approval-value { color: #059669; }
+.order-approval.approval-rejected { background: #fee2e2; }
+.order-approval.approval-rejected .approval-value { color: #dc2626; }
+
+/* 弹窗内 是否同意 文本 */
+.approval-text.approval-pending { color: #d97706; font-weight: 600; }
+.approval-text.approval-approved { color: #059669; font-weight: 600; }
+.approval-text.approval-rejected { color: #dc2626; font-weight: 600; }
 
 /* ===== 可视化维修进度条 ===== */
 .progress-section {
@@ -459,6 +489,11 @@
   background: #f5f5f5;
   color: #666;
   border: 2rpx solid #e5e7eb;
+}
+
+.action-btn.danger {
+  background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+  color: #ffffff;
 }
 
 /* 空状态 */

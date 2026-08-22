@@ -67,6 +67,16 @@
     <text class="pending-banner-arrow">›</text>
   </view>
 
+  <!-- 内部免付款申请待确认横幅（管理员进入即可见，点击直达处理页） -->
+  <view wx:if="{{pendingCount.pendingInternal > 0}}" class="internal-pending-banner" bindtap="goToInternalPending">
+    <view class="ipb-icon">🏢</view>
+    <view class="ipb-body">
+      <text class="ipb-title">有 {{pendingCount.pendingInternal}} 笔内部免付款申请待确认</text>
+      <text class="ipb-desc">维修 / 回收申请等待「通过」或「拒绝」，点击立即处理</text>
+    </view>
+    <text class="ipb-arrow">›</text>
+  </view>
+
   <!-- 客服管理入口 -->
   <view class="service-entry-banner" bindtap="goToServiceManagement">
     <view class="service-entry-icon">💬</view>

@@ -92,6 +92,15 @@ Page({
       admin_created: 0
     },
 
+    // 驳回内部申请弹窗
+    showRejectInternalModal: false,
+    rejectInternalReason: '',
+    rejectInternalOrderId: null,
+
+    // 全局内部免付款待确认订单数（用于 tab 角标与顶部提示，不依赖当前已加载列表）
+    pendingInternalCount: 0,
+
+
     // 金额统计
     amountStats: {
       totalEstimated: 0,    // 全部订单预估金额合计
@@ -211,12 +220,39 @@ Page({
     }
 
     this.loadOrders();
+    // 未指定状态时，若存在待确认内部申请则自动切到「内部待确认」tab
+    this.loadPendingInternalCount(!options.status);
   },
 
   onShow() {
     console.log('[admin-orders] 页面显示, 当前Tab:', this.data.currentTab, '过滤器:', this.data.statusFilter);
     this.loadOrders();
     this.loadUnreadBadges();
+    this.loadPendingInternalCount();
+  },
+
+  /**
+   * 拉取全局「内部免付款待确认」订单数（不依赖当前列表），用于 tab 角标与顶部提示。
+   * 若进入页面时未指定状态且存在待确认内部申请，自动切到「内部待确认」tab，避免看不到。
+   */
+  async loadPendingInternalCount(autoSwitch = false) {
+    try {
+      const res = await adminApi.getPendingCount();
+      const count = (res && res.data && res.data.pendingInternal) || 0;
+      const patch = { pendingInternalCount: count };
+      // 仅当本次是带 autoSwitch 语义（首次进入且无指定状态）时才自动跳转
+      if (autoSwitch && count > 0 && this.data.currentTab !== 'internal_pending') {
+        patch.currentTab = 'internal_pending';
+        patch.statusFilter = 'internal_pending';
+        patch.page = 1;
+        this.setData(patch);
+        this.loadOrders(true);
+      } else {
+        this.setData(patch);
+      }
+    } catch (err) {
+      console.error('[admin-orders] 获取内部待确认计数失败:', err);
+    }
   },
 
   /**
@@ -357,6 +393,13 @@ Page({
             deviceTypeName: order.deviceTypeName || order.device_type || '未知设备',
             brandName: order.brandName || '',
             deviceCondition: order.device_condition || order.deviceCondition || '',
+            isInternal: !!(order.is_internal || order.isInternal),
+            deviceSource: order.device_source || order.deviceSource || '',
+            deviceSourceText: ({
+              project_return: '项目返修',
+              warehouse: '仓库',
+              fixed_asset: '固定资产'
+            })[order.device_source || order.deviceSource] || '',
             serviceType: order.service_type || order.serviceType || '',
             status: order.status || '', // 确保status字段正确传递
             quote_status: order.quote_status || '', // 报价状态
@@ -589,6 +632,7 @@ Page({
         wx.showToast({ title: '已确认（免付款）', icon: 'success' });
         this.closeOrderDetail();
         this.loadOrders(true);
+        this.loadPendingInternalCount();
       } else {
         wx.showToast({ title: res?.error || '确认失败', icon: 'none' });
       }
@@ -598,6 +642,69 @@ Page({
       wx.showToast({ title: '确认失败', icon: 'none' });
     }
   },
+
+  /**
+   * 打开驳回内部申请弹窗
+   */
+  openRejectInternalModal(e) {
+    const orderId = parseInt(e.currentTarget.dataset.id);
+    if (!orderId) return;
+    this.setData({
+      showRejectInternalModal: true,
+      rejectInternalReason: '',
+      rejectInternalOrderId: orderId
+    });
+  },
+
+  onRejectInternalReasonInput(e) {
+    this.setData({ rejectInternalReason: e.detail.value });
+  },
+
+  closeRejectInternalModal() {
+    this.setData({
+      showRejectInternalModal: false,
+      rejectInternalReason: '',
+      rejectInternalOrderId: null
+    });
+  },
+
+  /**
+   * 提交驳回：管理员填写原因后驳回内部免付款申请
+   * 调用后端 internal-confirm 接口的 reject 分支（action='reject' + reject_reason）
+   */
+  async submitRejectInternal() {
+    const orderId = this.data.rejectInternalOrderId;
+    const reason = (this.data.rejectInternalReason || '').trim();
+    if (!orderId) return;
+
+    if (!reason) {
+      wx.showToast({ title: '请填写驳回原因', icon: 'none' });
+      return;
+    }
+
+    wx.showLoading({ title: '驳回中...', mask: true });
+    try {
+      const res = await adminApi.confirmInternalOrder(orderId, {
+        action: 'reject',
+        reject_reason: reason
+      });
+      wx.hideLoading();
+      if (res && res.success) {
+        wx.showToast({ title: '已驳回', icon: 'success' });
+        this.closeRejectInternalModal();
+        this.closeOrderDetail();
+        this.loadOrders(true);
+        this.loadPendingInternalCount();
+      } else {
+        wx.showToast({ title: res?.error || '驳回失败', icon: 'none' });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('驳回内部订单失败:', error);
+      wx.showToast({ title: '驳回失败', icon: 'none' });
+    }
+  },
+
 
   /**
    * 打开代客下单弹窗

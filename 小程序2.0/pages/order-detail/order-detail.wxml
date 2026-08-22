@@ -35,19 +35,96 @@
 
   <!-- ====== 设备信息 ====== -->
   <view class="card">
-    <view class="card-title">📱 设备信息</view>
+    <view class="card-title">{{isInternal ? '📦 产品信息' : '📱 设备信息'}}</view>
     <view class="device-card">
       <view class="device-icon">{{deviceTypeIcon}}</view>
       <view class="device-info">
         <text class="device-name">{{deviceTypeName}}</text>
         <text wx:if="{{deviceModel}}" class="device-model">{{deviceModel}}</text>
         <text wx:if="{{brandName}}" class="device-brand">品牌：{{brandName}}</text>
+        <text wx:if="{{isInternal && deviceSourceText}}" class="device-brand">设备来源：{{deviceSourceText}}</text>
       </view>
       <view wx:if="{{deviceCondition}}" class="device-condition-tag">{{deviceCondition}}</view>
     </view>
     <view wx:if="{{isAdminCreated}}" class="admin-created-tip">
       <text class="admin-created-tip-icon">✅</text>
       <text class="admin-created-tip-text">本订单由管理员代您创建，产品信息已填好，您只需填写下方地址并支付即可。</text>
+    </view>
+  </view>
+
+  <!-- ====== 匹配信息（内部申请） ====== -->
+  <view wx:if="{{isInternal && (deviceSourceText || unitName)}}" class="card match-card">
+    <view class="card-title">🔗 匹配信息</view>
+    <view class="info-item" wx:if="{{deviceSourceText}}">
+      <text class="info-label">设备来源</text>
+      <text class="info-value">{{deviceSourceText}}</text>
+    </view>
+    <view class="info-item" wx:if="{{unitName}}">
+      <text class="info-label">归属单位</text>
+      <text class="info-value">{{unitName}}<text wx:if="{{unitContact}}" class="info-sub">（{{unitContact}}）</text></text>
+    </view>
+    <view class="info-item" wx:if="{{unitPhone}}">
+      <text class="info-label">单位电话</text>
+      <text class="info-value">{{unitPhone}}</text>
+    </view>
+    <view class="info-item" wx:if="{{unitAddress}}">
+      <text class="info-label">单位地址</text>
+      <text class="info-value">{{unitAddress}}</text>
+    </view>
+  </view>
+
+  <!-- ====== AI 故障诊断结论（内部维修订单匹配信息） ====== -->
+  <view wx:if="{{showDiagnosis}}" class="card diagnosis-card">
+    <view class="card-title">🤖 AI 故障诊断结论</view>
+
+    <!-- 加载中 -->
+    <view wx:if="{{diagnosing}}" class="diagnosis-loading">
+      <view class="dot"></view><view class="dot"></view><view class="dot"></view>
+      <text class="diagnosis-loading-text">AI 正在分析故障信息…</text>
+    </view>
+
+    <!-- 失败 -->
+    <view wx:elif="{{diagnosisError}}" class="diagnosis-error">
+      <text class="diagnosis-error-text">{{diagnosisError}}</text>
+      <view class="diagnosis-retry-btn" bindtap="retryDiagnosis">点击重试</view>
+    </view>
+
+    <!-- 结果 -->
+    <view wx:elif="{{diagnosis}}" class="diagnosis-result">
+      <view wx:if="{{diagnosis.summary}}" class="diagnosis-summary">
+        <text class="diagnosis-summary-icon">🔍</text>
+        <text class="diagnosis-summary-text">{{diagnosis.summary}}</text>
+      </view>
+
+      <view wx:if="{{diagnosis.causes.length > 0}}" class="diagnosis-section">
+        <view class="diagnosis-section-title">🎯 可能原因</view>
+        <view class="diagnosis-cause" wx:for="{{diagnosis.causes}}" wx:key="reason">
+          <view class="diagnosis-cause-head">
+            <text class="diagnosis-cause-rank">#{{index + 1}}</text>
+            <view class="diagnosis-prob">
+              <view class="diagnosis-prob-bar"><view class="diagnosis-prob-fill" style="width: {{item.probability}}%"></view></view>
+              <text class="diagnosis-prob-text">{{item.probability}}%</text>
+            </view>
+          </view>
+          <text class="diagnosis-cause-reason">{{item.reason}}</text>
+          <text wx:if="{{item.explanation}}" class="diagnosis-cause-explain">{{item.explanation}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{diagnosis.repairPlan}}" class="diagnosis-section">
+        <view class="diagnosis-section-title">🛠 维修建议</view>
+        <text class="diagnosis-text">{{diagnosis.repairPlan}}</text>
+      </view>
+
+      <view wx:if="{{diagnosis.estimatedCost}}" class="diagnosis-section">
+        <view class="diagnosis-section-title">💰 预估费用</view>
+        <text class="diagnosis-cost">{{diagnosis.estimatedCost}}</text>
+      </view>
+
+      <view wx:if="{{diagnosis.notes}}" class="diagnosis-section">
+        <view class="diagnosis-section-title">⚠️ 注意事项</view>
+        <text class="diagnosis-text">{{diagnosis.notes}}</text>
+      </view>
     </view>
   </view>
 
@@ -81,8 +158,27 @@
     </view>
   </view>
 
-  <!-- ====== 服务方式 + 价格 ====== -->
-  <view class="card">
+  <!-- ====== 驳回原因（内部申请被驳回） ====== -->
+  <view wx:if="{{orderStatus === 'cancelled' && rejectReason}}" class="card reject-reason-card">
+    <view class="card-title" style="color:#ef4444;">⛔ 申请被驳回</view>
+    <view class="reject-reason-box">{{rejectReason}}</view>
+  </view>
+
+  <!-- ====== 内部免付款申请：是否同意 + 服务方式 ====== -->
+  <view class="card" wx:if="{{isInternal}}">
+    <view class="card-title">✅ 申请确认</view>
+    <view class="approval-card">
+      <text class="approval-q">是否同意</text>
+      <text class="approval-a approval-{{approvalClass}}">{{approvalText}}</text>
+    </view>
+    <view wx:if="{{approvalReason}}" class="approval-reason">驳回原因：{{approvalReason}}</view>
+    <view wx:if="{{serviceTypeText}}" class="service-row">
+      <text class="service-icon">{{serviceTypeIcon}}</text>
+      <text class="service-text">{{serviceTypeText}}</text>
+    </view>
+  </view>
+
+  <view class="card" wx:else>
     <view class="card-title">💰 费用与服务</view>
     <view class="price-row">
       <view class="price-item">
@@ -221,7 +317,7 @@
   </view>
 
   <!-- ====== 单位信息 ====== -->
-  <view wx:if="{{unitName}}" class="card">
+  <view wx:if="{{unitName && !isInternal}}" class="card">
     <view class="card-title">🏢 单位信息</view>
     <view class="unit-row">
       <view class="unit-header">

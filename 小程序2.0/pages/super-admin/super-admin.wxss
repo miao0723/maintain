@@ -735,6 +735,11 @@ page {
   background: var(--gray-200);
 }
 
+.filter-chip.internal-chip.active {
+  background: #f59e0b;
+  color: #fff;
+}
+
 .type-filter .filter-chip {
   margin-right: 16rpx;
 }
@@ -1646,6 +1651,16 @@ page {
 
 .detail-btn.danger {
   background: var(--danger);
+  color: #fff;
+}
+
+.detail-btn.internal-confirm {
+  background: var(--success);
+  color: #fff;
+}
+
+.detail-btn.internal-reject {
+  background: var(--warning, #f59e0b);
   color: #fff;
 }
 

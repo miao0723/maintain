@@ -1,6 +1,6 @@
 // pages/order-detail/order-detail.js
 const app = getApp()
-const { orderApi } = require('../../utils/api.js')
+const { orderApi, diagnoseApi } = require('../../utils/api.js')
 const { isProgressUnread, getProgressStamp, syncProgressUnreadState } = require('../../utils/progressUnread.js')
 
 Page({
@@ -50,6 +50,11 @@ Page({
     estimatedPrice: '',
     actualPrice: '',
 
+    // 内部免付款申请：是否同意
+    approvalText: '',
+    approvalClass: '',
+    approvalReason: '',
+
     // 进度
     progress: 0,
 
@@ -93,6 +98,8 @@ Page({
     paymentStatusText: '待支付',
     payAmount: '',
     isInternal: false,
+    deviceSource: '',
+    deviceSourceText: '',
     isAdminCreated: false,
     outTradeNo: '',
 
@@ -137,7 +144,13 @@ Page({
     warrantyRemainingDays: 0,
     warrantyEndDate: '',
     warrantyType: '',
-    isWarrantyOrder: false
+    isWarrantyOrder: false,
+
+    // AI 故障诊断结论（内部维修订单"匹配信息"的一部分）
+    diagnosis: null,
+    diagnosing: false,
+    diagnosisError: '',
+    showDiagnosis: false
   },
 
   onLoad(options) {
@@ -342,6 +355,11 @@ Page({
         estimatedPrice: ep ? '¥' + ep : '',
         actualPrice: ap ? '¥' + ap : '待确定',
 
+        // 内部免付款申请：是否同意
+        approvalText: this._approvalText(status, !!raw.is_internal, raw.reject_reason),
+        approvalClass: this._approvalClass(status, !!raw.is_internal, raw.reject_reason),
+        approvalReason: raw.reject_reason || '',
+
         // 进度（根据状态自动推导）
         progress: autoProgress,
         progressUnread: Number(raw.progress_unread || 0),
@@ -387,6 +405,14 @@ Page({
         paymentStatusText: this._paymentStatusText(raw.payment_status || 'unpaid'),
         payAmount: raw.pay_amount ? '¥' + raw.pay_amount : '',
         isInternal: !!raw.is_internal,
+        deviceSource: raw.device_source || raw.deviceSource || '',
+        deviceSourceText: ({
+          project_return: '项目返修',
+          warehouse: '仓库',
+          fixed_asset: '固定资产'
+        })[raw.device_source || raw.deviceSource] || '',
+        // 内部申请被驳回时展示驳回原因
+        rejectReason: raw.reject_reason || '',
         isAdminCreated: !!raw.is_admin_created,
         outTradeNo: raw.out_trade_no || '',
         paidAt: this._formatTime(raw.paid_at),
@@ -413,6 +439,10 @@ Page({
 
       // 标记进度为已读
       this.markProgressRead()
+      // 内部维修订单：自动拉取 AI 故障诊断结论（"匹配信息"的一部分）
+      if (this.data.isInternal && !this.data.isRecycle) {
+        this._loadAiDiagnosis()
+      }
       if (status === 'quoted' || raw.quote_unread) {
         this.markQuoteRead()
       }
@@ -460,6 +490,68 @@ Page({
   _deviceConditionText(cond) {
     const map = { good: '成色很好', normal: '成色一般', fair: '成色较差', poor: '成色很差' }
     return cond ? (map[cond] || cond) : ''
+  },
+
+  /**
+   * 内部免付款申请：是否同意 - 文案
+   */
+  _approvalText(status, isInternal, rejectReason) {
+    if (!isInternal) return ''
+    if (status === 'internal_pending') return '待确认'
+    if (status === 'cancelled') return rejectReason ? '已驳回' : '已撤回'
+    return '已同意'
+  },
+
+  /**
+   * 内部免付款申请：是否同意 - 样式类
+   */
+  _approvalClass(status, isInternal, rejectReason) {
+    if (!isInternal) return ''
+    if (status === 'internal_pending') return 'pending'
+    if (status === 'cancelled') return 'rejected'
+    return 'approved'
+  },
+
+  /**
+   * 内部维修订单：调用 AI 故障诊断，结论作为"匹配信息"一部分展示
+   * 用订单已有的设备类型 / 品牌 / 问题描述 作为输入
+   */
+  async _loadAiDiagnosis() {
+    const deviceType = this.data.deviceTypeName || ''
+    const brand = this.data.brandName || ''
+    const symptom = this.data.problemDesc || ''
+    if (!deviceType && !symptom) {
+      // 没有可供诊断的信息，静默跳过
+      this.setData({ showDiagnosis: false })
+      return
+    }
+
+    this.setData({ showDiagnosis: true, diagnosing: true, diagnosisError: '', diagnosis: null })
+    try {
+      const res = await diagnoseApi.analyze({
+        deviceType,
+        brand,
+        symptom,
+        details: ''
+      })
+      const data = (res && (res.data || res)) || null
+      if (data && (data.summary || (data.causes && data.causes.length))) {
+        data.causes = Array.isArray(data.causes) ? data.causes : []
+        this.setData({ diagnosing: false, diagnosis: data })
+      } else {
+        this.setData({ diagnosing: false, diagnosisError: '暂无诊断结论' })
+      }
+    } catch (error) {
+      console.error('[OrderDetail] AI 诊断失败:', error)
+      this.setData({ diagnosing: false, diagnosisError: '诊断获取失败，请重试' })
+    }
+  },
+
+  /**
+   * AI 诊断失败时点击重试
+   */
+  retryDiagnosis() {
+    this._loadAiDiagnosis()
   },
 
   _deliveryStatusText(status) {

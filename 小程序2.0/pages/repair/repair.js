@@ -5,6 +5,12 @@ Page({
   data: {
     currentTab: 'repair', // repair 或 recycle
     isInternal: false, // 是否为公司内部人员（免付款申请）
+    deviceSourceOptions: [
+      { key: 'project_return', label: '项目返修' },
+      { key: 'warehouse', label: '仓库' },
+      { key: 'fixed_asset', label: '固定资产' }
+    ],
+    deviceSource: '', // 内部人员选择的设备来源
     repairSubmitting: false,
     recycleSubmitting: false,
     repairStepIndex: 0,
@@ -381,6 +387,17 @@ Page({
     // 检查是否有从"设备管理"页面传入的预填数据
     this.checkPrefill();
     this.updateRepairStepState(this.data.repairStepIndex);
+  },
+
+  /**
+   * 内部人员选择设备来源（项目返修 / 仓库 / 固定资产）
+   */
+  selectDeviceSource(e) {
+    const key = e.currentTarget.dataset.key;
+    this.setData({ deviceSource: key }, () => {
+      this.updateRepairStepState(this.data.repairStepIndex);
+      this.checkCanSubmitRecycle();
+    });
   },
 
   /**
@@ -883,7 +900,10 @@ Page({
   },
 
   canSubmitRepairNow() {
-    return !!this.data.canSubmit && !(this.data.serviceType === 'home' && !this.data.selectedAddress)
+    if (!this.data.canSubmit) return false
+    if (this.data.serviceType === 'home' && !this.data.selectedAddress) return false
+    if (this.data.isInternal && !this.data.deviceSource) return false
+    return true
   },
 
   canProceedRepairStep(stepIndex = this.data.repairStepIndex) {
@@ -926,6 +946,7 @@ Page({
       case 3:
         return this.data.serviceType === 'home' ? '请选择上门地址' : '请先确认服务安排'
       default:
+        if (this.data.isInternal && !this.data.deviceSource) return '请选择设备来源'
         return '请完善维修订单信息'
     }
   },
@@ -1729,6 +1750,15 @@ Page({
       return;
     }
 
+    // 内部人员必须选择设备来源
+    if (this.data.isInternal && !this.data.deviceSource) {
+      wx.showToast({
+        title: '请选择设备来源',
+        icon: 'none'
+      });
+      return;
+    }
+
     // 如果是上门取件，必须选择地址
     if (this.data.serviceType === 'home' && !this.data.selectedAddress) {
       wx.showToast({
@@ -1794,7 +1824,8 @@ Page({
       estimatedPrice: this.data.isWaitingPrice ? 0 : this.data.estimatedPrice,
       userDeviceId: this.data.prefillUserDeviceId || null,
       isWarranty: this.data.prefillIsWarranty || false,
-      originalOrderId: this.data.prefillOriginalOrderId || null
+      originalOrderId: this.data.prefillOriginalOrderId || null,
+      deviceSource: this.data.isInternal ? this.data.deviceSource : ''
     };
 
     // 如果是上门取件，添加地址信息
@@ -1827,7 +1858,7 @@ Page({
       const confirmed = await new Promise((resolve) => {
         wx.showModal({
           title: '提交内部维修申请',
-          content: '您是公司内部人员，本次提交仅作为免付款维修申请，无需支付。提交后由管理员确认并安排维修。是否提交？',
+          content: '您是公司内部人员，本次提交仅作为免付款维修申请，无需支付。提交后由管理员确认并安排维修。是否提交？\n设备来源：' + (this.data.deviceSourceOptions.find(item => item.key === this.data.deviceSource) || {}).label,
           confirmText: '确认提交',
           confirmColor: '#4f6b84',
           cancelText: '再看看',
@@ -2035,7 +2066,8 @@ Page({
       prefillIsWarranty: false,
       prefillOriginalOrderId: null,
       showModelDrawer: true,
-      showProblemDrawer: true
+      showProblemDrawer: true,
+      deviceSource: ''
     });
     this.updateDisplayValues();
     this.updateRepairStepState(0);
@@ -2225,6 +2257,11 @@ Page({
       return;
     }
 
+    if (this.data.isInternal && !this.data.deviceSource) {
+      this.setData({ canSubmitRecycle: false });
+      return;
+    }
+
     // 内部人员：免付款申请，永不进入报价流程
     const isRecycleWaitingPrice = this.data.isInternal
       ? false
@@ -2366,6 +2403,15 @@ Page({
       return;
     }
 
+    // 内部人员必须选择设备来源
+    if (this.data.isInternal && !this.data.deviceSource) {
+      wx.showToast({
+        title: '请选择设备来源',
+        icon: 'none'
+      });
+      return;
+    }
+
     // 内部人员：未经过确认弹窗时，先走内部免付款确认流程
     if (this.data.isInternal && !this.data._internalRecycleConfirmed) {
       this.showRecycleConfirm();
@@ -2469,7 +2515,8 @@ Page({
       // 内部人员：标记为免付款内部订单，由后端走 internal_pending 流程
       isInternal: this.data.isInternal,
       is_internal: this.data.isInternal ? 1 : 0,
-      paymentStatus: this.data.isInternal ? 'waived' : 'unpaid'
+      paymentStatus: this.data.isInternal ? 'waived' : 'unpaid',
+      deviceSource: this.data.isInternal ? this.data.deviceSource : ''
     };
 
     console.log('提交回收订单数据:', recycleData);
@@ -2619,7 +2666,8 @@ Page({
       showRecycleTypeDrawer: true,
       showRecycleBrandDrawer: true,
       showRecycleModelDrawer: true,
-      showRecycleConditionDrawer: true
+      showRecycleConditionDrawer: true,
+      deviceSource: ''
     });
   },
 

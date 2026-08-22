@@ -471,6 +471,19 @@
           <view class="internal-note-text">内部免付款申请 · 提交后由管理员确认并安排维修，全程无需支付</view>
         </view>
 
+        <!-- 内部人员：设备来源选择 -->
+        <view class="section device-source-section" wx:if="{{isInternal}}">
+          <view class="section-title">设备来源 <text class="required-mark">*</text></view>
+          <view class="device-source-options">
+            <view class="device-source-option {{deviceSource === item.key ? 'active' : ''}}"
+                  wx:for="{{deviceSourceOptions}}" wx:key="key"
+                  bindtap="selectDeviceSource" data-key="{{item.key}}">
+              <view class="device-source-check {{deviceSource === item.key ? 'checked' : ''}}">✓</view>
+              <text class="device-source-label">{{item.label}}</text>
+            </view>
+          </view>
+        </view>
+
         <view class="section submit-callout">
           <button class="confirm-submit-btn" bindtap="submitRepairOrder" disabled="{{!repairStepSubmitReady || repairSubmitting}}" loading="{{repairSubmitting}}">
             {{isInternal ? '提交内部维修申请' : (isWaitingPrice ? '确认并提交待报价订单' : '确认并提交维修订单')}}
@@ -797,6 +810,19 @@
     <view class="section internal-note-section" wx:if="{{isInternal}}">
       <view class="internal-note-icon">🏢</view>
       <view class="internal-note-text">内部免付款申请 · 提交后由管理员确认并安排回收，全程无需支付</view>
+    </view>
+
+    <!-- 内部人员：设备来源选择 -->
+    <view class="section device-source-section" wx:if="{{isInternal}}">
+      <view class="section-title">设备来源 <text class="required-mark">*</text></view>
+      <view class="device-source-options">
+        <view class="device-source-option {{deviceSource === item.key ? 'active' : ''}}"
+              wx:for="{{deviceSourceOptions}}" wx:key="key"
+              bindtap="selectDeviceSource" data-key="{{item.key}}">
+          <view class="device-source-check {{deviceSource === item.key ? 'checked' : ''}}">✓</view>
+          <text class="device-source-label">{{item.label}}</text>
+        </view>
+      </view>
     </view>
 
     <!-- 提交回收 -->

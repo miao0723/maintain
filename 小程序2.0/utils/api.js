@@ -975,6 +975,7 @@ const adminProgressApplyApi = {
 
 module.exports = {
   userApi,
+  request,
   addressApi,
   locationApi,
   orderApi,

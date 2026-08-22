@@ -199,9 +199,9 @@ async function downloadAndSaveAvatar(avatarUrl, userId) {
     // 删除临时文件
     fs.unlinkSync(tempFilePath);
 
-    // 返回压缩后的URL（使用公网地址，保证小程序端可访问）
-    const host = getPublicBaseUrl();
-    return `${host}/uploads/avatars/${compressedFileName}`;
+    // 返回相对路径 /uploads/...：与后端其它上传（评价/报价/维修图）保持一致，
+    // 由前端 normalizeAvatarUrl 统一拼接 API 网关前缀，避免依赖 PUBLIC_BASE_URL 拼接成裸域名而 404。
+    return `/uploads/avatars/${compressedFileName}`;
   } catch (error) {
     console.error('下载并压缩头像失败:', error);
     // 下载失败时不要继续持久化失效外链，交给前端使用默认头像兜底
@@ -227,9 +227,20 @@ function sanitizeAvatarUrl(avatarUrl) {
     return null;
   }
 
-  const trimmedUrl = avatarUrl.trim();
+  let trimmedUrl = avatarUrl.trim();
   if (!trimmedUrl) {
     return null;
+  }
+
+  // 兼容历史脏数据：早期后端用 HOST（如 http://zych.net.cn 或 http://IP:3001）
+  // 生成了「缺 /mp-api/api 前缀」的头像地址（http(s)://域名/uploads/avatars/...），
+  // nginx 未反代根路径 /uploads 导致 404。这里在返回前端前统一改写为正确的公网前缀，
+  // 避免逐条修数据库、也兜底任何直接读 DB 的渲染点。
+  if (/^https?:\/\/[^\/]+\/uploads\//i.test(trimmedUrl)) {
+    // 历史脏数据：裸域名 /uploads/...（缺网关前缀，nginx 未反代根路径导致 404）。
+    // 统一改写为相对路径 /uploads/...，交给前端 normalizeAvatarUrl 拼接正确的网关前缀，
+    // 既兜底任何直接读 DB 的渲染点，也不再依赖 PUBLIC_BASE_URL 是否正确。
+    trimmedUrl = trimmedUrl.replace(/^https?:\/\/[^\/]+/, '');
   }
 
   if (
@@ -546,8 +557,9 @@ router.post('/avatar', authenticateToken, upload.single('avatar'), async (req, r
     // 删除原始未压缩的文件
     fs.unlinkSync(uploadedFilePath);
 
-    // 构建完整的图片URL（使用公网地址，保证小程序端可访问）
-    const avatarUrl = `${getPublicBaseUrl()}/uploads/avatars/${compressedFileName}`;
+    // 返回相对路径：与后端其它上传（评价/报价/维修图）保持一致，
+    // 前端统一按 API 网关前缀拼出可访问的绝对地址，避免 PUBLIC_BASE_URL 拼接成裸域名导致 404。
+    const avatarUrl = `/uploads/avatars/${compressedFileName}`;
 
     // 更新数据库中的 avatar_url
     await db.query(
@@ -625,4 +637,7 @@ router.delete('/delete-account', authenticateToken, async (req, res) => {
   }
 });
 
+// 供其它路由模块（如 superAdminRoutes 的列表接口）复用同一套头像 URL 归一化逻辑，
+// 避免逐页在前端补 normalize，保证所有接口返回的头像地址都是可访问的相对路径。
+router.sanitizeAvatarUrl = sanitizeAvatarUrl;
 module.exports = router;

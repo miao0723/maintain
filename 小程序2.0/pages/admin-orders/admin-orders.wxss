@@ -2175,3 +2175,31 @@ page {
   color: #436f95;
   font-weight: 500;
 }
+
+/* ===== 内部免付款申请待确认提示条 ===== */
+.internal-banner {
+  display: flex;
+  align-items: center;
+  margin: 16rpx 24rpx 0;
+  padding: 20rpx 24rpx;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 2rpx solid #fcd34d;
+  border-radius: 16rpx;
+}
+.internal-banner-icon {
+  font-size: 36rpx;
+  margin-right: 14rpx;
+}
+.internal-banner-text {
+  flex: 1;
+  font-size: 26rpx;
+  color: #92400e;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.internal-banner-arrow {
+  font-size: 40rpx;
+  color: #d97706;
+  font-weight: 700;
+  margin-left: 12rpx;
+}
