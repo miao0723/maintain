@@ -9,8 +9,10 @@ const fs = require('fs');
 const http = require('http');
 const fileStorage = require('../utils/fileStorage');
 
-// 统一落盘到 backend/uploads/progress/{orderId}（与 server.js 静态服务的 backend/uploads 保持一致）
-// 注意：不能写成 routes/../../uploads（项目根），否则文件不在被服务目录，线上 404。
+// 统一落盘到容器 /app/uploads/progress/{orderId}（服务器 Docker 实际挂载：宿主机 小程序2.0/uploads → 容器 /app/uploads）
+// 注意：服务器真实挂载目录是 /app/uploads（见用户提供的 miniprogram-backend compose volumes），
+// 因此这里必须用 routes/../uploads（= 容器 /app/uploads），与静态服务路径保持一致，文件才能被读取且持久化。
+// 切勿改成 ../../uploads（= 容器根 /uploads）：那是旧部署（电子维修2.0）的挂载点，现在已不存在，文件会落进容器层、重建即丢失。
 const sharedUploadsRoot = path.join(__dirname, '../uploads');
 const uploadDir = path.join(sharedUploadsRoot, 'progress');
 // multer 先临时落盘到 _tmp，处理完（压缩/校验）后再由 storeOne 决定最终去向
@@ -311,7 +313,8 @@ router.post('/videos/upload', authenticateToken, upload.fields([
     });
     let coverUrl = '';
 
-    // 处理封面
+    // 处理封面：优先使用随视频一起上传的 cover 文件；
+    // 否则兼容前端「先截帧上传封面、再把相对路径通过 cover_url 随视频提交」的方式
     if (req.files.cover && req.files.cover.length > 0) {
       const coverFile = Array.isArray(req.files.cover) ? req.files.cover[0] : req.files.cover;
       const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -332,6 +335,9 @@ router.post('/videos/upload', authenticateToken, upload.fields([
       } else {
         try { fs.unlinkSync(coverFile.path); } catch (e) {}
       }
+    } else if (req.body.cover_url || req.body.coverUrl) {
+      // 前端截帧后单独上传封面，随视频提交的是封面相对路径（/uploads/progress/{orderId}/xxx.jpg）
+      coverUrl = req.body.cover_url || req.body.coverUrl;
     }
 
     // 估算视频时长（可根据实际需求集成ffmpeg）
@@ -450,6 +456,69 @@ router.post('/videos/upload', authenticateToken, upload.fields([
     res.status(500).json({
       success: false,
       error: '上传失败: ' + error.message
+    });
+  }
+});
+
+/**
+ * 上传视频封面（前端截取视频第一帧后单独上传）
+ * POST /api/progress/videos/cover
+ * 返回封面相对路径，前端随后通过 videos/upload 的 cover_url 字段随视频记录保存。
+ */
+router.post('/videos/cover', authenticateToken, upload.single('cover'), async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const orderId = req.body.orderId || req.body.order_id;
+
+    if (!orderId) {
+      return res.status(400).json({ success: false, error: '订单ID不能为空' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: '请上传封面图片' });
+    }
+
+    // 验证订单存在 + 权限（与 videos/upload 一致）
+    const orderResult = await db.query(
+      'SELECT id, user_id, assigned_to FROM orders WHERE id = ?',
+      [orderId]
+    );
+    if (orderResult.length === 0) {
+      return res.status(404).json({ success: false, error: '订单不存在' });
+    }
+    const order = orderResult[0];
+    if (order.user_id !== userId && order.assigned_to !== userId && req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ success: false, error: '无权上传此订单的视频封面' });
+    }
+
+    // 压缩封面（前端截帧通常较大，压缩后更利于加载）
+    let target = req.file;
+    if (/^image\//.test(req.file.mimetype)) {
+      try {
+        target = await compressImage(req.file, { maxWidth: 640, maxHeight: 640, quality: 82, format: 'jpeg', fit: 'inside' });
+      } catch (err) {
+        console.warn('[进度视频封面] 压缩失败，保留原图:', err.message);
+      }
+    }
+
+    const coverUrl = await storeOne(target.path, {
+      orderId,
+      kind: 'cover',
+      originalname: target.originalname || target.filename,
+      mimetype: target.mimetype
+    });
+
+    res.json({
+      success: true,
+      data: {
+        url: coverUrl,
+        cover_url: coverUrl
+      }
+    });
+  } catch (error) {
+    console.error('上传进度视频封面错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '封面上传失败: ' + error.message
     });
   }
 });

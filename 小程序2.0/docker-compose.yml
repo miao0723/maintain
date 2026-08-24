@@ -27,7 +27,9 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      # 上传文件持久化到宿主机，避免重建容器后丢失
+      # 上传文件持久化到宿主机，避免重建容器后丢失。
+      # 服务器实际配置（miniprogram-backend）挂载为 宿主机 uploads → 容器 /app/uploads，
+      # 与后端写盘（routes/../uploads = /app/uploads）和 server.js 主静态目录（__dirname/uploads = /app/uploads）保持一致。
       - ./uploads:/app/uploads
       # 挂载 .env，使对 backend/.env 的修改（如 DASHSCOPE_API_KEY、PUBLIC_BASE_URL）
       # 能实时生效，无需重新构建镜像。后端每次请求都从磁盘读取 .env，

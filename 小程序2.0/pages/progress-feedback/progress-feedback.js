@@ -24,6 +24,7 @@ Page({
     localVideo: null,     // 本地临时路径，用于预览
     uploadedVideo: null,  // 已上传的服务器URL
     videoTitle: '',
+    localVideoCover: '',  // 截取的视频第一帧封面（本地临时路径），提交时随视频一起上传
 
     // 只读模式（用户查看进度时使用）
     readonly: false,
@@ -537,7 +538,8 @@ Page({
     this.setData({
       localVideo: null,
       uploadedVideo: null,
-      videoTitle: ''
+      videoTitle: '',
+      localVideoCover: ''
     });
   },
 
@@ -598,9 +600,167 @@ Page({
   },
 
   /**
-   * 上传视频到服务器
+   * 截取视频第一帧作为封面（本地临时路径）
+   * 复用页面里已经加载了元数据的预览 <video id="captureVideo">，
+   * 等到可绘制时 seek 到 0.1s（0s 处部分视频为黑帧），把画面绘制到隐藏 canvas 2d 再导出。
+   * 任何一步失败都静默降级为无封面（resolve('')），不影响视频上传。
+   * @param {string} videoPath 本地视频路径
+   * @returns {Promise<string>} 封面临时文件路径，失败返回 ''
    */
-  uploadVideoFile(filePath, feedbackGroupId) {
+  captureVideoCover(videoPath) {
+    return new Promise((resolve) => {
+      let settled = false;
+      let failSafe = null;
+      const finish = (val) => {
+        if (settled) return;
+        settled = true;
+        if (failSafe) clearTimeout(failSafe);
+        resolve(val || '');
+      };
+      failSafe = setTimeout(() => finish(''), 8000); // 8s 总超时兜底
+
+      if (!videoPath) { finish(''); return; }
+
+      try {
+        const q = wx.createSelectorQuery().in(this);
+        q.select('#captureVideo').fields({ node: true, size: true }).exec((vRes) => {
+          const videoNode = vRes && vRes[0] && vRes[0].node;
+          if (!videoNode) { finish(''); return; }
+          q.select('#captureCanvas').fields({ node: true, size: true }).exec((cRes) => {
+            const canvas = cRes && cRes[0] && cRes[0].node;
+            if (!canvas) { finish(''); return; }
+
+            const cw = (cRes[0] && cRes[0].width) || 320;
+            const ch = (cRes[0] && cRes[0].height) || 180;
+            try {
+              canvas.width = cw;
+              canvas.height = ch;
+            } catch (e) {}
+            const ctx = canvas.getContext('2d');
+
+            let drawn = false;
+            const drawAndFinish = () => {
+              if (drawn) return;
+              drawn = true;
+              try {
+                ctx.drawImage(videoNode, 0, 0, cw, ch);
+                wx.canvasToTempFilePath({
+                  canvas: canvas, // type=2d 画布传节点
+                  x: 0, y: 0,
+                  width: cw, height: ch,
+                  destWidth: cw, destHeight: ch,
+                  success: (res) => finish(res.tempFilePath),
+                  fail: () => finish('')
+                }, this);
+              } catch (e) {
+                finish('');
+              }
+            };
+
+            const onMetadataReady = () => {
+              try {
+                // 元数据已就绪：seek 到 0.1s 取第一帧（0s 部分视频为黑帧）
+                if (videoNode.currentTime > 0.15 || videoNode.currentTime === 0) {
+                  videoNode.currentTime = 0.1;
+                }
+                videoNode.addEventListener('seeked', drawAndFinish);
+                videoNode.addEventListener('timeupdate', drawAndFinish);
+                // 兜底：seek 事件不触发时，最多等 1.5s 后直接绘制当前帧
+                setTimeout(drawAndFinish, 1500);
+              } catch (e) {
+                finish('');
+              }
+            };
+
+            if (videoNode.readyState >= 1) {
+              // 元数据已加载（预览阶段通常已加载），直接截取
+              onMetadataReady();
+            } else {
+              // 等待元数据加载完成后再截取，避免截到黑屏
+              videoNode.addEventListener('loadedmetadata', onMetadataReady);
+              try { videoNode.currentTime = 0.1; } catch (e) {}
+              // 某些平台不触发 loadedmetadata，做一次超时重试
+              setTimeout(onMetadataReady, 2000);
+            }
+
+            // 部分环境需要 play 才会解码出帧；muted 视频可自动播放
+            try {
+              if (videoNode.paused && videoNode.play) {
+                const p = videoNode.play();
+                if (p && p.catch) p.catch(() => {});
+              }
+            } catch (e) {}
+          });
+        });
+      } catch (e) {
+        finish('');
+      }
+    });
+  },
+
+  /**
+   * 把截取的封面图片上传到服务器，返回封面相对路径（失败返回 ''）
+   */
+  uploadCoverImage(coverPath) {
+    return new Promise((resolve) => {
+      if (!coverPath) { resolve(''); return; }
+      wx.uploadFile({
+        url: `${getMpApiBaseUrl()}/progress/videos/cover`,
+        filePath: coverPath,
+        name: 'cover',
+        formData: {
+          order_id: String(this.data.orderId)
+        },
+        header: {
+          'Authorization': `Bearer ${this.data.token}`
+        },
+        success: (res) => {
+          try {
+            const data = JSON.parse(res.data);
+            if (data.success && data.data) {
+              resolve(data.data.url || data.data.cover_url || '');
+            } else {
+              console.warn('[进度反馈] 封面上传返回失败:', data);
+              resolve('');
+            }
+          } catch (e) {
+            console.warn('[进度反馈] 解析封面上传响应失败:', e);
+            resolve('');
+          }
+        },
+        fail: () => resolve('')
+      });
+    });
+  },
+
+  /**
+   * 确保拿到视频封面：无封面则先截帧，再上传，返回封面相对路径（失败返回 ''）
+   */
+  ensureVideoCover(filePath) {
+    const run = (coverPath) => {
+      if (!coverPath) return Promise.resolve('');
+      this.setData({ localVideoCover: coverPath });
+      return this.uploadCoverImage(coverPath);
+    };
+    if (this.data.localVideoCover) {
+      return run(this.data.localVideoCover);
+    }
+    return this.captureVideoCover(filePath).then(run);
+  },
+
+  /**
+   * 上传视频到服务器
+   * 先截取并上传第一帧封面，再把封面相对路径通过 cover_url 随视频一起提交，避免封面黑屏。
+   */
+  async uploadVideoFile(filePath, feedbackGroupId) {
+    let coverUrl = '';
+    try {
+      coverUrl = await this.ensureVideoCover(filePath);
+    } catch (e) {
+      console.warn('[进度反馈] 生成视频封面失败，继续上传视频:', e);
+      coverUrl = '';
+    }
+
     return new Promise((resolve) => {
       wx.uploadFile({
         url: `${getMpApiBaseUrl()}/progress/videos/upload`,
@@ -609,7 +769,8 @@ Page({
         formData: {
           order_id: String(this.data.orderId),
           video_title: this.data.videoTitle || '维修视频',
-          feedback_group_id: feedbackGroupId || ''
+          feedback_group_id: feedbackGroupId || '',
+          cover_url: coverUrl || ''
         },
         header: {
           'Authorization': `Bearer ${this.data.token}`

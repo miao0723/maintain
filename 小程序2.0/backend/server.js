@@ -14,17 +14,16 @@ const app = express();
 const db = require('./database');
 const server = http.createServer(app);
 
-// 统一静态文件服务：uploads 目录必须与上传写入目录保持一致
-// 路由里写文件用的是 routes/ 下的 ../uploads（即 backend/uploads），
-// 这里必须指向同一个目录，否则文件落盘在 backend/uploads 而静态从项目根/uploads 取，必然 404。
+// 统一静态文件服务：uploads 目录必须与上传写入目录保持一致。
+// 服务器 Docker 实际挂载：宿主机 小程序2.0/uploads → 容器 /app/uploads（见用户提供的 miniprogram-backend compose volumes）。
+// progressRoutes 写盘路径为 routes/../uploads = 容器 /app/uploads，因此主静态目录必须也是 /app/uploads
+// （server.js 位于 /app，故 __dirname/uploads = /app/uploads）。
 const uploadsRoot = path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(uploadsRoot));
 // 冗余兜底：同时通过 API 前缀暴露，避免 nginx 仅反代 /mp-api 时根路径 /uploads 取不到文件
 app.use('/api/uploads', express.static(uploadsRoot));
-// 历史遗留兜底：早期 progressRoutes 曾把进度媒体写到项目根 uploads/（routes/../../uploads），
-// 导致部分订单（如 67/90/106）文件不在 backend/uploads 而 404。此处追加一层静态服务：
-// express.static 在文件不存在时会 next() 到下一层，因此不影响正常目录，同时让旧文件立即可读。
-// 新上传已修复为写 backend/uploads（见 progressRoutes.js sharedUploadsRoot）。
+// 兼容兜底：旧部署（电子维修2.0，已删除）曾把宿主机 uploads 挂到容器根 /uploads，
+// 若容器内仍有历史残留文件可被读取。express.static 在文件不存在时会 next() 到下一层，正常目录优先，互不影响。
 const legacyUploadsRoot = path.join(__dirname, '../uploads');
 app.use('/uploads', express.static(legacyUploadsRoot));
 app.use('/api/uploads', express.static(legacyUploadsRoot));

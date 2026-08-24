@@ -278,6 +278,17 @@ page {
   object-fit: cover;
 }
 
+/* 隐藏的封面截帧画布：移出可视区，透明、不可交互 */
+.capture-canvas {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 320px;
+  height: 180px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .video-cover {
   position: absolute;
   top: 0;

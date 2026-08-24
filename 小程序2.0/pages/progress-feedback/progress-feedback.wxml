@@ -97,9 +97,9 @@
         bindinput="onVideoTitleInput"
       />
 
-      <!-- 本地视频预览 -->
+      <!-- 本地视频预览（同时作为封面截帧的源视频，id 供 createSelectorQuery 获取节点） -->
       <view wx:if="{{localVideo}}" class="video-card">
-        <video class="video-preview" src="{{localVideo}}" controls="{{false}}" autoplay="{{false}}" show-play-btn="{{false}}"></video>
+        <video id="captureVideo" class="video-preview" src="{{localVideo}}" controls="{{false}}" autoplay="{{false}}" show-play-btn="{{false}}"></video>
         <view class="photo-badge">待上传</view>
         <view class="video-play-btn" bindtap="playVideo" data-url="{{localVideo}}">
           <text class="video-play-icon">▶</text>
@@ -129,6 +129,9 @@
         <button class="video-delete-btn" catchtap="deleteVideo">🗑️ 删除视频</button>
       </view>
     </view>
+
+    <!-- 隐藏的封面截帧画布（type=2d，同层渲染；仅在上传时用于把视频第一帧绘制成封面） -->
+    <canvas type="2d" id="captureCanvas" class="capture-canvas"></canvas>
   </block>
 
   <!-- 历史记录（只读和编辑模式都显示） -->

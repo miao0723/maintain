@@ -925,13 +925,37 @@ Page({
 
   /**
    * 跳转到有进度更新的订单列表
-   * 点击后把"进度更新"横幅标记为已读，横幅立即消失（查看一次即消失）
+   * 点击后直接进入「最新一条未读进度」的详情查看页（只读 + 自动打开最新反馈），
+   * 由 progress-feedback 只读页在真实查看时将该订单标记为已读，返回本页后横幅随之消失。
+   * 注意：不能先清空未读再跳转（否则"未读订单列表"为空，用户什么都看不到）。
    */
   goToProgressOrders() {
-    this.markProgressRead();
-    wx.navigateTo({
-      url: '/pages/orders/orders?unreadType=progress'
-    });
+    const { orderApi } = require('../../utils/api.js');
+    const token = wx.getStorageSync('token');
+    if (!token) {
+      wx.navigateTo({ url: '/pages/orders/orders?unreadType=progress' });
+      return;
+    }
+    wx.showLoading({ title: '加载中...' });
+    orderApi.getProgressUnreadList()
+      .then((response) => {
+        wx.hideLoading();
+        const list = response && response.success && Array.isArray(response.data) ? response.data : [];
+        if (list.length > 0) {
+          // 接口按 progress_updated_at DESC 排序，第一条即最新未读订单
+          const latest = list[0];
+          const orderId = latest.id || latest.order_id;
+          wx.navigateTo({
+            url: `/pages/progress-feedback/progress-feedback?orderId=${orderId}&readonly=true&focusLatestFeedback=true`
+          });
+        } else {
+          wx.navigateTo({ url: '/pages/orders/orders?unreadType=progress' });
+        }
+      })
+      .catch(() => {
+        wx.hideLoading();
+        wx.navigateTo({ url: '/pages/orders/orders?unreadType=progress' });
+      });
   },
 
   /**
