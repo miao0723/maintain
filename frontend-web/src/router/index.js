@@ -318,6 +318,12 @@ const routes = [
       ]
     },
     {
+      path: 'order-devices',
+      name: 'OrderDevices',
+      component: () => import('@/views/repair/OrderDevices.vue'),
+      meta: { title: '设备信息', icon: 'Cpu' }
+    },
+    {
       path: 'test-report',
       name: 'TestReport',
       component: () => import('@/views/repair/TestReportManagement.vue'),

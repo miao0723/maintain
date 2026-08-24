@@ -33,6 +33,67 @@
     </view>
   </view>
 
+  <!-- ====== 报价信息（待确认时置顶，方便用户决策） ====== -->
+  <view wx:if="{{quoteStatus}}" class="card quote-card quote-{{quoteStatus}} quote-top">
+    <view class="card-title">💰 {{isRecycle ? '回收报价' : '维修报价'}}</view>
+    <block wx:if="{{quoteStatus === 'pending'}}">
+      <view class="quote-pending">
+        <view class="quote-price-row">
+          <text class="quote-label">报价金额</text>
+          <text class="quote-value">{{quotePrice}}</text>
+        </view>
+        <view wx:if="{{quoteDescription}}" class="quote-reason">
+          <text class="quote-reason-label">报价理由</text>
+          <text class="quote-reason-text">{{quoteDescription}}</text>
+        </view>
+        <view wx:else class="quote-desc quote-desc-empty">管理员暂未填写详细说明</view>
+        <view wx:if="{{notes}}" class="quote-reason">
+          <text class="quote-reason-label">备注</text>
+          <text class="quote-reason-text">{{notes}}</text>
+        </view>
+        <view wx:if="{{quoteFiles.length > 0}}" class="quote-files">
+          <text class="quote-files-label">报告文件（{{quoteFiles.length}}）</text>
+          <view class="quote-files-grid">
+            <view wx:for="{{quoteFiles}}" wx:key="index" class="quote-file-item">
+              <image wx:if="{{item.type === 'image'}}" class="quote-file-img" src="{{item.url}}" mode="aspectFill" bindtap="previewImage" data-current="{{item.url}}" data-urls="{{quoteImageUrls}}"></image>
+              <view wx:else class="quote-file-doc" bindtap="openFile" data-url="{{item.url}}">
+                <text class="doc-icon">📄</text>
+                <text class="doc-name">{{item.originalName}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="quote-time">{{quoteCreatedAt}}</view>
+      </view>
+      <view class="quote-actions">
+        <view class="quote-btn accept" bindtap="acceptQuote">{{quoteSubmitting ? '处理中...' : '接受报价'}}</view>
+        <view class="quote-btn reject" bindtap="openRejectModal">{{quoteSubmitting ? '处理中...' : '拒绝'}}</view>
+      </view>
+    </block>
+    <block wx:elif="{{quoteStatus === 'accepted'}}">
+      <view class="quote-accepted">
+        <view class="quote-price-row">
+          <text class="quote-label">报价金额</text>
+          <text class="quote-value">{{quotePrice}}</text>
+        </view>
+        <view class="quote-status-text">✅ 已接受</view>
+      </view>
+    </block>
+    <block wx:elif="{{quoteStatus === 'rejected'}}">
+      <view class="quote-rejected">
+        <view class="quote-price-row">
+          <text class="quote-label">报价金额</text>
+          <text class="quote-value">{{quotePrice}}</text>
+        </view>
+        <view class="quote-status-text">❌ 已拒绝</view>
+        <view wx:if="{{quoteRejectedReason}}" class="quote-reason">
+          <text class="quote-reason-label">拒绝原因</text>
+          <text class="quote-reason-text">{{quoteRejectedReason}}</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
   <!-- ====== 设备信息 ====== -->
   <view class="card">
     <view class="card-title">{{isInternal ? '📦 产品信息' : '📱 设备信息'}}</view>
@@ -413,63 +474,12 @@
   </view>
 
   <!-- ====== 备注 ====== -->
-  <view wx:if="{{notes}}" class="card">
+  <view wx:if="{{notes && !quoteStatus}}" class="card">
     <view class="card-title">📋 备注</view>
     <view class="desc-box">{{notes}}</view>
   </view>
 
-  <!-- ====== 报价信息 ====== -->
-  <view wx:if="{{quoteStatus}}" class="card quote-card quote-{{quoteStatus}}">
-    <view class="card-title">💰 {{isRecycle ? '回收报价' : '维修报价'}}</view>
-    <block wx:if="{{quoteStatus === 'pending'}}">
-      <view class="quote-pending">
-        <view class="quote-price-row">
-          <text class="quote-label">报价金额</text>
-          <text class="quote-value">{{quotePrice}}</text>
-        </view>
-        <view wx:if="{{quoteDescription}}" class="quote-desc">{{quoteDescription}}</view>
-        <view wx:if="{{quoteFiles.length > 0}}" class="quote-files">
-          <text class="quote-files-label">报告文件（{{quoteFiles.length}}）</text>
-          <view class="quote-files-grid">
-            <view wx:for="{{quoteFiles}}" wx:key="index" class="quote-file-item">
-              <image wx:if="{{item.type === 'image'}}" class="quote-file-img" src="{{item.url}}" mode="aspectFill" bindtap="previewImage" data-current="{{item.url}}" data-urls="{{quoteImageUrls}}"></image>
-              <view wx:else class="quote-file-doc" bindtap="openFile" data-url="{{item.url}}">
-                <text class="doc-icon">📄</text>
-                <text class="doc-name">{{item.originalName}}</text>
-              </view>
-            </view>
-          </view>
-        </view>
-        <view class="quote-time">{{quoteCreatedAt}}</view>
-      </view>
-      <view class="quote-actions">
-      <view class="quote-btn accept" bindtap="acceptQuote">{{quoteSubmitting ? '处理中...' : '接受报价'}}</view>
-      <view class="quote-btn reject" bindtap="openRejectModal">{{quoteSubmitting ? '处理中...' : '拒绝'}}</view>
-      </view>
-    </block>
-    <block wx:elif="{{quoteStatus === 'accepted'}}">
-      <view class="quote-accepted">
-        <view class="quote-price-row">
-          <text class="quote-label">报价金额</text>
-          <text class="quote-value">{{quotePrice}}</text>
-        </view>
-        <view class="quote-status-text">✅ 已接受</view>
-      </view>
-    </block>
-    <block wx:elif="{{quoteStatus === 'rejected'}}">
-      <view class="quote-rejected">
-        <view class="quote-price-row">
-          <text class="quote-label">报价金额</text>
-          <text class="quote-value">{{quotePrice}}</text>
-        </view>
-        <view class="quote-status-text">❌ 已拒绝</view>
-        <view wx:if="{{quoteRejectedReason}}" class="quote-reason">
-          <text class="quote-reason-label">拒绝原因</text>
-          <text class="quote-reason-text">{{quoteRejectedReason}}</text>
-        </view>
-      </view>
-    </block>
-  </view>
+  <!-- ====== 报价信息（原卡片已移至页首，便于待确认时快速决策） ====== -->
 
   <!-- ====== 支付信息 ====== -->
   <view wx:if="{{orderStatus === 'confirmed' || paymentStatus === 'paid' || paymentStatus === 'paying' || paymentStatus === 'refunding' || paymentStatus === 'refunded'}}" class="card">

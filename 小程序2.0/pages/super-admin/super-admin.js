@@ -1427,6 +1427,46 @@ Page({
       },
       showQuoteModal: true
     });
+
+    // 拉取完整订单详情，供报价时展示用户提交的问题描述、图片附件等完整信息
+    this._enrichQuoteOrderData(orderId);
+  },
+
+  // 获取订单完整详情，补全报价弹窗所需字段（问题描述、图片附件、品牌、成色等）
+  async _enrichQuoteOrderData(orderId) {
+    try {
+      const res = await this.request({ url: `/api/orders/${orderId}/detail` });
+      const raw = res && res.data && res.data.order;
+      if (!raw) return;
+
+      let images = [];
+      if (raw.images) {
+        if (typeof raw.images === 'string') {
+          try { images = JSON.parse(raw.images); } catch (e) { images = []; }
+        } else if (Array.isArray(raw.images)) {
+          images = raw.images;
+        }
+      }
+
+      this.setData({
+        quoteOrderData: Object.assign({}, this.data.quoteOrderData, {
+          order_id: raw.order_id || raw.order_no || this.data.quoteOrderData.order_id,
+          order_no: raw.order_no || raw.order_id || this.data.quoteOrderData.order_no,
+          order_type: raw.order_type || this.data.quoteOrderData.order_type,
+          device_model: raw.device_model || this.data.quoteOrderData.device_model || '未知设备',
+          device_type_name: raw.device_type_name || this.data.quoteOrderData.device_type_name || '',
+          brand_name: raw.brand_name || this.data.quoteOrderData.brand_name || '',
+          device_condition: raw.device_condition || this.data.quoteOrderData.device_condition || '',
+          service_type: raw.service_type || this.data.quoteOrderData.service_type || '',
+          problem_description: raw.problem_description || raw.custom_description || this.data.quoteOrderData.problem_description || '',
+          custom_description: raw.custom_description || this.data.quoteOrderData.custom_description || '',
+          estimated_price: raw.estimated_price || this.data.quoteOrderData.estimated_price || 0,
+          images: images
+        })
+      });
+    } catch (err) {
+      console.warn('[报价弹窗] 获取完整订单详情失败，沿用列表数据:', err);
+    }
   },
 
   // 关闭报价弹窗

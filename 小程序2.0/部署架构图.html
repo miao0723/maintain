@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>维修小程序 部署架构图</title>
+<style>
+  body { margin:0; background:#eef1f6; font-family:"PingFang SC","Microsoft YaHei",Arial,sans-serif; color:#1f2d3d; }
+  h1 { text-align:center; font-size:23px; margin:18px 0 4px; color:#2c3e50; }
+  .sub { text-align:center; color:#7a8794; font-size:13px; margin-bottom:10px; }
+  .wrap { max-width:1280px; margin:0 auto 24px; }
+  .legend { display:flex; justify-content:center; gap:22px; font-size:12px; color:#5a6776; margin-top:10px; flex-wrap:wrap; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px;}
+  .sw{ width:14px;height:14px;border-radius:3px; display:inline-block;}
+  svg text { font-family:"PingFang SC","Microsoft YaHei",Arial,sans-serif; }
+</style>
+</head>
+<body>
+
+<h1>电子维修小程序 · 部署架构图</h1>
+<div class="sub">客户端 ⇄ 网关 ⇄ 服务端（含外部依赖）｜ 左右 1:1 分栏 · 箭头表示调用 / 数据流向</div>
+
+<div class="wrap">
+<svg viewBox="0 0 1280 760" width="100%" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- ===== 背景分栏 ===== -->
+  <rect x="0"   y="0" width="640" height="760" fill="#eef4ff"/>
+  <rect x="640" y="0" width="640" height="760" fill="#f0fbf4"/>
+  <line x1="640" y1="20" x2="640" y2="740" stroke="#c5d3e8" stroke-width="2" stroke-dasharray="6 6"/>
+  <text x="320" y="34" text-anchor="middle" font-size="14" font-weight="700" fill="#3b6df0">左 · 客户端层 &amp; 接入网关</text>
+  <text x="960" y="34" text-anchor="middle" font-size="14" font-weight="700" fill="#1aa260">右 · 服务端层 &amp; 外部依赖</text>
+
+  <!-- ===== 箭头标记定义 ===== -->
+  <defs>
+    <marker id="arr" markerWidth="11" markerHeight="11" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#5b6b7e"/>
+    </marker>
+    <marker id="arrR" markerWidth="11" markerHeight="11" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#e0795b"/>
+    </marker>
+    <marker id="arrP" markerWidth="11" markerHeight="11" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#b07dd8"/>
+    </marker>
+  </defs>
+
+  <!-- ===================== 节点（左栏） ===================== -->
+  <!-- ① 小程序 -->
+  <rect x="120" y="70"  width="400" height="84" rx="10" fill="#fff" stroke="#3b6df0" stroke-width="2"/>
+  <text x="140" y="100" font-size="15" font-weight="700" fill="#2c3e50">① 微信小程序（前端）</text>
+  <text x="140" y="122" font-size="12" fill="#6b7886">原生小程序 · AppID wx005066bc50bb8957</text>
+  <text x="140" y="140" font-size="12" fill="#6b7886">pages/ 页面 + utils/api.js 接口封装</text>
+
+  <!-- ② 云函数 -->
+  <rect x="120" y="190" width="400" height="74" rx="10" fill="#fff" stroke="#3b6df0" stroke-width="2"/>
+  <text x="140" y="218" font-size="15" font-weight="700" fill="#2c3e50">② 微信云函数 quickstartFunctions</text>
+  <text x="140" y="240" font-size="12" fill="#6b7886">微信云开发托管（私有协议鉴权）</text>
+  <text x="140" y="256" font-size="12" fill="#6b7886">获取 openid / 生成小程序码</text>
+
+  <!-- ③ 网关 nginx -->
+  <rect x="120" y="300" width="400" height="84" rx="10" fill="#fff" stroke="#f0a93b" stroke-width="2.5"/>
+  <text x="140" y="330" font-size="15" font-weight="700" fill="#2c3e50">③ 接入网关 nginx · zych.net.cn</text>
+  <text x="140" y="352" font-size="12" fill="#6b7886">已备案域名 + HTTPS</text>
+  <text x="140" y="370" font-size="12" fill="#6b7886">/mp-api/ 反代 → 后端 /api</text>
+
+  <!-- ===================== 节点（右栏） ===================== -->
+  <!-- ④ 后端容器 -->
+  <rect x="760" y="70"  width="400" height="84" rx="10" fill="#fff" stroke="#1aa260" stroke-width="2.5"/>
+  <text x="780" y="100" font-size="15" font-weight="700" fill="#2c3e50">④ 后端容器 repair_backend</text>
+  <text x="780" y="122" font-size="12" fill="#6b7886">Docker · Node+Express · 监听 :3001</text>
+  <text x="780" y="140" font-size="12" fill="#6b7886">业务路由 /api/* · WS(/ws/chat) · 静态 /uploads</text>
+
+  <!-- ⑤ MySQL -->
+  <rect x="760" y="190" width="400" height="74" rx="10" fill="#fff" stroke="#1aa260" stroke-width="2.5"/>
+  <text x="780" y="218" font-size="15" font-weight="700" fill="#2c3e50">⑤ MySQL 容器 sqfe2-mysql-1</text>
+  <text x="780" y="240" font-size="12" fill="#6b7886">独立运行（非 compose 内置）</text>
+  <text x="780" y="256" font-size="12" fill="#6b7886">业务库 repair · 后台库 cmms_db</text>
+
+  <!-- ⑥ uploads -->
+  <rect x="760" y="300" width="400" height="64" rx="10" fill="#fff" stroke="#1aa260" stroke-width="2"/>
+  <text x="780" y="328" font-size="15" font-weight="700" fill="#2c3e50">⑥ 宿主机 ./uploads（持久化）</text>
+  <text x="780" y="350" font-size="12" fill="#6b7886">容器挂载 /app/uploads ↔ 宿主机，存头像/进度/报价等</text>
+
+  <!-- ⑦ 外部依赖 -->
+  <rect x="760" y="400" width="400" height="120" rx="10" fill="#faf5ff" stroke="#b07dd8" stroke-width="2.5"/>
+  <text x="780" y="428" font-size="15" font-weight="700" fill="#7a3fb0">⑦ 外部依赖（后端出站调用）</text>
+  <text x="780" y="450" font-size="12" fill="#6b7886">· 微信支付 api.mch.weixin.qq.com（下单/回调/退款）</text>
+  <text x="780" y="468" font-size="12" fill="#6b7886">· Deepseek API（智能客服 / 诊断）</text>
+  <text x="780" y="486" font-size="12" fill="#6b7886">· 高德地图（地理/逆地理编码）</text>
+  <text x="780" y="504" font-size="12" fill="#6b7886">· 通义 DashScope（语音转写）· ip-api.com（IP定位）</text>
+
+  <!-- ===================== 连线 + 箭头 ===================== -->
+  <!-- ①→③ 小程序→网关 -->
+  <path d="M320,154 C320,200 320,230 320,300" fill="none" stroke="#5b6b7e" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="332" y="232" font-size="11" fill="#3a4756">HTTPS /mp-api</text>
+
+  <!-- ③→④ 网关→后端（跨越中缝） -->
+  <path d="M520,342 C600,342 680,112 760,112" fill="none" stroke="#5b6b7e" stroke-width="2.5" marker-end="url(#arr)"/>
+  <text x="588" y="220" font-size="11" fill="#3a4756" text-anchor="middle">反代 /api → :3001</text>
+
+  <!-- ①→② 小程序→云函数 -->
+  <path d="M320,154 C420,154 440,200 430,228" fill="none" stroke="#5b6b7e" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="436" y="198" font-size="11" fill="#3a4756">云调用</text>
+
+  <!-- ④→⑤ 后端→MySQL -->
+  <path d="M960,154 C960,170 960,180 960,190" fill="none" stroke="#5b6b7e" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="972" y="176" font-size="11" fill="#3a4756">SQL 读写</text>
+
+  <!-- ④→⑥ 后端↔uploads -->
+  <path d="M960,154 C1060,154 1080,310 1060,340" fill="none" stroke="#5b6b7e" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="1072" y="250" font-size="11" fill="#3a4756">文件挂载</text>
+  <path d="M1000,340 C1010,300 1040,200 1000,154" fill="none" stroke="#5b6b7e" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+
+  <!-- ④→⑦ 后端→外部依赖 -->
+  <path d="M960,154 C1060,154 1100,410 1060,460" fill="none" stroke="#b07dd8" stroke-width="2.5" marker-end="url(#arrP)"/>
+  <text x="1112" y="300" font-size="11" fill="#7a3fb0">出站 HTTPS</text>
+
+  <!-- ⑦→④ 微信支付异步回调（反向，橙红） -->
+  <path d="M1000,460 C980,420 940,200 960,154" fill="none" stroke="#e0795b" stroke-width="2.5" marker-end="url(#arrR)"/>
+  <text x="900" y="300" font-size="11" fill="#e0795b">支付异步回调 /notify</text>
+
+  <!-- ④→① 响应/WS 返回（反向，橙红） -->
+  <path d="M760,112 C680,112 600,200 520,154" fill="none" stroke="#e0795b" stroke-width="2" marker-end="url(#arrR)"/>
+  <text x="588" y="150" font-size="11" fill="#e0795b" text-anchor="middle">HTTP 响应 / WS 推送</text>
+
+</svg>
+</div>
+
+<div class="legend">
+  <span><i class="sw" style="background:#3b6df0"></i>客户端 / 网关</span>
+  <span><i class="sw" style="background:#1aa260"></i>服务端 / 数据库</span>
+  <span><i class="sw" style="background:#b07dd8"></i>外部依赖</span>
+  <span><i class="sw" style="background:#5b6b7e"></i>请求 / 调用（实线）</span>
+  <span><i class="sw" style="background:#e0795b"></i>异步回调 / 返回（橙红）</span>
+</div>
+
+</body>
+</html>

@@ -411,6 +411,46 @@
   margin-top: 4rpx;
 }
 
+/* 待确认报价：列表内预览卡片 */
+.quote-preview {
+  margin: 16rpx 24rpx 4rpx;
+  padding: 20rpx 24rpx;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 2rpx solid #f59e0b;
+  border-radius: 16rpx;
+}
+
+.qp-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.qp-label {
+  font-size: 24rpx;
+  color: #92400e;
+}
+
+.qp-amount {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #b45309;
+}
+
+.qp-reason {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: #78350f;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.qp-hint {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #92400e;
+}
+
 .progress-bar-fill {
   height: 100%;
   border-radius: 8rpx;

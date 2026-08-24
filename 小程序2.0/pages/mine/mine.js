@@ -831,16 +831,36 @@ Page({
 
   /**
    * 跳转到待确认报价的订单列表
+   * 点击后把"待确认报价"横幅标记为已读，横幅立即消失（查看一次即消失）
    */
   goToQuotedOrders() {
-    this.markStatusRead('quoted')
+    this.markQuotedRead();
     wx.navigateTo({
       url: '/pages/orders/orders?status=quoted'
     });
   },
 
   /**
-   * 跳转到待确认报价的订单列表
+   * 标记"待确认报价"为已读：本地立即清零横幅，并异步通知后端
+   * 这样用户点进列表查看一次后，横幅不再出现，直到产生新的未读报价
+   */
+  markQuotedRead() {
+    const { orderApi } = require('../../utils/api.js');
+    this.clearQuotedBadge();
+    // 异步清空后端未读标记，失败不影响本次交互
+    orderApi.markQuoteRead().catch(() => {});
+  },
+
+  clearQuotedBadge() {
+    const app = getApp();
+    if (app.globalData) app.globalData.quotedCount = 0;
+    this.setData({ quotedCount: 0, 'statusBadges.quoted': 0 });
+    try { setCache(CACHE_KEYS.quotedCount, 0); } catch (e) {}
+    this.syncBadgeToTabBar(0, this.data.progressUnreadCount);
+  },
+
+  /**
+   * 跳转到待确认报价的订单列表（兼容旧入口）
    */
   goToUnreadQuotedOrders() {
     this.goToQuotedOrders();
@@ -905,11 +925,28 @@ Page({
 
   /**
    * 跳转到有进度更新的订单列表
+   * 点击后把"进度更新"横幅标记为已读，横幅立即消失（查看一次即消失）
    */
   goToProgressOrders() {
+    this.markProgressRead();
     wx.navigateTo({
       url: '/pages/orders/orders?unreadType=progress'
     });
+  },
+
+  /**
+   * 标记"未读进度"为已读：本地立即清零横幅，并异步通知后端
+   * 这样用户点进相关列表查看一次后，横幅不再出现，直到产生新的未读进度
+   */
+  markProgressRead() {
+    const { orderApi } = require('../../utils/api.js');
+    const app = getApp();
+    if (app.globalData) app.globalData.progressUnreadCount = 0;
+    this.setData({ progressUnreadCount: 0 });
+    try { setCache(CACHE_KEYS.progressUnreadCount, 0); } catch (e) {}
+    this.syncBadgeToTabBar(this.data.quotedCount, 0);
+    // 异步清空后端未读标记，失败不影响本次交互
+    orderApi.markProgressReadAll().catch(() => {});
   },
 
   /**

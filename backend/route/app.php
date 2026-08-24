@@ -277,6 +277,15 @@ Route::group('api', function () {
             Route::get('/:id/history', 'DeviceController/history');
         })->middleware([\app\middleware\PermissionCheck::class]);
 
+        // 订单设备明细管理（关联小程序订单 repair.orders.id）
+        Route::group('order-devices', function () {
+            Route::get('/', 'OrderDeviceController/index');
+            Route::get('/:id', 'OrderDeviceController/read');
+            Route::post('/', 'OrderDeviceController/save');
+            Route::put('/:id', 'OrderDeviceController/update');
+            Route::delete('/:id', 'OrderDeviceController/delete');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
         // 小程序订单管理
         Route::group('repair-orders', function () {
             Route::get('/', 'RepairOrderController/index');
@@ -888,7 +897,13 @@ Route::group('api', function () {
             ->middleware([\app\middleware\JwtAuth::class])
             ->allowCrossDomain();
 
-    })->middleware([\app\middleware\JwtAuth::class, \app\middleware\OperationLog::class])->allowCrossDomain();
+        })->middleware([\app\middleware\JwtAuth::class, \app\middleware\OperationLog::class])->allowCrossDomain();
+
+    // 对外只读接口（供其它系统拉取设备信息；API Key 鉴权，免 JWT，允许跨域）
+    Route::group('open/order-devices', function () {
+        Route::get('/', 'OpenOrderDeviceController/index');
+        Route::get('/:id', 'OpenOrderDeviceController/read');
+    })->allowCrossDomain();
 
     // 小程序后台 - 独立认证 + 权限
     Route::group('mini-admin', function () {

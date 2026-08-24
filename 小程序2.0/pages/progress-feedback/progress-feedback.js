@@ -1,6 +1,7 @@
 const app = getApp();
 const { getProgressStamp, syncProgressUnreadState } = require('../../utils/progressUnread.js');
 const { getMpApiBaseUrl } = require('../../utils/mpApi.js');
+const { normalizeMediaUrl } = require('../../utils/mediaUrl.js');
 
 Page({
   data: {
@@ -170,19 +171,13 @@ Page({
         if (res.statusCode === 200 && res.data && res.data.success && res.data.data) {
           const feedbacks = res.data.data.map(fb => {
             // 处理照片URL
-            const photos = (fb.photos || []).map(img => {
-              return img && img.startsWith('http') ? img : (img ? app.globalData.baseUrl + img : '');
-            }).filter(img => img);
+            const photos = (fb.photos || []).map(img => normalizeMediaUrl(img)).filter(img => img);
 
             // 处理视频URL
             let video = null;
             if (fb.video) {
-              const videoUrl = fb.video.video_url && fb.video.video_url.startsWith('http')
-                ? fb.video.video_url
-                : fb.video.video_url ? app.globalData.baseUrl + fb.video.video_url : '';
-              const coverUrl = fb.video.cover_url && fb.video.cover_url.startsWith('http')
-                ? fb.video.cover_url
-                : fb.video.cover_url ? app.globalData.baseUrl + fb.video.cover_url : '';
+              const videoUrl = normalizeMediaUrl(fb.video.video_url || '');
+              const coverUrl = normalizeMediaUrl(fb.video.cover_url || '');
               video = {
                 video_url: videoUrl,
                 video_title: fb.video.video_title || '',
@@ -248,7 +243,7 @@ Page({
             try { images = JSON.parse(images); } catch (e) { images = []; }
           }
           if (!Array.isArray(images)) images = [];
-          images = images.map(img => img && img.startsWith('http') ? img : (img ? app.globalData.baseUrl + img : '')).filter(img => img);
+          images = images.map(img => normalizeMediaUrl(img)).filter(img => img);
 
           groupMap.set(groupId, {
             id: groupId,
@@ -270,7 +265,7 @@ Page({
             try { images = JSON.parse(images); } catch (e) { images = []; }
           }
           if (!Array.isArray(images)) images = [];
-          images = images.map(img => img && img.startsWith('http') ? img : (img ? app.globalData.baseUrl + img : '')).filter(img => img);
+          images = images.map(img => normalizeMediaUrl(img)).filter(img => img);
           const group = groupMap.get(groupId);
           group.photos = group.photos.concat(images);
           group.displayPhotos = group.photos.slice();
@@ -281,10 +276,8 @@ Page({
       // 处理视频
       videosData.forEach(video => {
         const groupId = video.feedback_group_id || `video_${video.id}`;
-        let videoUrl = video.video_url || '';
-        let coverUrl = video.cover_url || video.cover || '';
-        if (videoUrl && !videoUrl.startsWith('http')) videoUrl = app.globalData.baseUrl + videoUrl;
-        if (coverUrl && !coverUrl.startsWith('http')) coverUrl = app.globalData.baseUrl + coverUrl;
+        let videoUrl = normalizeMediaUrl(video.video_url || '');
+        let coverUrl = normalizeMediaUrl(video.cover_url || video.cover || '');
 
         const videoInfo = {
           video_url: videoUrl,
@@ -585,9 +578,7 @@ Page({
             const data = JSON.parse(res.data);
             if (data.success && data.data && data.data.photos && data.data.photos.length > 0) {
               const relativePath = data.data.photos[0];
-              const fullUrl = relativePath.startsWith('http')
-                ? relativePath
-                : app.globalData.baseUrl + relativePath;
+              const fullUrl = normalizeMediaUrl(relativePath);
               resolve({ success: true, url: fullUrl, relativePath: relativePath });
             } else {
               console.error('[进度反馈] 上传图片返回失败:', data);
@@ -629,9 +620,7 @@ Page({
             const data = JSON.parse(res.data);
             if (data.success && data.data) {
               const videoUrl = data.data.videoUrl || data.data.video_url;
-              const fullUrl = videoUrl.startsWith('http')
-                ? videoUrl
-                : app.globalData.baseUrl + videoUrl;
+              const fullUrl = normalizeMediaUrl(videoUrl);
               resolve({ success: true, url: fullUrl, relativePath: videoUrl });
             } else {
               console.error('[进度反馈] 上传视频返回失败:', data);
@@ -896,16 +885,16 @@ Page({
       return;
     }
 
-    const isExternalUrl = url.startsWith('http://') || url.startsWith('https://');
+    const normalizedUrl = normalizeMediaUrl(url);
 
-    if (isExternalUrl) {
+    if (normalizedUrl.startsWith('http://') || normalizedUrl.startsWith('https://')) {
       wx.navigateTo({
-        url: `/pages/video-player/video-player?url=${encodeURIComponent(url)}`
+        url: `/pages/video-player/video-player?url=${encodeURIComponent(normalizedUrl)}`
       });
     } else {
       wx.showLoading({ title: '加载中...' });
       wx.downloadFile({
-        url: app.globalData.baseUrl + url,
+        url: normalizedUrl,
         success: (res) => {
           wx.hideLoading();
           if (res.statusCode === 200) {

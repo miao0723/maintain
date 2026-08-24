@@ -21,6 +21,13 @@ const uploadsRoot = path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(uploadsRoot));
 // 冗余兜底：同时通过 API 前缀暴露，避免 nginx 仅反代 /mp-api 时根路径 /uploads 取不到文件
 app.use('/api/uploads', express.static(uploadsRoot));
+// 历史遗留兜底：早期 progressRoutes 曾把进度媒体写到项目根 uploads/（routes/../../uploads），
+// 导致部分订单（如 67/90/106）文件不在 backend/uploads 而 404。此处追加一层静态服务：
+// express.static 在文件不存在时会 next() 到下一层，因此不影响正常目录，同时让旧文件立即可读。
+// 新上传已修复为写 backend/uploads（见 progressRoutes.js sharedUploadsRoot）。
+const legacyUploadsRoot = path.join(__dirname, '../uploads');
+app.use('/uploads', express.static(legacyUploadsRoot));
+app.use('/api/uploads', express.static(legacyUploadsRoot));
 
 // 中间件
 app.use(cors());

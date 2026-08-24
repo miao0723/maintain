@@ -685,6 +685,12 @@
   margin-bottom: 32rpx;
 }
 
+/* 报价卡片置顶时强化视觉提示，确保用户进入详情即可看到报价 */
+.quote-card.quote-top {
+  border: 2rpx solid #f59e0b;
+  box-shadow: 0 6rpx 20rpx rgba(245, 158, 11, 0.18);
+}
+
 .quote-card.quote-pending {
   border-left: 4rpx solid #f59e0b;
 }
@@ -728,6 +734,14 @@
   color: #d97706;
   line-height: 1.6;
   word-break: break-word;
+}
+
+.quote-desc-empty {
+  font-size: 26rpx;
+  color: #94a3b8;
+  font-style: italic;
+  line-height: 1.6;
+  margin-bottom: 16rpx;
 }
 
 .quote-desc {

@@ -124,6 +124,9 @@ class MiniAdminOrderController extends MiniAdminBaseController
 
         $id = Db::connect('repair')->name('orders')->insertGetId($insertData);
 
+        // 同步设备明细到 order_devices（cmms_db）：新订单自动生成设备记录
+        $this->syncOrderDevice($id, $data, $insertData);
+
         // 广播通知：后台用户收到新维修订单
         $this->notifyOrderEvent(
             '新的维修订单',
@@ -169,6 +172,12 @@ class MiniAdminOrderController extends MiniAdminBaseController
         $updateData['updated_at'] = date('Y-m-d H:i:s');
 
         Db::connect('repair')->name('orders')->where('id', (int) $id)->update($updateData);
+
+        // 若本次请求带了设备字段，则同步更新 order_devices 设备明细
+        $deviceFieldKeys = ['device_name', 'serial_no', 'device_source', 'device_quantity', 'device_unit', 'device_remarks', 'device_status'];
+        if (!empty(array_intersect($deviceFieldKeys, array_keys($data)))) {
+            $this->syncOrderDevice((int) $id, $data, $order);
+        }
 
         // 广播通知：订单信息变更
         $this->notifyOrderEvent(
@@ -353,6 +362,53 @@ class MiniAdminOrderController extends MiniAdminBaseController
         ];
 
         return trim(implode(' ', array_filter($parts)));
+    }
+
+    /**
+     * 订单 ↔ 设备明细同步（order_devices，cmms_db）
+     *
+     * 创建订单时自动生成一条设备明细；更新时若有设备字段则覆盖。
+     * 设备字段（均可选，缺省按订单已有信息兜底）：
+     *   device_name   设备名称（缺省取订单 device_model）
+     *   serial_no     序列号
+     *   device_source 设备来源（采购/客户自备/租赁/调拨/赠送）
+     *   device_quantity 数量（默认 1）
+     *   device_unit   单位（默认 台）
+     *   device_remarks 备注
+     *   device_status 状态（normal/maintenance/idle/scrapped，默认 normal）
+     */
+    private function syncOrderDevice(int $orderId, array $data, array $orderInsert = []): void
+    {
+        try {
+            $name = trim((string) ($data['device_name'] ?? ''));
+            if ($name === '') {
+                $name = trim((string) ($orderInsert['device_model'] ?? ''));
+            }
+            if ($name === '') {
+                $name = '未命名设备';
+            }
+
+            $payload = [
+                'order_id'  => $orderId,
+                'name'      => $name,
+                'serial_no' => trim((string) ($data['serial_no'] ?? '')) ?: null,
+                'source'    => trim((string) ($data['device_source'] ?? '')) ?: null,
+                'quantity'  => isset($data['device_quantity']) && $data['device_quantity'] !== '' ? (float) $data['device_quantity'] : 1,
+                'unit'      => trim((string) ($data['device_unit'] ?? '')) ?: '台',
+                'remarks'   => trim((string) ($data['device_remarks'] ?? '')) ?: null,
+                'status'    => trim((string) ($data['device_status'] ?? '')) ?: 'normal',
+            ];
+
+            $existing = Db::name('order_devices')->where('order_id', $orderId)->find();
+            if ($existing) {
+                Db::name('order_devices')->where('id', $existing['id'])->update($payload);
+            } else {
+                Db::name('order_devices')->insert($payload);
+            }
+        } catch (\Throwable $e) {
+            // 设备明细同步失败不影响订单主流程
+            trace('订单设备明细同步失败 order=' . $orderId . ': ' . $e->getMessage(), 'error');
+        }
     }
 
     private function generateOrderNo(): string

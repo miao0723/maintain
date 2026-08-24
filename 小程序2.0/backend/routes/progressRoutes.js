@@ -7,15 +7,19 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
+const fileStorage = require('../utils/fileStorage');
 
-// 统一落盘到小程序项目根目录 uploads/progress/{orderId}
-const sharedUploadsRoot = path.join(__dirname, '../../uploads');
+// 统一落盘到 backend/uploads/progress/{orderId}（与 server.js 静态服务的 backend/uploads 保持一致）
+// 注意：不能写成 routes/../../uploads（项目根），否则文件不在被服务目录，线上 404。
+const sharedUploadsRoot = path.join(__dirname, '../uploads');
 const uploadDir = path.join(sharedUploadsRoot, 'progress');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// multer 先临时落盘到 _tmp，处理完（压缩/校验）后再由 storeOne 决定最终去向
+const tempDir = path.join(uploadDir, '_tmp');
+[tempDir].forEach((d) => {
+  if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+});
 
-// 为每个订单创建独立目录
+// 为每个订单创建独立目录（本地模式使用）
 const getUploadDir = (orderId) => {
   const orderDir = path.join(uploadDir, String(orderId));
   if (!fs.existsSync(orderDir)) {
@@ -24,11 +28,29 @@ const getUploadDir = (orderId) => {
   return orderDir;
 };
 
+/**
+ * 把已落盘的临时媒体文件存到最终位置：
+ *  - remote 模式：上传到自有服务器，返回公网 URL，并删除本地临时文件
+ *  - local  模式：移动到 uploads/progress/{orderId}/，返回相对路径（与原行为一致）
+ * @returns {Promise<string>} 最终可访问的地址（绝对 URL 或相对路径）
+ */
+async function storeOne(localAbsPath, { orderId, kind, originalname, mimetype } = {}) {
+  if (fileStorage.isRemoteStorage()) {
+    const url = await fileStorage.uploadToRemote(localAbsPath, { orderId, kind, originalname, mimetype });
+    fileStorage.safeUnlink(localAbsPath);
+    return url;
+  }
+  const orderDir = getUploadDir(orderId);
+  const filename = path.basename(localAbsPath);
+  const destPath = path.join(orderDir, filename);
+  fs.renameSync(localAbsPath, destPath);
+  return `/uploads/progress/${orderId}/${filename}`;
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // multer在destination回调中body可能未完全解析，使用默认目录
-    // 文件保存后会在处理逻辑中移动到正确的订单目录
-    cb(null, uploadDir);
+    // 先统一落到临时目录，storeOne 再决定最终去向
+    cb(null, tempDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -92,8 +114,7 @@ router.post('/photos/upload', authenticateToken, upload.array('images', 9), asyn
       });
     }
 
-    // 将文件移动到订单子目录，并对图片做压缩（避免 1.6MB 原图直存拖慢加载）
-    const orderDir = getUploadDir(orderId);
+    // 将文件移动到订单子目录（或上传到自有服务器），并对图片做压缩（避免 1.6MB 原图直存拖慢加载）
     const imageUrls = await Promise.all(req.files.map(async (file) => {
       let target = file;
       if (/^image\//.test(file.mimetype)) {
@@ -103,9 +124,12 @@ router.post('/photos/upload', authenticateToken, upload.array('images', 9), asyn
           console.warn('[进度照片] 压缩失败，保留原图:', err.message);
         }
       }
-      const destPath = path.join(orderDir, target.filename);
-      fs.renameSync(target.path, destPath);
-      return `/uploads/progress/${orderId}/${target.filename}`;
+      return await storeOne(target.path, {
+        orderId,
+        kind: 'photo',
+        originalname: target.originalname || target.filename,
+        mimetype: target.mimetype
+      });
     }));
 
     // 获取用户姓名
@@ -265,9 +289,6 @@ router.post('/videos/upload', authenticateToken, upload.fields([
       });
     }
 
-    // 将文件移动到订单子目录
-    const orderDir = getUploadDir(orderId);
-
     const videoFile = Array.isArray(req.files.video) ? req.files.video[0] : req.files.video;
 
     // 验证文件类型
@@ -281,12 +302,13 @@ router.post('/videos/upload', authenticateToken, upload.fields([
       });
     }
 
-    // 移动视频文件到订单目录
-    const videoDestPath = path.join(orderDir, videoFile.filename);
-    fs.renameSync(videoFile.path, videoDestPath);
-
-    // 生成文件URL（包含orderId子目录）
-    const videoUrl = `/uploads/progress/${orderId}/${videoFile.filename}`;
+    // 移动视频文件到订单目录（或上传到自有服务器）
+    const videoUrl = await storeOne(videoFile.path, {
+      orderId,
+      kind: 'video',
+      originalname: videoFile.originalname || videoFile.filename,
+      mimetype: videoFile.mimetype
+    });
     let coverUrl = '';
 
     // 处理封面
@@ -301,9 +323,12 @@ router.post('/videos/upload', authenticateToken, upload.fields([
         } catch (err) {
           console.warn('[进度视频封面] 压缩失败，保留原图:', err.message);
         }
-        const coverDestPath = path.join(orderDir, coverTarget.filename);
-        fs.renameSync(coverTarget.path, coverDestPath);
-        coverUrl = `/uploads/progress/${orderId}/${coverTarget.filename}`;
+        coverUrl = await storeOne(coverTarget.path, {
+          orderId,
+          kind: 'cover',
+          originalname: coverTarget.originalname || coverTarget.filename,
+          mimetype: coverTarget.mimetype
+        });
       } else {
         try { fs.unlinkSync(coverFile.path); } catch (e) {}
       }

@@ -28,7 +28,8 @@ function resolveFileContent(rawValue, rootDir) {
 }
 
 function getWechatPayConfig() {
-  const rootDir = path.resolve(__dirname, '..', '..');
+  // 证书相对路径以 backend/ 为基准（与 .env 同级），避免解析到项目根目录
+  const rootDir = path.resolve(__dirname, '..');
   const privateKeyPem = resolveFileContent(process.env.WECHAT_PAY_PRIVATE_KEY || process.env.WECHAT_PAY_PRIVATE_KEY_PATH, rootDir);
   const platformCertPem = resolveFileContent(process.env.WECHAT_PAY_PLATFORM_CERT || process.env.WECHAT_PAY_PLATFORM_CERT_PATH, rootDir);
 

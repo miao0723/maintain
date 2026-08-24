@@ -400,6 +400,8 @@ Page({
             progressPercent: progressInfo.percent,
             progressUnread: effectiveProgressUnread,
             quoteUnread: Number(order.quote_unread || order.quoteUnread || 0),
+            quotePrice: rawQp ? parseFloat(rawQp).toFixed(2) : '',
+            quoteDescription: order.quote_description || order.quoteDescription || '',
             paymentStatus: order.payment_status || 'unpaid',
             payAmount: order.pay_amount || '',
             repairReportFiles: Array.isArray(order.repair_report_files) ? order.repair_report_files : []

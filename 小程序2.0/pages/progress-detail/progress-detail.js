@@ -1,4 +1,5 @@
 const app = getApp();
+const { normalizeMediaUrl } = require('../../utils/mediaUrl.js');
 
 Page({
   data: {
@@ -11,7 +12,16 @@ Page({
     if (options.data) {
       try {
         const feedback = JSON.parse(decodeURIComponent(options.data));
-        feedback.displayPhotos = Array.isArray(feedback.photos) ? [...feedback.photos] : [];
+        // 进度照片 / 视频地址后端返回的是相对路径 /uploads/...，
+        // 小程序必须用完整 HTTPS 地址才能加载。这里统一归一化，
+        // 无论上游是否拼过域名都安全（幂等）。
+        const photos = (Array.isArray(feedback.photos) ? feedback.photos : []).map(normalizeMediaUrl);
+        feedback.photos = photos;
+        feedback.displayPhotos = [...photos];
+        if (feedback.video) {
+          feedback.video.video_url = normalizeMediaUrl(feedback.video.video_url || '');
+          feedback.video.cover_url = normalizeMediaUrl(feedback.video.cover_url || '');
+        }
         this.setData({
           feedback: feedback,
           loading: false

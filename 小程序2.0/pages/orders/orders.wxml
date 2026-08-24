@@ -88,6 +88,16 @@
         </view>
       </view>
 
+      <!-- 待确认报价：列表内直接预览报价金额与说明 -->
+      <view class="quote-preview" wx:if="{{item.status === 'quoted'}}">
+        <view class="qp-row">
+          <text class="qp-label">报价金额</text>
+          <text class="qp-amount">¥{{item.quotePrice || item.price}}</text>
+        </view>
+        <view class="qp-reason" wx:if="{{item.quoteDescription}}">{{item.quoteDescription}}</view>
+        <view class="qp-hint" wx:else>管理员已返回报价，点击查看详情与说明 ›</view>
+      </view>
+
       <view class="order-footer">
         <text class="order-time">{{item.createTime}}</text>
         <view class="order-actions">

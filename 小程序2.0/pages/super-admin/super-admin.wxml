@@ -271,7 +271,7 @@
           <view class="order-header">
             <view class="oh-left">
               <text class="order-no">{{item.order_id || '未知订单号'}}</text>
-              <text class="order-type-tag">{{utils.getDeviceTypeName(item.device_type)}}</text><text class="order-type-tag order-type" wx:if="{{item.order_type === 'recycle'}}">回收</text><text class="order-type-tag service-type" wx:if="{{item.service_type === 'home'}}">上门</text>
+              <text class="order-type-tag order-type-badge {{item.order_type === 'recycle' ? 'badge-recycle' : 'badge-repair'}}">{{item.order_type === 'recycle' ? '回收' : '维修'}}</text><text class="order-type-tag" wx:if="{{item.order_type === 'recycle'}}">{{utils.getDeviceTypeName(item.device_type)}}</text><text class="order-type-tag service-type" wx:if="{{item.service_type === 'home'}}">上门</text>
             </view>
             <view class="order-status-badge" style="background-color: {{utils.getStatusColor(item.status)}}; color: #fff;">
               {{utils.getStatusText(item.status)}}
@@ -376,7 +376,7 @@
           <view class="myo-header">
             <view class="myo-left">
               <text class="myo-no">{{item.order_id || '未知订单号'}}</text>
-              <text class="myo-type">{{utils.getDeviceTypeName(item.device_type)}}</text>
+              <text class="order-type-tag order-type-badge {{item.order_type === 'recycle' ? 'badge-recycle' : 'badge-repair'}}">{{item.order_type === 'recycle' ? '回收' : '维修'}}</text><text class="myo-type" wx:if="{{item.order_type === 'recycle'}}">{{utils.getDeviceTypeName(item.device_type)}}</text>
             </view>
             <view class="myo-right">
               <text class="myo-status" style="background-color: {{utils.getStatusColor(item.status)}}; color: #fff;">{{utils.getStatusText(item.status)}}</text>
@@ -1350,11 +1350,41 @@
       <view class="quote-order-info">
         <view class="quote-info-row">
           <text class="quote-info-label">订单编号</text>
-          <text class="quote-info-value">{{quoteOrderData.order_id || quoteOrderData.id}}</text>
+          <text class="quote-info-value">{{quoteOrderData.order_id || quoteOrderData.order_no || quoteOrderData.id}}</text>
+        </view>
+        <view class="quote-info-row">
+          <text class="quote-info-label">订单类型</text>
+          <text class="quote-info-value">{{quoteOrderData.order_type === 'recycle' ? '回收' : '维修'}}{{quoteOrderData.service_type === 'home' ? ' · 上门' : ''}}</text>
         </view>
         <view class="quote-info-row">
           <text class="quote-info-label">设备信息</text>
-          <text class="quote-info-value">{{quoteOrderData.device_model || '未知设备'}}</text>
+          <text class="quote-info-value">{{quoteOrderData.device_model || '未知设备'}}{{quoteOrderData.brand_name ? '（' + quoteOrderData.brand_name + '）' : ''}}</text>
+        </view>
+        <view class="quote-info-row" wx:if="{{quoteOrderData.device_condition}}">
+          <text class="quote-info-label">设备成色</text>
+          <text class="quote-info-value">{{quoteOrderData.device_condition}}</text>
+        </view>
+        <view class="quote-info-row">
+          <text class="quote-info-label">预估价格</text>
+          <text class="quote-info-value">{{quoteOrderData.estimated_price ? '¥' + quoteOrderData.estimated_price : '未估价'}}</text>
+        </view>
+      </view>
+
+      <!-- 用户提交的订单详情 -->
+      <view class="quote-detail-block" wx:if="{{quoteOrderData.problem_description}}">
+        <view class="quote-section-title">用户问题描述</view>
+        <view class="quote-user-desc">{{quoteOrderData.problem_description}}</view>
+      </view>
+      <view class="quote-detail-block" wx:if="{{quoteOrderData.custom_description && quoteOrderData.custom_description !== quoteOrderData.problem_description}}">
+        <view class="quote-section-title">补充说明</view>
+        <view class="quote-user-desc">{{quoteOrderData.custom_description}}</view>
+      </view>
+
+      <!-- 图片附件 -->
+      <view class="quote-detail-block" wx:if="{{quoteOrderData.images && quoteOrderData.images.length > 0}}">
+        <view class="quote-section-title">图片附件（{{quoteOrderData.images.length}}）</view>
+        <view class="quote-images-grid">
+          <image wx:for="{{quoteOrderData.images}}" wx:key="index" class="quote-attach-img" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-url="{{item}}" data-urls="{{quoteOrderData.images}}"></image>
         </view>
       </view>
 

@@ -475,7 +475,7 @@ router.get('/quoted-count', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const result = await db.query(
-      `SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND status = 'quoted'`,
+      `SELECT COUNT(*) as count FROM orders WHERE user_id = ? AND status = 'quoted' AND quote_unread = 1`,
       [userId]
     );
 
@@ -484,6 +484,35 @@ router.get('/quoted-count', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('获取报价数量错误:', error);
     res.status(500).json({ success: false, error: '获取报价数量失败' });
+  }
+});
+
+/**
+ * 标记当前用户所有「待确认报价」为已读（批量）
+ * 供"我的"页报价横幅"点击查看即消失"使用：进入待确认列表后清空未读标记
+ * POST /api/orders/quote-read
+ */
+router.post('/quote-read', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    try {
+      await db.query(
+        `UPDATE orders SET quote_unread = 0, updated_at = NOW()
+         WHERE user_id = ? AND status = 'quoted' AND quote_unread = 1`,
+        [userId]
+      );
+    } catch (dbErr) {
+      // quote_unread 列尚未迁移时静默兼容
+      if (dbErr.code === 'ER_BAD_FIELD_ERROR' || String(dbErr.message || '').includes('Unknown column')) {
+        console.warn('[quote-read] quote_unread列不存在，跳过标记');
+      } else {
+        throw dbErr;
+      }
+    }
+    res.json({ success: true, message: '报价已标记为已读' });
+  } catch (error) {
+    console.error('[quote-read] 失败:', error.message || error);
+    res.json({ success: true, message: '已处理' });
   }
 });
 
@@ -608,6 +637,34 @@ router.put('/:orderId/progress-read', authenticateToken, async (req, res) => {
   } catch (error) {
     // 最外层兜底：不返回500，避免前端控制台报错
     console.warn('[progress-read] 非致命异常:', error.message || error);
+    res.json({ success: true, message: '已处理' });
+  }
+});
+
+/**
+ * 批量标记当前用户所有「未读进度」为已读
+ * 供"我的"页进度横幅"点击查看即消失"使用：进入相关列表后清空未读标记
+ * POST /api/orders/progress-read
+ */
+router.post('/progress-read', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    try {
+      await db.query(
+        `UPDATE orders SET progress_unread = 0, updated_at = NOW()
+         WHERE user_id = ? AND progress_unread = 1 AND status IN ('processing', 'completed')`,
+        [userId]
+      );
+    } catch (dbErr) {
+      if (dbErr.code === 'ER_BAD_FIELD_ERROR' || String(dbErr.message || '').includes('Unknown column')) {
+        console.warn('[progress-read] progress_unread列不存在，跳过标记');
+      } else {
+        throw dbErr;
+      }
+    }
+    res.json({ success: true, message: '进度已标记为已读' });
+  } catch (error) {
+    console.error('[progress-read] 失败:', error.message || error);
     res.json({ success: true, message: '已处理' });
   }
 });
@@ -1225,6 +1282,7 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
           o.device_condition,
           o.estimated_price,
           o.quote_price,
+          o.quote_description,
           o.actual_price,
           o.status,
           o.address_id,
@@ -1286,6 +1344,7 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
           o.device_condition,
           o.estimated_price,
           o.quote_price,
+          o.quote_description,
           o.actual_price,
           o.status,
           o.address_id,

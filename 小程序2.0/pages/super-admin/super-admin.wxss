@@ -802,6 +802,20 @@ page {
   border-radius: 8rpx;
 }
 
+/* 订单类型徽标：明确区分维修 / 回收 */
+.order-type-badge {
+  font-weight: 600;
+  letter-spacing: 1rpx;
+}
+.order-type-badge.badge-repair {
+  background: #2f9e6f;
+  color: #fff;
+}
+.order-type-badge.badge-recycle {
+  background: #e08a1e;
+  color: #fff;
+}
+
 .order-status-badge {
   font-size: 22rpx;
   padding: 6rpx 16rpx;
@@ -3596,6 +3610,35 @@ page {
   color: var(--gray-800);
   margin-bottom: 16rpx;
   display: block;
+}
+
+/* 报价弹窗：用户提交的订单详情 / 图片附件 */
+.quote-detail-block {
+  margin-bottom: 24rpx;
+}
+
+.quote-user-desc {
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: var(--gray-700);
+  background: #f5f7fa;
+  border-radius: 12rpx;
+  padding: 18rpx 20rpx;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.quote-images-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.quote-attach-img {
+  width: 150rpx;
+  height: 150rpx;
+  border-radius: 12rpx;
+  background: #eef1f5;
 }
 
 .quote-desc-input {

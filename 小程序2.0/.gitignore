@@ -12,6 +12,9 @@ backend/uploads/
 backend/server.log
 backend/.env
 
+# 微信支付证书（敏感凭据，禁止提交；README 等说明文件可保留）
+backend/cert/*.pem
+
 # 小程序
 miniprogram_npm/
 node_modules/

@@ -493,6 +493,16 @@ const orderApi = {
     return request('/orders/progress-unread-list', 'GET');
   },
 
+  // 批量标记「待确认报价」为已读（"我的"页报价横幅点击查看后消失）
+  markQuoteRead() {
+    return request('/orders/quote-read', 'POST', {});
+  },
+
+  // 批量标记「未读进度」为已读（"我的"页进度横幅点击查看后消失）
+  markProgressReadAll() {
+    return request('/orders/progress-read', 'POST', {});
+  },
+
   // 获取订单详情
   getOrderDetail(orderId) {
     return request(`/orders/${orderId}/detail`, 'GET');

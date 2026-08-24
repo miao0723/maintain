@@ -9,7 +9,7 @@ header('Content-Type: application/json; charset=utf-8');
 $smtpServer = "ssl://smtp.qq.com";
 $smtpPort = 465;
 $username = "3125845799@qq.com"; // SMTP 登录用户
-$password = "wjigwiqbcxtxddec"; // SMTP 授权码/密码
+$password = "zewsfahjcxpeddcg"; // SMTP 授权码/密码
 $defaultFrom = "3125845799@qq.com";
 
 // 读取输入（支持 application/json 或表单提交），兼容部分服务器不传 CONTENT_TYPE 的情况

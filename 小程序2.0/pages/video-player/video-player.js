@@ -1,10 +1,12 @@
+const { normalizeMediaUrl } = require('../../utils/mediaUrl.js');
+
 Page({
   data: {
     videoUrl: ''
   },
 
   onLoad(options) {
-    const url = decodeURIComponent(options.url || '');
+    const url = normalizeMediaUrl(decodeURIComponent(options.url || ''));
     this.setData({ videoUrl: url });
   }
 });
