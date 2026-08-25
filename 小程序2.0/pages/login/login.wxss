@@ -1,172 +1,77 @@
-/* pages/login/login.wxss */
+/* pages/login/login.wxss —— 维修行业风格：钢蓝底色 + 工具橙点缀，简洁美观 */
+
 .login-container {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(123, 154, 190, 0.18), transparent 28%),
-    linear-gradient(180deg, #eff4f8 0%, #e7eef5 34%, #f8fbfd 100%);
-  padding: 0 20rpx env(safe-area-inset-bottom);
+    radial-gradient(circle at 50% -12%, rgba(255, 138, 61, 0.10), transparent 40%),
+    linear-gradient(180deg, #eef3f8 0%, #e6edf4 46%, #f5f8fc 100%);
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 48rpx calc(40rpx + env(safe-area-inset-bottom));
 }
 
 .login-card {
-  width: 600rpx;
+  width: 100%;
+  max-width: 620rpx;
   background: #ffffff;
-  border-radius: 32rpx;
-  padding: 64rpx 48rpx 48rpx;
+  border-radius: 36rpx;
+  padding: 56rpx 48rpx 44rpx;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 20rpx 60rpx rgba(32, 51, 73, 0.14);
+  box-shadow: 0 24rpx 64rpx rgba(25, 44, 66, 0.14);
 }
 
-.login-logo {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 32rpx;
-  background: linear-gradient(145deg, #213449 0%, #446786 100%);
+/* ===== 品牌头部：维修行业风格 ===== */
+.brand {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 60rpx;
-  box-shadow: 0 12rpx 28rpx rgba(40, 62, 86, 0.24);
-}
-
-.login-title {
-  margin-top: 26rpx;
-  font-size: 38rpx;
-  font-weight: 800;
-  color: #213449;
-}
-
-.login-desc {
-  margin-top: 14rpx;
-  font-size: 24rpx;
-  line-height: 1.6;
-  color: #6a7888;
-  text-align: center;
-}
-
-.login-btn {
+  gap: 18rpx;
   width: 100%;
-  height: 90rpx;
-  margin-top: 44rpx;
-  border: none;
+  margin-bottom: 44rpx;
+}
+
+.brand-logo {
+  width: 88rpx;
+  height: 88rpx;
   border-radius: 24rpx;
-  background: linear-gradient(145deg, #213449 0%, #446786 100%);
-  color: #ffffff;
-  font-size: 30rpx;
-  font-weight: 700;
-  box-shadow: 0 12rpx 28rpx rgba(40, 62, 86, 0.24);
-}
-
-.login-btn::after {
-  border: none;
-}
-
-.login-btn:active {
-  transform: translateY(2rpx);
-}
-
-.btn-text {
-  position: relative;
-  z-index: 1;
-}
-
-.login-policy {
-  margin-top: 28rpx;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  font-size: 21rpx;
-  color: #8a99a8;
-  line-height: 1.6;
-}
-
-.login-link {
-  color: #46698a;
-  font-weight: 700;
-  margin: 0 4rpx;
-}
-
-/* ===== 资料补全步骤（内联在登录卡片内，统一钢蓝风） ===== */
-.login-glow {
-  position: absolute;
-  top: -160rpx;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 480rpx;
-  height: 300rpx;
-  background: radial-gradient(circle, rgba(106, 154, 187, 0.22) 0%, rgba(106, 154, 187, 0) 70%);
-  pointer-events: none;
-}
-
-.fill-card {
-  animation: fillPop 0.34s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.fill-glow {
-  position: absolute;
-  top: -130rpx;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 440rpx;
-  height: 250rpx;
-  background: radial-gradient(circle, rgba(106, 154, 187, 0.26) 0%, rgba(106, 154, 187, 0) 70%);
-  pointer-events: none;
-}
-
-@keyframes fillPop {
-  from { opacity: 0; transform: translateY(36rpx) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.fill-emoji {
-  position: relative;
-  z-index: 1;
-  width: 96rpx;
-  height: 96rpx;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
-  color: #fff;
-  font-size: 48rpx;
+  background: linear-gradient(145deg, #ff8a3d 0%, #f5701e 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 12rpx 30rpx rgba(67, 111, 149, 0.28);
+  font-size: 46rpx;
+  box-shadow: 0 10rpx 24rpx rgba(245, 112, 30, 0.30);
+  flex-shrink: 0;
 }
 
-.fill-title {
-  position: relative;
-  z-index: 1;
-  margin-top: 22rpx;
-  font-size: 36rpx;
+.brand-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.brand-title {
+  font-size: 34rpx;
   font-weight: 800;
-  color: #1f2f3d;
+  color: #1f2d3d;
   letter-spacing: 1rpx;
 }
 
-.fill-sub {
-  position: relative;
-  z-index: 1;
-  margin-top: 12rpx;
-  font-size: 23rpx;
-  line-height: 1.5;
+.brand-sub {
+  margin-top: 6rpx;
+  font-size: 22rpx;
   color: #8a99a8;
-  text-align: center;
-  max-width: 460rpx;
 }
 
+/* ===== 头像选择：干净圆形，无旋转虚线环 / 发光背景 ===== */
 .fill-avatar {
   position: relative;
-  z-index: 1;
-  margin-top: 36rpx;
-  width: 180rpx;
-  height: 180rpx;
+  margin-top: 4rpx;
+  width: 168rpx;
+  height: 168rpx;
   padding: 0;
   border: none;
   background: transparent;
@@ -180,56 +85,31 @@
 .fill-avatar::after { border: none; }
 
 .fill-avatar-img {
-  width: 180rpx;
-  height: 180rpx;
+  width: 168rpx;
+  height: 168rpx;
   border-radius: 50%;
   border: 4rpx solid #ffffff;
-  box-shadow: 0 10rpx 26rpx rgba(40, 62, 86, 0.18);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 10rpx 26rpx rgba(40, 62, 86, 0.16);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
-.fill-avatar {
-  position: relative;
-}
-
-/* 已选头像时的高亮描边 */
+/* 已选头像时的高亮描边（维修橙） */
 .fill-avatar--set .fill-avatar-img {
-  border-color: #6a9abb;
-  box-shadow: 0 12rpx 30rpx rgba(67, 111, 149, 0.28);
+  border-color: #ff8a3d;
+  box-shadow: 0 12rpx 30rpx rgba(245, 112, 30, 0.24);
 }
 
-.fill-avatar-ring {
-  position: absolute;
-  inset: -10rpx;
-  border-radius: 50%;
-  border: 2rpx dashed rgba(106, 154, 187, 0.45);
-  pointer-events: none;
-  animation: ringSpin 9s linear infinite;
-}
-
-@keyframes ringSpin {
-  to { transform: rotate(360deg); }
-}
-
-.fill-avatar-hint {
-  position: absolute;
-  left: 50%;
-  bottom: -44rpx;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  font-size: 20rpx;
-  color: #6a9abb;
-  background: rgba(106, 154, 187, 0.12);
-  padding: 6rpx 16rpx;
-  border-radius: 20rpx;
+.fill-avatar-cap {
+  margin-top: 18rpx;
+  font-size: 22rpx;
+  color: #8a99a8;
 }
 
 .fill-avatar:active .fill-avatar-img { transform: scale(0.96); }
 
+/* ===== 昵称 ===== */
 .fill-nick {
-  position: relative;
-  z-index: 1;
-  margin-top: 32rpx;
+  margin-top: 38rpx;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -240,7 +120,7 @@
   margin-bottom: 12rpx;
   font-size: 24rpx;
   font-weight: 700;
-  color: #1f2f3d;
+  color: #1f2d3d;
 }
 
 .fill-nick-box {
@@ -257,9 +137,17 @@
   padding: 0 64rpx 0 24rpx;
   box-sizing: border-box;
   font-size: 30rpx;
-  color: #1f2f3d;
+  color: #1f2d3d;
   transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
 }
+
+.fill-nick-input:focus {
+  border-color: #f5701e;
+  background: #ffffff;
+  box-shadow: 0 0 0 6rpx rgba(245, 112, 30, 0.10);
+}
+
+.fill-nick-ph { color: #9aa8b6; }
 
 .fill-nick-icon {
   position: absolute;
@@ -269,7 +157,7 @@
   width: 36rpx;
   height: 36rpx;
   border-radius: 50%;
-  background: #4caf7d;
+  background: #ff8a3d;
   color: #fff;
   font-size: 22rpx;
   display: flex;
@@ -277,78 +165,83 @@
   justify-content: center;
 }
 
-.fill-nick-input:focus {
-  border-color: #4f6b84;
-  background: #ffffff;
-  box-shadow: 0 0 0 6rpx rgba(79, 107, 132, 0.08);
-}
-
-.fill-nick-ph { color: #9aa8b6; }
-
-.fill-save {
+/* ===== 底部按钮行：登录 + 跳过 同行左右摆放 ===== */
+.login-actions {
   position: relative;
   z-index: 1;
-  margin-top: 34rpx;
+  display: flex;
+  align-items: stretch;
+  gap: 24rpx;
   width: 100%;
+  margin-top: 44rpx;
+}
+
+/* ===== 登录按钮（维修橙，占据主要宽度） ===== */
+.login-btn {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  width: auto;
   height: 92rpx;
+  border: none;
   border-radius: 46rpx;
-  background: linear-gradient(135deg, #436f95 0%, #6a9abb 100%);
+  background: linear-gradient(135deg, #ff8a3d 0%, #f5701e 100%);
   color: #ffffff;
-  font-size: 32rpx;
+  font-size: 31rpx;
   font-weight: 700;
-  letter-spacing: 1rpx;
+  letter-spacing: 2rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  box-shadow: 0 14rpx 30rpx rgba(67, 111, 149, 0.28);
+  box-shadow: 0 14rpx 30rpx rgba(245, 112, 30, 0.28);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.fill-save::after { border: none; }
+.login-btn::after { border: none; }
 
-.fill-save:active { transform: scale(0.98); box-shadow: 0 8rpx 20rpx rgba(67, 111, 149, 0.32); }
+.login-btn:active {
+  transform: translateY(2rpx) scale(0.99);
+  box-shadow: 0 8rpx 18rpx rgba(245, 112, 30, 0.32);
+}
 
-.fill-skip {
+/* ===== 跳过按钮（幽灵，固定宽度在右侧） ===== */
+.login-skip {
   position: relative;
   z-index: 1;
-  margin-top: 20rpx;
-  width: 100%;
-  height: 84rpx;
-  border-radius: 42rpx;
+  flex: 0 0 200rpx;
+  width: auto;
+  height: 92rpx;
+  margin-top: 0;
+  border-radius: 46rpx;
   background: transparent;
-  color: #436f95;
-  font-size: 30rpx;
+  color: #6a7b8c;
+  font-size: 28rpx;
   font-weight: 600;
   letter-spacing: 1rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2rpx solid #c2d4e3;
+  border: 2rpx solid #dbe3ec;
   box-sizing: border-box;
-  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.fill-skip:active { background: rgba(67, 111, 149, 0.06); border-color: #9ab6cd; transform: scale(0.98); }
-
-.fill-nick-hidden {
-  position: absolute;
-  width: 1rpx;
-  height: 1rpx;
-  overflow: hidden;
-  opacity: 0;
-  left: -9999rpx;
+.login-skip:active {
+  background: rgba(245, 112, 30, 0.06);
+  border-color: #f3c4a0;
+  color: #f5701e;
 }
 
 @media (prefers-color-scheme: dark) {
-  .fill-card { background: #1f2730; box-shadow: 0 30rpx 80rpx rgba(0, 0, 0, 0.4); }
-  .fill-title { color: #eef3f8; }
-  .fill-sub { color: #9aa8b6; }
+  .login-container { background: linear-gradient(180deg, #11161c 0%, #161d25 100%); }
+  .login-card { background: #1c242e; box-shadow: 0 30rpx 80rpx rgba(0, 0, 0, 0.4); }
+  .brand-title { color: #eef3f8; }
+  .brand-sub { color: #9aa8b6; }
+  .fill-avatar-cap { color: #9aa8b6; }
   .fill-nick-label { color: #eef3f8; }
   .fill-nick-input { background: #2a333d; border-color: #3a4654; color: #eef3f8; }
   .fill-nick-ph { color: #7c8b9a; }
-  .fill-nick-icon { background: #4caf7d; }
-  .fill-avatar--set .fill-avatar-img { border-color: #6a9abb; }
-  .fill-skip { color: #9cc2dd; border-color: #3a4654; }
-  .fill-skip:active { background: rgba(156, 194, 221, 0.1); border-color: #587089; }
+  .fill-avatar--set .fill-avatar-img { border-color: #ff8a3d; }
+  .login-skip { color: #9aa8b6; border-color: #3a4654; }
+  .login-skip:active { background: rgba(255, 138, 61, 0.12); border-color: #5a4326; color: #ff8a3d; }
 }

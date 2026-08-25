@@ -175,41 +175,15 @@
     </view>
   </view>
 
-  <!-- 授权登录弹窗 -->
-  <view class="auth-mask" wx:if="{{needAuth}}">
-    <view class="auth-card">
-      <view class="auth-logo">🔧</view>
-      <view class="auth-title">电子维修服务</view>
-      <view class="auth-desc">登录后可使用故障自检、报价确认、进度反馈等服务</view>
-
-      <button
-        class="auth-btn"
-        bindtap="handleAuthLogin"
-        loading="{{authLoading}}"
-        disabled="{{authLoading}}"
-      >{{authLoading ? '登录中...' : '微信一键登录'}}</button>
-
-      <view class="auth-policy">
-        <text>登录即表示同意</text>
-        <text class="auth-link" bindtap="viewAgreement" catchtap="viewAgreement">《免责协议》</text>
-        <text>和</text>
-        <text class="auth-link" bindtap="viewPrivacyPolicy" catchtap="viewPrivacyPolicy">《隐私政策》</text>
-      </view>
-
-      <view class="auth-close" bindtap="closeAuth">暂不登录</view>
-    </view>
-  </view>
-
-  <!-- 资料补全弹层：读取微信头像与昵称 -->
+  <!-- 资料补全弹层：读取微信头像与昵称（登录后直接展示，无单独一键登录页） -->
   <view class="fill-mask" wx:if="{{showProfileFill}}">
     <view class="fill-card">
-      <view class="fill-glow"></view>
       <view class="fill-emoji">🙂</view>
       <text class="fill-title">完善微信资料</text>
       <text class="fill-sub">点击下方头像获取微信头像，昵称可一键填入</text>
 
-      <button class="fill-avatar" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" loading="{{isFilling}}" disabled="{{isFilling}}">
-        <image class="fill-avatar-img" src="{{fillAvatarUrl || avatarUrl}}" mode="aspectFill"></image>
+      <button class="fill-avatar" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" disabled="{{isFilling}}">
+        <image class="fill-avatar-img" src="{{fillAvatarUrl || avatarUrl || defaultAvatarUrl}}" mode="aspectFill"></image>
       </button>
 
       <view class="fill-nick">
@@ -217,8 +191,10 @@
         <input class="fill-nick-input" type="nickname" placeholder="点此填入微信昵称" placeholder-class="fill-nick-ph" value="{{fillNickName}}" bindnickname="onFillNickName" bindinput="onFillNickNameInput" maxlength="20"/>
       </view>
 
-      <button class="fill-save" bindtap="saveProfileFill" loading="{{isFilling}}" disabled="{{isFilling}}">{{isFilling ? '保存中...' : '保存并进入'}}</button>
-      <view class="fill-skip" bindtap="skipProfileFill">暂不设置，直接进入</view>
+      <view class="fill-actions">
+        <button class="fill-save" bindtap="saveProfileFill" loading="{{isFilling}}" disabled="{{isFilling}}">{{isFilling ? '登录中...' : '登录'}}</button>
+        <view class="fill-skip" bindtap="skipProfileFill">跳过</view>
+      </view>
     </view>
   </view>
 </view>

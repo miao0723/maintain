@@ -23,11 +23,12 @@ function isInvalidAvatarUrl(url) {
     return true
   }
 
-  // 兼容小程序本地临时文件和项目内静态资源
+  // 兼容小程序本地临时文件、项目内静态资源、以及相对上传路径（含/不含前导斜杠）
   if (
     trimmedUrl.startsWith('wxfile://') ||
     trimmedUrl.startsWith('http://tmp/') ||
-    trimmedUrl.startsWith('/')
+    trimmedUrl.startsWith('/') ||
+    trimmedUrl.startsWith('uploads/')
   ) {
     return false
   }
@@ -49,16 +50,16 @@ function normalizeAvatarUrl(url, fallback = DEFAULT_AVATAR_URL) {
     return fallback
   }
 
-  // 本地上传资源（头像等）统一走 API 基址（如 https://zych.net.cn/mp-api/api/uploads/...），
-  // 与后端 /api/uploads 静态路由、以及其它业务接口同一条反代路径，
-  // 避免根路径 /uploads 未被 nginx 反代到后端时持续 404。
-  // 关键修复：后端 getPublicBaseUrl() 在未配置 PUBLIC_BASE_URL 时会回退成内网/localhost 地址
-  //（如 http://192.168.8.72:3001/uploads/... 或 http://localhost:3001/...），小程序端无法访问，
-  // 导致"头像获取不到"。因此这里对【任意】路径以 /uploads/ 开头的 URL（相对或完整、不管域名）
-  // 都重写为 API 基址下的 /api/uploads/...，保证无论后端返回什么 host 都可被小程序读取。
+  // 本地上传资源（头像等）统一走网关基址下的 /uploads/...，
+  // 例如 /uploads/avatars/xxx.jpg 或 uploads/avatars/xxx.jpg（历史缺前导斜杠）
+  // → https://zych.net.cn/mp-api/uploads/avatars/xxx.jpg
+  // 注意：nginx 将 /mp-api 反代到后端 /api，故此处【不要】再加 /api，
+  // 否则会形成 /mp-api/api/uploads 双重路径导致线上 404（与 utils/mediaUrl.js 保持一致）。
   let uploadPath = null
   if (raw.startsWith(UPLOADS_PREFIX)) {
     uploadPath = raw
+  } else if (raw.startsWith('uploads/')) {
+    uploadPath = '/' + raw
   } else {
     try {
       const u = new URL(raw)
@@ -70,7 +71,7 @@ function normalizeAvatarUrl(url, fallback = DEFAULT_AVATAR_URL) {
 
   if (uploadPath) {
     const apiBase = getApiBaseUrl().replace(/\/+$/, '')
-    return `${apiBase}/api${uploadPath}`
+    return `${apiBase}${uploadPath}`
   }
 
   return raw

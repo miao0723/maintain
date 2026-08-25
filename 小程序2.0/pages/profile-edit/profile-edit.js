@@ -380,12 +380,45 @@ Page({
   },
 
   /**
-   * 输入电话
+   * 微信手机号授权（getPhoneNumber）→ 后端解密并绑定
    */
-  onPhoneInput(e) {
-    this.setData({
-      phoneNumber: e.detail.value
-    })
+  onGetPhoneNumber(e) {
+    const { errMsg, code } = e.detail || {}
+    if (errMsg !== 'getPhoneNumber:ok') {
+      // 用户取消或拒绝授权
+      wx.showToast({ title: '已取消手机号授权', icon: 'none' })
+      return
+    }
+    if (!code) {
+      wx.showToast({ title: '请升级微信版本后重试', icon: 'none' })
+      return
+    }
+
+    wx.showLoading({ title: '绑定中...', mask: true })
+    userApi.bindPhone(code)
+      .then(res => {
+        if (!res || res.success === false) {
+          throw new Error((res && res.error) || '绑定失败')
+        }
+        const phone = res.phone
+        if (!phone) throw new Error('未返回手机号')
+
+        // 同步本地与全局用户信息，供首页/下单页等直接读取
+        const current = wx.getStorageSync('userInfo') || {}
+        wx.setStorageSync('userInfo', { ...current, phone })
+        const app = getApp()
+        if (app.globalData && app.globalData.userInfo) {
+          app.globalData.userInfo = { ...app.globalData.userInfo, phone }
+        }
+
+        this.setData({ phoneNumber: phone })
+        wx.showToast({ title: '手机号已绑定', icon: 'success' })
+      })
+      .catch(err => {
+        console.error('绑定手机号失败', err)
+        wx.showToast({ title: err.message || '绑定失败', icon: 'none' })
+      })
+      .finally(() => wx.hideLoading())
   },
 
   /**
@@ -434,14 +467,6 @@ Page({
       return
     }
 
-    if (phoneNumber && !/^1[3-9]\d{9}$/.test(phoneNumber)) {
-      wx.showToast({
-        title: '请输入正确的手机号',
-        icon: 'none'
-      })
-      return
-    }
-
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       wx.showToast({
         title: '请输入正确的邮箱',
@@ -483,7 +508,6 @@ Page({
         nickname: userInfo.nickName,
         avatar_url: finalAvatarUrl,
         real_name: realName,
-        phone: phoneNumber,
         email: email
       });
 

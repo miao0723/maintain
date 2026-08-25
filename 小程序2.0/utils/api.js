@@ -403,6 +403,11 @@ const userApi = {
       suppressErrorToast: options.suppressErrorToast || false,
       ...options
     });
+  },
+
+  // 绑定微信手机号（传入 getPhoneNumber 返回的 code，后端解密并写库）
+  bindPhone(code) {
+    return request('/user/bind-phone', 'POST', { code });
   }
 };
 

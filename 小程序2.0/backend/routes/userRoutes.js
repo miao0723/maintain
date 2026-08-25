@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const axios = require('axios');
 const multer = require('multer');
+const { getAccessToken } = require('../utils/wechatToken');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -464,6 +465,49 @@ router.get('/info', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('获取用户信息错误:', error);
     res.status(500).json({ error: 'Failed to fetch user info' });
+  }
+});
+
+// 绑定微信手机号（getPhoneNumber 返回的 code → 后端解密并写库）
+router.post('/bind-phone', authenticateToken, async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({ success: false, error: '缺少手机号授权 code' });
+    }
+
+    const accessToken = await getAccessToken();
+    const resp = await axios.post(
+      `https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=${accessToken}`,
+      { code },
+      { timeout: 10000 }
+    );
+    const data = resp.data || {};
+
+    if (data.errcode) {
+      console.error('[绑定手机号] getuserphonenumber 失败:', data);
+      return res.status(400).json({
+        success: false,
+        error: '微信解密手机号失败',
+        wechat: { errcode: data.errcode, errmsg: data.errmsg }
+      });
+    }
+
+    const phoneInfo = data.phone_info || {};
+    const phoneNumber = phoneInfo.purePhoneNumber || phoneInfo.phoneNumber;
+    if (!phoneNumber) {
+      return res.status(400).json({ success: false, error: '未能解析到手机号' });
+    }
+
+    await db.query(
+      'UPDATE users SET phone = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [phoneNumber, req.user.userId]
+    );
+
+    res.json({ success: true, phone: phoneNumber });
+  } catch (error) {
+    console.error('[绑定手机号] 异常:', error);
+    res.status(500).json({ success: false, error: '绑定手机号失败', message: error.message });
   }
 });
 

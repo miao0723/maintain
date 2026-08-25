@@ -47,13 +47,13 @@
 
     <view class="form-item">
       <text class="form-label">联系电话</text>
-      <input
-        class="form-input"
-        type="number"
-        placeholder="请输入联系电话"
-        value="{{phoneNumber}}"
-        bindinput="onPhoneInput"
-        maxlength="11"/>
+      <view class="phone-row">
+        <text class="phone-value {{phoneNumber ? '' : 'phone-empty'}}">{{phoneNumber || '尚未绑定手机号'}}</text>
+        <button
+          class="phone-btn"
+          open-type="getPhoneNumber"
+          bindgetphonenumber="onGetPhoneNumber">{{phoneNumber ? '更换' : '微信授权'}}</button>
+      </view>
     </view>
 
     <view class="form-item">

@@ -15,13 +15,12 @@ Page({
     userReady: false,
     loadingUserInfo: false,
     // 授权相关
-    needAuth: false,        // 是否弹出登录授权弹窗
-    authLoading: false,     // 授权登录中
     showProfileFill: false, // 资料补全层（读取微信头像/昵称）
     fillAvatarUrl: '',
     fillNickName: '',
     isFilling: false,
     uploadedFillAvatarUrl: '', // 资料补全时选图后已上传到服务端的头像地址
+    defaultAvatarUrl: DEFAULT_AVATAR_URL, // 头像未选择时的占位图
     servicePromises: [
       { id: 1, icon: '🧩', title: '全品类受理', desc: '从常见手机电脑到音响、路由器、游戏机、无人机，统一受理与诊断。' },
       { id: 2, icon: '📡', title: '维修实时反馈', desc: '检测完成、配件确认、维修进度、完工状态都会持续回传。' },
@@ -117,39 +116,92 @@ Page({
     }
   },
 
-  onLoad() {
-    if (!this.checkLogin()) {
-      return
+  async onLoad() {
+    await this.checkLogin()
+    if (wx.getStorageSync('token')) {
+      this.hydrateUserInfo()
     }
-    this.hydrateUserInfo()
   },
 
-  onShow() {
+  async onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       const tabBar = this.getTabBar()
       tabBar.setData({ selected: 0 })
       tabBar.refreshBadge()
     }
 
-    if (!this.checkLogin()) {
-      return
+    await this.checkLogin()
+    if (wx.getStorageSync('token')) {
+      this.hydrateUserInfo()
     }
-    this.hydrateUserInfo()
   },
 
   /**
-   * 检查登录状态：未登录时弹出授权弹窗（不再跳转丑陋的登录页）
+   * 检查登录状态：未登录时静默执行微信登录获取 token，并直接展示
+   * 「头像 + 昵称」资料补全层（不再弹出单独的「一键登录」页面）
    */
-  checkLogin() {
+  async checkLogin() {
     const token = wx.getStorageSync('token')
 
-    if (!token) {
-      this.setData({ needAuth: true })
-      return false
+    if (token) {
+      this.setData({ showProfileFill: false })
+      return
     }
 
-    this.setData({ needAuth: false })
-    return true
+    // 已展示补全层或正在静默登录，避免重复触发
+    if (this.data.showProfileFill || this._silentLogging) return
+
+    await this.silentWechatLogin()
+  },
+
+  /**
+   * 静默微信登录：wx.login 换取 token，成功后直接展示资料补全层。
+   * 即便登录失败也展示补全层，允许用户「跳过」正常进入。
+   */
+  async silentWechatLogin() {
+    if (this._silentLogging) return
+    this._silentLogging = true
+
+    const showFill = () => {
+      this.setData({
+        showProfileFill: true,
+        fillAvatarUrl: '',
+        fillNickName: ''
+      })
+    }
+
+    try {
+      const { code } = await new Promise((resolve, reject) => {
+        wx.login({ success: resolve, fail: reject })
+      })
+      if (!code) throw new Error('wx.login 未返回 code')
+
+      const response = await userApi.wechatLogin(code, {})
+      if (response.success && response.token) {
+        const rawUser = response.user || {}
+        const normalizedUser = {
+          ...rawUser,
+          nickname: rawUser.nickname || '微信用户',
+          nickName: rawUser.nickname || rawUser.nickName || '微信用户',
+          avatar_url: normalizeAvatarUrl(rawUser.avatar_url || rawUser.avatarUrl || ''),
+          avatarUrl: normalizeAvatarUrl(rawUser.avatar_url || rawUser.avatarUrl || '')
+        }
+        wx.setStorageSync('token', response.token)
+        wx.setStorageSync('userInfo', normalizedUser)
+        const app = getApp()
+        if (app && app.globalData) {
+          app.globalData.userInfo = normalizedUser
+          app.globalData.isLoggedIn = true
+          app.globalData.agreedToDisclaimer = true
+        }
+      }
+      showFill()
+    } catch (err) {
+      console.error('首页静默登录失败:', err)
+      showFill()
+    } finally {
+      this._silentLogging = false
+    }
   },
 
   getDisplayUserInfo(source = {}) {
@@ -266,133 +318,7 @@ Page({
     })
   },
 
-  // ===== 首页授权登录弹窗 =====
-
-  viewAgreement() {
-    wx.navigateTo({ url: '/pages/welcome/welcome' })
-  },
-
-  viewPrivacyPolicy() {
-    wx.showModal({
-      title: '隐私政策',
-      content: '1. 我们会保护您的个人信息安全\n2. 您的头像和昵称仅用于身份识别\n3. 未经您同意，不会向第三方泄露\n4. 您可以随时修改个人信息\n5. 如有疑问，请联系客服',
-      showCancel: false,
-      confirmText: '我知道了'
-    })
-  },
-
-  // 弹窗内点击"微信一键登录"
-  async handleAuthLogin() {
-    if (this.data.authLoading) return
-
-    this.setData({ authLoading: true })
-
-    // 诊断：打印当前使用的 API 地址
-    const app = getApp()
-    const diagBaseUrl = app?.globalData?.baseUrl || '未设置'
-    const diagApiUrl = app?.globalData?.apiUrl || '未设置'
-    const diagStored = wx.getStorageSync('apiBaseUrl') || '无'
-    console.log('========== 登录诊断 ==========')
-    console.log('globalData.baseUrl:', diagBaseUrl)
-    console.log('globalData.apiUrl:', diagApiUrl)
-    console.log('stored apiBaseUrl:', diagStored)
-    console.log('===============================')
-
-    wx.login({
-      success: async (loginRes) => {
-        if (!loginRes.code) {
-          this.setData({ authLoading: false })
-          wx.showModal({
-            title: '登录诊断',
-            content: 'wx.login 未返回 code\n\n可能原因：微信授权失败\n当前 API: ' + diagBaseUrl,
-            showCancel: false
-          })
-          return
-        }
-        try {
-          const response = await userApi.wechatLogin(loginRes.code, {})
-          if (response.success && response.token) {
-            const rawUser = response.user || {}
-            const normalizedUser = {
-              ...rawUser,
-              nickname: rawUser.nickname || '微信用户',
-              nickName: rawUser.nickname || rawUser.nickName || '微信用户',
-              avatar_url: normalizeAvatarUrl(rawUser.avatar_url || rawUser.avatarUrl || ''),
-              avatarUrl: normalizeAvatarUrl(rawUser.avatar_url || rawUser.avatarUrl || '')
-            }
-
-            wx.setStorageSync('token', response.token)
-            wx.setStorageSync('userInfo', normalizedUser)
-            const app = getApp()
-            if (app && app.globalData) {
-              app.globalData.userInfo = normalizedUser
-              app.globalData.isLoggedIn = true
-              app.globalData.agreedToDisclaimer = true
-            }
-
-            this.setData({ needAuth: false, authLoading: false })
-
-            // 新用户或资料不全 -> 展示资料补全层（读取微信头像/昵称）
-            if (this.needProfileFill(normalizedUser)) {
-              this.setData({
-                showProfileFill: true,
-                fillAvatarUrl: normalizedUser.avatarUrl || '',
-                fillNickName: ''
-              })
-            } else {
-              wx.showToast({ title: '登录成功', icon: 'success', duration: 1200 })
-              this.hydrateUserInfo()
-            }
-          } else {
-            wx.showModal({
-              title: '登录诊断',
-              content: '服务器返回异常\n\nsuccess: ' + JSON.stringify(response.success) +
-                '\nerror: ' + (response.error || response.message || '无') +
-                '\n当前 API: ' + diagBaseUrl,
-              showCancel: false
-            })
-            this.setData({ authLoading: false })
-          }
-        } catch (err) {
-          console.error('首页授权登录失败:', err)
-          this.setData({ authLoading: false })
-          const errMsg = (err && (err.message || err.errMsg)) || '未知错误'
-          wx.showModal({
-            title: '登录诊断',
-            content: '网络请求失败\n\n错误: ' + errMsg +
-              '\n当前 API: ' + diagBaseUrl +
-              '\nstored: ' + diagStored,
-            showCancel: false
-          })
-        }
-      },
-      fail: (err) => {
-        this.setData({ authLoading: false })
-        const errMsg = (err && (err.errMsg || err.message)) || '未知'
-        wx.showModal({
-          title: '登录诊断',
-          content: 'wx.login 调用失败\n\n错误: ' + errMsg +
-            '\n当前 API: ' + diagBaseUrl,
-          showCancel: false
-        })
-      }
-    })
-  },
-
-  needProfileFill(user) {
-    if (!user) return false
-    const nick = user.nickname || user.nickName || ''
-    const avatar = user.avatar_url || user.avatarUrl || ''
-    const noRealNick = !nick || nick === '微信用户' || nick === '游客'
-    const noRealAvatar = !avatar ||
-      (avatar.indexOf('/uploads/avatars/') === -1 && avatar.indexOf('http') !== 0)
-    return noRealNick || noRealAvatar
-  },
-
-  // 关闭授权弹窗（暂不登录）
-  closeAuth() {
-    this.setData({ needAuth: false })
-  },
+  // ===== 首页资料补全层（读取微信头像 + 昵称） =====
 
   // ===== 资料补全层（读取微信头像 + 昵称） =====
 
@@ -412,7 +338,11 @@ Page({
       userApi.uploadAvatar(avatarUrl, { timeout: 15000 })
         .then(res => {
           if (res && res.avatar_url) {
-            this.setData({ uploadedFillAvatarUrl: res.avatar_url, fillAvatarUrl: res.avatar_url })
+            // 关键：展示用的头像地址必须归一化为完整网关 URL，
+            // 否则相对路径 /uploads/avatars/... 会被小程序当作本地资源，
+            // 触发"模拟器无法获取"并渲染成灰色破图。
+            const normalized = normalizeAvatarUrl(res.avatar_url)
+            this.setData({ uploadedFillAvatarUrl: normalized, fillAvatarUrl: normalized })
           }
         })
         .catch(err => console.warn('补全资料头像上传失败，保存时再补传:', err))

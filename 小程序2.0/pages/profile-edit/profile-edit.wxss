@@ -158,6 +158,52 @@
   color: #d97757;
 }
 
+/* 手机号授权行 */
+.phone-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.phone-value {
+  flex: 1;
+  min-width: 0;
+  font-size: 28rpx;
+  color: #333333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-value.phone-empty {
+  color: #b3bcc6;
+}
+
+.phone-btn {
+  margin: 0;
+  padding: 0 28rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #ff8a3d 0%, #f5701e 100%);
+  border-radius: 30rpx;
+  flex-shrink: 0;
+  margin-left: 20rpx;
+  box-shadow: 0 6rpx 16rpx rgba(245, 112, 30, 0.24);
+}
+
+.phone-btn::after {
+  border: none;
+}
+
+.phone-btn:active {
+  transform: scale(0.97);
+}
+
 /* 区块头部 */
 .section-header {
   padding: 30rpx 0;
