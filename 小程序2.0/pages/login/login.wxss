@@ -1,28 +1,30 @@
-/* pages/login/login.wxss —— 简洁美观的微信资料授权页 */
+/* pages/login/login.wxss —— 授权微信头像与昵称页（简洁美观版） */
 
+/* ===== 整体背景 ===== */
 .login-container {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 50% -10%, rgba(255, 138, 61, 0.10), transparent 42%),
-    linear-gradient(180deg, #eef3f8 0%, #e6edf4 46%, #f5f8fc 100%);
+    radial-gradient(circle at 50% -8%, rgba(255, 138, 61, 0.12), transparent 44%),
+    linear-gradient(180deg, #eef3f8 0%, #e8eef5 48%, #f6f9fc 100%);
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 56rpx calc(48rpx + env(safe-area-inset-bottom));
+  padding: 0 48rpx calc(56rpx + env(safe-area-inset-bottom));
 }
 
+/* ===== 主卡片：整体调大 ===== */
 .login-card {
   width: 100%;
-  max-width: 700rpx;
+  max-width: 720rpx;
   background: #ffffff;
-  border-radius: 44rpx;
-  padding: 64rpx 56rpx 56rpx;
+  border-radius: 48rpx;
+  padding: 72rpx 60rpx 60rpx;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 28rpx 72rpx rgba(25, 44, 66, 0.14);
+  box-shadow: 0 32rpx 80rpx rgba(25, 44, 66, 0.16);
 }
 
 /* ===== 品牌头部 ===== */
@@ -31,18 +33,18 @@
   align-items: center;
   gap: 20rpx;
   width: 100%;
-  margin-bottom: 48rpx;
+  margin-bottom: 56rpx;
 }
 
 .brand-logo {
-  width: 92rpx;
-  height: 92rpx;
-  border-radius: 26rpx;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 28rpx;
   background: linear-gradient(145deg, #ff8a3d 0%, #f5701e 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 48rpx;
+  font-size: 50rpx;
   box-shadow: 0 10rpx 24rpx rgba(245, 112, 30, 0.30);
   flex-shrink: 0;
 }
@@ -54,23 +56,24 @@
 }
 
 .brand-title {
-  font-size: 36rpx;
+  font-size: 38rpx;
   font-weight: 800;
   color: #1f2d3d;
   letter-spacing: 1rpx;
 }
 
 .brand-sub {
-  margin-top: 6rpx;
-  font-size: 24rpx;
+  margin-top: 8rpx;
+  font-size: 25rpx;
   color: #8a99a8;
 }
 
-/* ===== 头像选择：纯圆形，无矩形按钮背景 ===== */
-.fill-avatar {
+/* ===== 头像：纯圆形，彻底去掉按钮矩形背景 =====
+   复合选择器 button.fill-avatar 优先级(0,1,1) > app.wxss 的 button(0,0,1) */
+button.fill-avatar {
   position: relative;
-  width: 220rpx !important;
-  height: 220rpx !important;
+  width: 240rpx !important;
+  height: 240rpx !important;
   min-width: 0 !important;
   min-height: 0 !important;
   padding: 0 !important;
@@ -79,6 +82,7 @@
   border-radius: 50% !important;
   background: transparent !important;
   background-color: transparent !important;
+  background-image: none !important;
   box-shadow: none !important;
   color: transparent !important;
   line-height: normal !important;
@@ -89,39 +93,44 @@
   transition: transform 0.15s ease;
 }
 
-.fill-avatar::after { border: none !important; }
-
+/* 默认占位头像也画成圆，避免空图露矩形 */
+button.fill-avatar .fill-avatar-img,
 .fill-avatar-img {
-  width: 220rpx;
-  height: 220rpx;
+  width: 240rpx;
+  height: 240rpx;
   border-radius: 50%;
-  border: 4rpx solid #ffffff;
-  box-shadow: 0 12rpx 30rpx rgba(40, 62, 86, 0.16);
+  border: 6rpx solid #ffffff;
+  box-shadow: 0 14rpx 34rpx rgba(40, 62, 86, 0.18);
+  display: block;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
-/* 已选头像时的高亮描边（维修橙） */
+/* 已选头像高亮描边（维修橙） */
 .fill-avatar--set .fill-avatar-img {
   border-color: #ff8a3d;
-  box-shadow: 0 14rpx 34rpx rgba(245, 112, 30, 0.24);
+  box-shadow: 0 16rpx 36rpx rgba(245, 112, 30, 0.26);
 }
 
 .fill-avatar-cap {
-  margin-top: 20rpx;
-  font-size: 24rpx;
+  margin-top: 22rpx;
+  font-size: 25rpx;
   color: #8a99a8;
 }
 
-.fill-avatar:active { transform: scale(0.96); }
-.fill-avatar:active .fill-avatar-img { transform: scale(0.96); }
-.fill-avatar:active {
+button.fill-avatar:active { transform: scale(0.97); }
+button.fill-avatar:active .fill-avatar-img { transform: scale(0.97); }
+button.fill-avatar:active {
   background: transparent !important;
   background-color: transparent !important;
+  background-image: none !important;
 }
+
+/* 关键：杀掉微信原生 button 的 ::after 边框（也是矩形来源之一） */
+button.fill-avatar::after { border: none !important; }
 
 /* ===== 昵称 ===== */
 .fill-nick {
-  margin-top: 42rpx;
+  margin-top: 48rpx;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -129,8 +138,8 @@
 }
 
 .fill-nick-label {
-  margin-bottom: 14rpx;
-  font-size: 26rpx;
+  margin-bottom: 16rpx;
+  font-size: 27rpx;
   font-weight: 700;
   color: #1f2d3d;
 }
@@ -142,13 +151,13 @@
 
 .fill-nick-input {
   width: 100%;
-  height: 96rpx;
+  height: 100rpx;
   background: #f5f8fb;
   border: 2rpx solid #e2eaf2;
-  border-radius: 24rpx;
-  padding: 0 64rpx 0 24rpx;
+  border-radius: 26rpx;
+  padding: 0 64rpx 0 28rpx;
   box-sizing: border-box;
-  font-size: 30rpx;
+  font-size: 31rpx;
   color: #1f2d3d;
   transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
 }
@@ -163,21 +172,21 @@
 
 .fill-nick-icon {
   position: absolute;
-  right: 22rpx;
+  right: 24rpx;
   top: 50%;
   transform: translateY(-50%);
-  width: 36rpx;
-  height: 36rpx;
+  width: 38rpx;
+  height: 38rpx;
   border-radius: 50%;
   background: #ff8a3d;
   color: #fff;
-  font-size: 22rpx;
+  font-size: 23rpx;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* ===== 底部按钮行：登录 + 跳过 等宽 ===== */
+/* ===== 底部按钮行：登录 + 跳过 等宽一致 ===== */
 .login-actions {
   position: relative;
   z-index: 1;
@@ -185,53 +194,55 @@
   align-items: stretch;
   gap: 24rpx;
   width: 100%;
-  margin-top: 52rpx;
+  margin-top: 56rpx;
 }
 
-/* ===== 登录按钮 ===== */
-.login-btn {
+/* 登录按钮：复合选择器压过全局 button 默认样式 */
+button.login-btn {
   position: relative;
   z-index: 1;
   flex: 1;
   width: auto !important;
   min-width: 0 !important;
-  height: 96rpx !important;
+  height: 100rpx !important;
   min-height: 0 !important;
   padding: 0 !important;
   border: none !important;
-  border-radius: 48rpx !important;
+  border-radius: 50rpx !important;
   background: linear-gradient(135deg, #ff8a3d 0%, #f5701e 100%) !important;
+  background-image: linear-gradient(135deg, #ff8a3d 0%, #f5701e 100%) !important;
   color: #ffffff !important;
-  font-size: 31rpx !important;
+  font-size: 32rpx !important;
   font-weight: 700 !important;
   letter-spacing: 2rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 14rpx 30rpx rgba(245, 112, 30, 0.28) !important;
+  box-shadow: 0 14rpx 30rpx rgba(245, 112, 30, 0.30) !important;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.login-btn::after { border: none !important; }
+button.login-btn::after { border: none !important; }
 
-.login-btn:active {
+button.login-btn:active {
   transform: translateY(2rpx) scale(0.99);
-  box-shadow: 0 8rpx 18rpx rgba(245, 112, 30, 0.32) !important;
+  box-shadow: 0 8rpx 18rpx rgba(245, 112, 30, 0.34) !important;
   background: linear-gradient(135deg, #f57a2d 0%, #e8661a 100%) !important;
+  background-image: linear-gradient(135deg, #f57a2d 0%, #e8661a 100%) !important;
 }
 
-/* ===== 跳过按钮 ===== */
+/* 跳过按钮：与登录等宽、同高、同圆角 */
 .login-skip {
   position: relative;
   z-index: 1;
   flex: 1;
   width: auto;
-  height: 96rpx;
+  height: 100rpx;
   margin-top: 0;
-  border-radius: 48rpx;
+  border-radius: 50rpx;
   background: transparent;
   color: #6a7b8c;
-  font-size: 29rpx;
+  font-size: 30rpx;
   font-weight: 600;
   letter-spacing: 1rpx;
   display: flex;
@@ -248,17 +259,16 @@
   color: #f5701e;
 }
 
-/* ===== 暗色模式 ===== */
+/* ===== 暗色模式（保持简洁一致） ===== */
 @media (prefers-color-scheme: dark) {
   .login-container { background: linear-gradient(180deg, #11161c 0%, #161d25 100%); }
-  .login-card { background: #1c242e; box-shadow: 0 30rpx 80rpx rgba(0, 0, 0, 0.4); }
+  .login-card { background: #1c242e; box-shadow: 0 32rpx 84rpx rgba(0, 0, 0, 0.45); }
   .brand-title { color: #eef3f8; }
   .brand-sub { color: #9aa8b6; }
   .fill-avatar-cap { color: #9aa8b6; }
   .fill-nick-label { color: #eef3f8; }
   .fill-nick-input { background: #2a333d; border-color: #3a4654; color: #eef3f8; }
   .fill-nick-ph { color: #7c8b9a; }
-  .fill-avatar--set .fill-avatar-img { border-color: #ff8a3d; }
   .login-skip { color: #9aa8b6; border-color: #3a4654; }
   .login-skip:active { background: rgba(255, 138, 61, 0.12); border-color: #5a4326; color: #ff8a3d; }
 }
