@@ -31,7 +31,8 @@ const tabs = [
   { name: 'xiaohongshu', title: '小红书', path: '/marketing/xiaohongshu' },
   { name: 'kuaishou', title: '快手', path: '/marketing/kuaishou' },
   { name: 'bilibili', title: 'B站', path: '/marketing/bilibili' },
-  { name: 'partners', title: '合作企业', path: '/marketing/partners' }
+  { name: 'partners', title: '合作企业', path: '/marketing/partners' },
+  { name: 'publisher-accounts', title: '发布账号', path: '/marketing/publisher-accounts' }
 ]
 
 const activeTab = ref('')

@@ -1125,8 +1125,8 @@ Page({
       return
     }
 
-    wx.switchTab({
-      url: '/pages/service/service'
+    wx.navigateTo({
+      url: '/pages/feedback/feedback'
     })
   },
 

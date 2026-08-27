@@ -596,7 +596,9 @@ const chatApi = {
   // 直连恒定线上网关(见 uploadFileFixed 说明)，避免候选列表误命中本地 127.0.0.1:3001 死地址
   transcribeAudio(filePath, formData = {}) {
     return uploadFileFixed('/chat/transcribe', filePath, formData, {
-      fieldName: 'file'
+      fieldName: 'file',
+      // 转写失败文案由页面统一处理，避免上传层重复弹出错提示/暴露原始报错
+      suppressErrorToast: true
     })
   },
 
@@ -988,6 +990,18 @@ const adminProgressApplyApi = {
   }
 };
 
+// 意见反馈 API
+const feedbackApi = {
+  // 提交反馈（type: suggestion功能建议/complaint问题投诉/other其他）
+  submit(data) {
+    return request('/feedback', 'POST', data);
+  },
+  // 我的反馈历史（含管理员回复）
+  getMine() {
+    return request('/feedback/my', 'GET');
+  }
+};
+
 module.exports = {
   userApi,
   request,
@@ -1005,5 +1019,6 @@ module.exports = {
   diagnoseApi,
   userDevicesApi,
   afterSalesApi,
-  userConfirmApi
+  userConfirmApi,
+  feedbackApi
 };

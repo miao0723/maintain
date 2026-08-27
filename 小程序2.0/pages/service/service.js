@@ -1049,12 +1049,12 @@ Page({
       voiceRecognizing: false,
       voiceButtonText: '语音',
       voiceDraft: '',
-      voiceHint: finalText ? '语音已转成文字，可直接发送或继续补充' : '未识别到有效语音，请重试'
+      voiceHint: finalText ? '语音已转成文字，可直接发送或继续补充' : '未识别到说话，请重试'
     })
 
     if (!finalText) {
       wx.showToast({
-        title: '未识别到内容',
+        title: '未识别到说话，请重试',
         icon: 'none'
       })
     }
@@ -1099,16 +1099,17 @@ Page({
       const resData = response.data || response
       this.applyVoiceResult(resData.text || '')
     } catch (error) {
-      console.error('[Service] 语音模型转写失败:', error)
+      console.error('[Service] 语音转写异常:', error)
+      const isNoSpeech = /未识别到说话|NO_SPEECH/.test(error.message || '')
       this.setData({
         voiceRecording: false,
         voiceRecognizing: false,
         voiceButtonText: '语音',
         voiceDraft: '',
-        voiceHint: '语音模型转写失败，请重试'
+        voiceHint: isNoSpeech ? '未识别到说话，请重试' : '语音服务暂时不可用，请稍后重试'
       })
       wx.showToast({
-        title: '语音转写失败',
+        title: isNoSpeech ? '未识别到说话，请重试' : '语音服务暂时不可用，请稍后重试',
         icon: 'none'
       })
     }

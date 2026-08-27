@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "confirm-modal": "/components/confirm-modal/confirm-modal"
+  },
+  "navigationBarTitleText": "意见反馈",
+  "enablePullDownRefresh": false
+}

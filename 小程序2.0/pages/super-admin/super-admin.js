@@ -220,6 +220,21 @@ Page({
     asProcessing: false,
     pendingAfterSalesCount: 0,
 
+    // 意见反馈管理
+    fbList: [],
+    fbPage: 1,
+    fbPageSize: 20,
+    fbTotal: 0,
+    fbHasMore: true,
+    fbLoading: false,
+    fbStatusFilter: '',
+    fbStats: { total: 0, pending: 0, replied: 0, closed: 0 },
+    fbShowReplyModal: false,
+    fbCurrent: null,
+    fbReplyText: '',
+    fbProcessing: false,
+    pendingFeedbackCount: 0,
+
     // 转人工待接入数（客服管理红点提醒）
     pendingHumanServiceCount: 0,
     // 人工客服 WebSocket 连接状态
@@ -298,6 +313,13 @@ Page({
     quoteFormData: {
       price: '',
       description: ''
+    },
+
+    // 备注弹窗
+    showRemarkModal: false,
+    remarkOrderData: null,
+    remarkFormData: {
+      remark: ''
     },
 
     // 计算属性
@@ -384,6 +406,10 @@ Page({
       clearInterval(this._asCheckTimer);
       this._asCheckTimer = null;
     }
+    if (this._fbCheckTimer) {
+      clearInterval(this._fbCheckTimer);
+      this._fbCheckTimer = null;
+    }
   },
 
   onUnload() {
@@ -403,6 +429,10 @@ Page({
     if (this._asCheckTimer) {
       clearInterval(this._asCheckTimer);
       this._asCheckTimer = null;
+    }
+    if (this._fbCheckTimer) {
+      clearInterval(this._fbCheckTimer);
+      this._fbCheckTimer = null;
     }
     this.closeAdminSocket();
   },
@@ -457,6 +487,10 @@ Page({
       case 'afterSales':
         await this.loadAfterSales(this.data.asPage);
         this.loadAsStats();
+        break;
+      case 'feedback':
+        await this.loadFeedbackList(this.data.fbPage);
+        this.loadFeedbackStats();
         break;
       case 'income':
         await this.loadIncomeData(true);
@@ -519,6 +553,12 @@ Page({
     this.checkPendingAfterSalesCount();
     this._asCheckTimer = setInterval(() => {
       this.checkPendingAfterSalesCount();
+    }, 30000);
+
+    // 启动意见反馈待处理数量检查
+    this.checkPendingFeedbackCount();
+    this._fbCheckTimer = setInterval(() => {
+      this.checkPendingFeedbackCount();
     }, 30000);
   },
 
@@ -607,6 +647,7 @@ Page({
         url: `${baseUrl}${apiPath}`,
         method: options.method || 'GET',
         data: options.data || {},
+        timeout: options.timeout || 10000,
         header: {
           'Authorization': `Bearer ${this.data.token}`,
           'Content-Type': 'application/json',
@@ -977,6 +1018,7 @@ Page({
           customer_name: order.customer_name || order.nickname || '未知',
           phone: order.phone || '',
           device_assigned_name: order.assigned_display_name || order.assigned_name || '',
+          admin_remark: order.admin_remark || '',
           isRecycle: isRecycle,
           recycleDescItems: recycleDescItems,
           recycleDescSummary: recycleDescItems.length > 0 ? buildRecycleSummary(recycleDescItems) : ''
@@ -1033,7 +1075,8 @@ Page({
         ...order,
         customer_name: order.customer_name || order.nickname || '未知',
         phone: order.customer_phone || order.phone || '',
-        device_assigned_name: order.assigned_display_name || order.assigned_name || ''
+        device_assigned_name: order.assigned_display_name || order.assigned_name || '',
+        admin_remark: order.admin_remark || ''
       }));
 
       // 获取有已通过进度申请的订单ID，标记提醒
@@ -1479,6 +1522,86 @@ Page({
         description: ''
       }
     });
+  },
+
+  // ===================== 订单备注 =====================
+
+  // 打开备注弹窗
+  openRemarkModal(e) {
+    const orderId = e.currentTarget.dataset.orderId;
+    const order = this.data.orders.find(o => o.id === orderId) || this.data.orderDetail;
+
+    if (!order) {
+      wx.showToast({ title: '订单未找到', icon: 'none' });
+      return;
+    }
+
+    this.setData({
+      remarkOrderData: order,
+      remarkFormData: {
+        remark: order.admin_remark || ''
+      },
+      showRemarkModal: true
+    });
+  },
+
+  // 关闭备注弹窗
+  closeRemarkModal() {
+    this.setData({
+      showRemarkModal: false,
+      remarkOrderData: null,
+      remarkFormData: {
+        remark: ''
+      }
+    });
+  },
+
+  // 备注内容输入
+  onRemarkInput(e) {
+    this.setData({
+      'remarkFormData.remark': e.detail.value
+    });
+  },
+
+  // 保存备注
+  async submitRemark() {
+    const { remarkOrderData, remarkFormData } = this.data;
+    if (!remarkOrderData || !remarkOrderData.id) {
+      wx.showToast({ title: '订单数据异常', icon: 'none' });
+      return;
+    }
+
+    const remark = (remarkFormData.remark || '').trim();
+    wx.showLoading({ title: '保存中...', mask: true });
+
+    try {
+      await this.request({
+        url: `/api/super-admin/repair-orders/${remarkOrderData.id}/remark`,
+        method: 'PUT',
+        data: { remark }
+      });
+
+      wx.hideLoading();
+      wx.showToast({ title: remark ? '备注保存成功' : '备注已清除', icon: 'success' });
+
+      // 同步更新当前列表里的订单，立即看到效果，无需等待刷新
+      const orders = (this.data.orders || []).map(o =>
+        o.id === remarkOrderData.id ? Object.assign({}, o, { admin_remark: remark }) : o
+      );
+      this.setData({ orders });
+
+      this.closeRemarkModal();
+
+      // 刷新列表（保持数据一致）
+      if (this.data.currentPage === 'orders') {
+        this.loadOrders(this.data.orderPage);
+      } else if (this.data.currentPage === 'myOrders') {
+        this.loadMyOrders(this.data.orderPage);
+      }
+    } catch (err) {
+      wx.hideLoading();
+      console.error('保存备注失败:', err);
+    }
   },
 
   // 报价金额输入
@@ -2696,6 +2819,188 @@ Page({
     } finally {
       this.setData({ asProcessing: false });
     }
+  },
+
+  // ===================== 意见反馈管理 =====================
+
+  // 检查待处理反馈数量（红点提醒）
+  async checkPendingFeedbackCount() {
+    try {
+      const res = await this.request({ url: '/api/super-admin/feedback/stats' });
+      if (res && (res.success || res.code === 200)) {
+        const stats = res.data || {};
+        this.setData({
+          fbStats: {
+            total: stats.total || 0,
+            pending: stats.pending || 0,
+            replied: stats.replied || 0,
+            closed: stats.closed || 0
+          },
+          pendingFeedbackCount: stats.pending || 0
+        });
+      }
+    } catch (err) {
+      // 静默失败，不影响其他功能
+    }
+  },
+
+  async loadFeedbackList(page) {
+    if (this.data.fbLoading) return;
+    const safePage = (page && page.currentTarget && page.currentTarget.dataset)
+      ? Number(page.currentTarget.dataset.page || 1)
+      : Number(page || this.data.fbPage || 1);
+
+    if (safePage === 1) {
+      this.setData({ fbPage: 1, fbHasMore: true });
+    }
+    if (!this.data.fbHasMore && safePage > 1) return;
+    this.setData({ fbLoading: true, fbPage: safePage });
+
+    try {
+      const params = { page: safePage, pageSize: this.data.fbPageSize };
+      if (this.data.fbStatusFilter) params.status = this.data.fbStatusFilter;
+
+      const res = await this.request({ url: '/api/super-admin/feedback', data: params });
+      if (res && (res.success || res.code === 200)) {
+        const data = res.data || {};
+        const list = (data.list || []).map(item => ({
+          ...item,
+          statusLabel: item.status_label,
+          statusColor: item.status_color,
+          statusBg: item.status_bg,
+          statusIcon: item.status_icon,
+          typeText: item.type_text,
+          submitterName: item.submitter_name,
+          createdAt: this._asFormatTime(item.created_at),
+          repliedAt: item.replied_at ? this._asFormatTime(item.replied_at) : ''
+        }));
+
+        this.setData({
+          fbList: safePage === 1 ? list : [...this.data.fbList, ...list],
+          fbTotal: data.total || 0,
+          fbHasMore: list.length >= this.data.fbPageSize
+        });
+        this.loadFeedbackStats();
+      }
+    } catch (err) {
+      console.error('加载反馈列表失败:', err);
+    } finally {
+      this.setData({ fbLoading: false });
+    }
+  },
+
+  async loadFeedbackStats() {
+    try {
+      const res = await this.request({ url: '/api/super-admin/feedback/stats' });
+      if (res && (res.success || res.code === 200)) {
+        const stats = res.data || {};
+        this.setData({
+          fbStats: {
+            total: stats.total || 0,
+            pending: stats.pending || 0,
+            replied: stats.replied || 0,
+            closed: stats.closed || 0
+          },
+          pendingFeedbackCount: stats.pending || 0
+        });
+      }
+    } catch (err) {
+      console.error('加载反馈统计失败:', err);
+    }
+  },
+
+  onFbFilterChange(e) {
+    const status = e.currentTarget.dataset.status;
+    this.setData({ fbStatusFilter: status }, () => {
+      this.loadFeedbackList(1);
+    });
+  },
+
+  onFbOpenReply(e) {
+    const id = e.currentTarget.dataset.id;
+    const item = this.data.fbList.find(f => f.id == id);
+    if (!item) return;
+    this.setData({ fbShowReplyModal: true, fbCurrent: item, fbReplyText: '' });
+  },
+
+  onFbCloseReply() {
+    this.setData({ fbShowReplyModal: false, fbCurrent: null, fbReplyText: '' });
+  },
+
+  onFbReplyInput(e) {
+    this.setData({ fbReplyText: e.detail.value });
+  },
+
+  async onFbSubmitReply() {
+    if (!this.data.fbCurrent) return;
+    const reply = (this.data.fbReplyText || '').trim();
+    if (!reply) {
+      wx.showToast({ title: '请填写回复内容', icon: 'none' });
+      return;
+    }
+    this.setData({ fbProcessing: true });
+    wx.showLoading({ title: '提交中...', mask: true });
+    try {
+      const res = await this.request({
+        url: `/api/super-admin/feedback/${this.data.fbCurrent.id}/reply`,
+        method: 'POST',
+        data: { admin_reply: reply }
+      });
+      wx.hideLoading();
+      if (res && (res.success || res.code === 200)) {
+        wx.showToast({ title: '回复成功', icon: 'success' });
+        this.onFbCloseReply();
+        this.loadFeedbackList(1);
+        this.checkPendingFeedbackCount();
+      } else {
+        wx.showToast({ title: res?.error || res?.message || '操作失败', icon: 'none' });
+      }
+    } catch (err) {
+      wx.hideLoading();
+      console.error('回复反馈失败:', err);
+      wx.showToast({ title: '网络错误', icon: 'none' });
+    } finally {
+      this.setData({ fbProcessing: false });
+    }
+  },
+
+  onFbStatusChange(e) {
+    const id = e.currentTarget.dataset.id;
+    const status = e.currentTarget.dataset.status;
+    const item = this.data.fbList.find(f => f.id == id);
+    if (!item) return;
+    const isClose = status === 'closed';
+    const actionText = isClose ? '关闭' : '重新打开';
+    wx.showModal({
+      title: `确认${actionText}？`,
+      content: isClose
+        ? `将关闭反馈 #${id}，关闭后用户仍可查看回复内容`
+        : `将重新打开反馈 #${id}`,
+      confirmColor: '#f56c6c',
+      success: async (r) => {
+        if (!r.confirm) return;
+        wx.showLoading({ title: '处理中...', mask: true });
+        try {
+          const res = await this.request({
+            url: `/api/super-admin/feedback/${id}/status`,
+            method: 'POST',
+            data: { status }
+          });
+          wx.hideLoading();
+          if (res && (res.success || res.code === 200)) {
+            wx.showToast({ title: '操作成功', icon: 'success' });
+            this.loadFeedbackList(1);
+            this.checkPendingFeedbackCount();
+          } else {
+            wx.showToast({ title: res?.error || res?.message || '操作失败', icon: 'none' });
+          }
+        } catch (err) {
+          wx.hideLoading();
+          console.error('更新反馈状态失败:', err);
+          wx.showToast({ title: '网络错误', icon: 'none' });
+        }
+      }
+    });
   },
 
   // ===================== 人工客服实时通知 =====================

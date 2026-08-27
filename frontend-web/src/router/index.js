@@ -266,6 +266,12 @@ const routes = [
       name: 'Partners',
       component: () => import('@/views/marketing/Partners.vue'),
       meta: { title: '合作企业', icon: 'OfficeBuilding' }
+    },
+    {
+      path: 'publisher-accounts',
+      name: 'PublisherAccounts',
+      component: () => import('@/views/marketing/AccountManagement.vue'),
+      meta: { title: '发布账号管理', icon: 'Key' }
     }
     ]
   },

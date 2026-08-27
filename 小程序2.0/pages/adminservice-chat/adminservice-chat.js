@@ -358,11 +358,11 @@ Page({
       inputText: merged,
       voiceRecording: false,
       voiceRecognizing: false,
-      voiceHint: finalText ? '语音已转文字，可直接发送' : '未识别到有效语音，请重试'
+      voiceHint: finalText ? '语音已转文字，可直接发送' : '未识别到说话，请重试'
     });
 
     if (!finalText) {
-      wx.showToast({ title: '未识别到内容', icon: 'none' });
+      wx.showToast({ title: '未识别到说话，请重试', icon: 'none' });
     }
   },
 
@@ -389,13 +389,17 @@ Page({
       const resData = response.data || response;
       this.applyVoiceResult(resData.text || '');
     } catch (error) {
-      console.error('[adminservice-chat] 语音模型转写失败:', error);
+      console.error('[adminservice-chat] 语音转写异常:', error);
+      const isNoSpeech = /未识别到说话|NO_SPEECH/.test(error.message || '')
       this.setData({
         voiceRecording: false,
         voiceRecognizing: false,
-        voiceHint: '语音模型转写失败，请重试'
+        voiceHint: isNoSpeech ? '未识别到说话，请重试' : '语音服务暂时不可用，请稍后重试'
       });
-      wx.showToast({ title: '语音转写失败', icon: 'none' });
+      wx.showToast({
+        title: isNoSpeech ? '未识别到说话，请重试' : '语音服务暂时不可用，请稍后重试',
+        icon: 'none'
+      });
     }
   },
 

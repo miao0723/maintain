@@ -459,6 +459,19 @@ Route::group('api', function () {
                 Route::delete('/:id', 'MarketingDouyinController/delete');
             });
 
+            // 自动发布服务（publisher-service）账号管理
+            Route::group('publisher', function () {
+                Route::get('health', 'MarketingPublisherController/health');
+                Route::get('accounts', 'MarketingPublisherController/accounts');
+                Route::get('screenshot', 'MarketingPublisherController/screenshot');
+
+                Route::post(':platform/login', 'MarketingPublisherController/loginStart');
+                Route::post(':platform/login/:session/cancel', 'MarketingPublisherController/loginCancel');
+                Route::get(':platform/login/:session', 'MarketingPublisherController/loginStatus');
+                Route::post(':platform/check', 'MarketingPublisherController/check');
+                Route::delete(':platform', 'MarketingPublisherController/logout');
+            });
+
             Route::get('service-config', 'MarketingServiceConfigController/index');
             Route::put('service-config', 'MarketingServiceConfigController/update');
         })->middleware([\app\middleware\PermissionCheck::class]);

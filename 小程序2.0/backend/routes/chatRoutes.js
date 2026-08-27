@@ -99,6 +99,7 @@ async function transcribeAudioWithLLM(file) {
     ].filter((item, index, arr) => item && arr.indexOf(item) === index)
 
     let lastError = ''
+    let lastEmpty = false
 
     for (const baseUrl of endpoints) {
       const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -140,10 +141,16 @@ async function transcribeAudioWithLLM(file) {
       const text = extractTranscriptText(data);
       if (!text) {
         lastError = `端点 ${baseUrl} 返回空结果：${JSON.stringify(data)}`
+        lastEmpty = true
         continue
       }
 
       return text;
+    }
+
+    // 所有可用端点都返回空结果，通常是录音中没有有效语音（如静音/用户没说话）
+    if (lastEmpty) {
+      throw new Error('NO_SPEECH');
     }
 
     throw new Error(lastError || '通义语音模型请求失败');
@@ -1331,9 +1338,12 @@ router.post('/transcribe', voiceUpload.single('file'), async (req, res) => {
     });
   } catch (error) {
     console.error('语音转写失败:', error);
-    res.status(500).json({
+    const isNoSpeech = error.message === 'NO_SPEECH';
+    res.status(isNoSpeech ? 422 : 500).json({
       success: false,
-      message: error.message || '语音转写失败，请稍后重试'
+      code: isNoSpeech ? 'NO_SPEECH' : 'TRANSCRIBE_FAILED',
+      // 不直接把后端原始报错暴露给用户，统一返回可操作的提示文案
+      message: isNoSpeech ? '未识别到说话，请重试' : '语音服务暂时不可用，请稍后重试'
     });
   }
 });

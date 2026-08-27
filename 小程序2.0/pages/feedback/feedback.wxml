@@ -1,0 +1,107 @@
+<!--pages/feedback/feedback.wxml-->
+<view class="page-container">
+
+  <!-- 反馈表单 -->
+  <view class="fb-card">
+    <view class="fb-card-title">
+      <text class="fb-title-icon">📝</text>
+      <text>填写反馈</text>
+    </view>
+
+    <!-- 反馈类型 -->
+    <view class="fb-type-row">
+      <view
+        class="fb-type {{type === 'suggestion' ? 'active' : ''}}"
+        bindtap="onTypeTap"
+        data-type="suggestion"
+      >💡 功能建议</view>
+      <view
+        class="fb-type {{type === 'complaint' ? 'active' : ''}}"
+        bindtap="onTypeTap"
+        data-type="complaint"
+      >⚠️ 问题投诉</view>
+      <view
+        class="fb-type {{type === 'other' ? 'active' : ''}}"
+        bindtap="onTypeTap"
+        data-type="other"
+      >📌 其他</view>
+    </view>
+
+    <!-- 反馈内容 -->
+    <view class="fb-field">
+      <view class="fb-label">反馈内容<text class="fb-required">*</text></view>
+      <textarea
+        class="fb-textarea"
+        placeholder="请描述您遇到的问题或建议，我们会认真对待每一条反馈"
+        placeholder-class="fb-ph"
+        value="{{content}}"
+        bindinput="onContentInput"
+        maxlength="1000"
+      ></textarea>
+      <view class="fb-count">{{content.length}}/1000</view>
+    </view>
+
+    <!-- 联系方式（选填） -->
+    <view class="fb-field">
+      <view class="fb-label">联系方式<text class="fb-optional">（选填）</text></view>
+      <input
+        class="fb-input"
+        type="text"
+        placeholder="手机号 / 微信号，方便我们与您联系"
+        placeholder-class="fb-ph"
+        value="{{contact}}"
+        bindinput="onContactInput"
+        maxlength="64"
+      />
+    </view>
+
+    <button class="fb-submit" bindtap="onSubmit" loading="{{submitting}}" disabled="{{submitting}}">
+      {{submitting ? '提交中...' : '提交反馈'}}
+    </button>
+  </view>
+
+  <!-- 我的反馈记录 -->
+  <view class="fb-card">
+    <view class="fb-card-title">
+      <text class="fb-title-icon">📋</text>
+      <text>我的反馈记录</text>
+      <text wx:if="{{myList.length > 0}}" class="fb-count-num">{{myList.length}}条</text>
+    </view>
+
+    <view wx:if="{{loading}}" class="fb-loading">
+      <view class="loading-spinner"></view>
+      <text>加载中...</text>
+    </view>
+
+    <view wx:elif="{{myList.length === 0}}" class="fb-empty">
+      <text class="fb-empty-icon">🗒️</text>
+      <text class="fb-empty-text">暂无反馈记录</text>
+      <text class="fb-empty-desc">提交反馈后，可在这里查看处理进度与回复</text>
+    </view>
+
+    <view wx:else class="fb-list">
+      <view class="fb-item" wx:for="{{myList}}" wx:key="id">
+        <view class="fb-item-header">
+          <text class="fb-item-type">{{item.type_text}}</text>
+          <view class="fb-status-badge" style="background: {{item.status_bg}}; color: {{item.status_color}}">
+            {{item.status_icon}} {{item.status_label}}
+          </view>
+        </view>
+
+        <text class="fb-item-content">{{item.content}}</text>
+
+        <view wx:if="{{item.contact}}" class="fb-item-contact">📞 {{item.contact}}</view>
+
+        <!-- 管理员回复 -->
+        <view wx:if="{{item.admin_reply}}" class="fb-reply">
+          <text class="fb-reply-label">管理员回复：</text>
+          <text class="fb-reply-text">{{item.admin_reply}}</text>
+          <text wx:if="{{item.replied_at}}" class="fb-reply-time">{{item.replied_at}}</text>
+        </view>
+
+        <text class="fb-item-time">{{item.created_at}}</text>
+      </view>
+    </view>
+  </view>
+
+</view>

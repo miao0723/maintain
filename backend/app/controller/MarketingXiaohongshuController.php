@@ -3,10 +3,17 @@
 namespace app\controller;
 
 use app\common\Result;
+use app\service\PublishDispatcher;
+use app\service\PublisherService;
 use think\facade\Db;
 
 class MarketingXiaohongshuController
 {
+	private function dispatcher(string $platform): PublishDispatcher
+	{
+		return new PublishDispatcher($platform);
+	}
+
 	/**
 	 * Get RPA config - read from .env
 	 */
@@ -101,9 +108,20 @@ class MarketingXiaohongshuController
 	}
 
 	/**
-	 * Publish to Xiaohongshu - trigger RPA file
+	 * 小红书发布：脚本模式走 publisher-service
 	 */
 	public function publish($id)
+	{
+		if (PublisherService::enabled()) {
+			return $this->dispatcher('xiaohongshu')->publish($id);
+		}
+		return $this->publishViaRpa($id);
+	}
+
+	/**
+	 * 【旧链路，保留备用】Publish to Xiaohongshu - trigger RPA file
+	 */
+	private function publishViaRpa($id)
 	{
 		$config = $this->getRpaConfig();
 
@@ -286,9 +304,20 @@ $description = (string)($content['description'] ?? '');
 	}
 
 	/**
-	 * RPA publish callback
+	 * 小红书发布回调
 	 */
 	public function publishCallback()
+	{
+		if (PublisherService::enabled()) {
+			return $this->dispatcher('xiaohongshu')->callback();
+		}
+		return $this->publishCallbackViaRpa();
+	}
+
+	/**
+	 * 【旧链路，保留备用】RPA publish callback
+	 */
+	private function publishCallbackViaRpa()
 	{
 		$data = request()->post();
 		$id = $data['id'] ?? null;
@@ -321,9 +350,20 @@ $description = (string)($content['description'] ?? '');
 	}
 
 	/**
-	 * Check publish status
+	 * 查询小红书发布进度
 	 */
 	public function checkPublishStatus($id)
+	{
+		if (PublisherService::enabled()) {
+			return $this->dispatcher('xiaohongshu')->status($id);
+		}
+		return $this->checkPublishStatusViaRpa($id);
+	}
+
+	/**
+	 * 【旧链路，保留备用】Check publish status
+	 */
+	private function checkPublishStatusViaRpa($id)
 	{
 		$config = $this->getRpaConfig();
 		try {

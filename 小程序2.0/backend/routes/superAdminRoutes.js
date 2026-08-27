@@ -220,32 +220,66 @@ router.get('/repair-orders', authenticateToken, requireManager, async (req, res)
       params.push(req.query.endDate);
     }
 
-    // 获取总数
-    const countRows = await db.query(
-      `SELECT COUNT(*) as total
-       FROM orders o
-       LEFT JOIN users u ON o.user_id = u.id
-       ${whereClause}`,
-      params
-    );
+    // 兼容缺列判断（orders.admin_remark 可能尚未执行 010 迁移）
+    const isMissingColumnError = (error) => {
+      return error && (
+        error.code === 'ER_BAD_FIELD_ERROR' ||
+        error.errno === 1054 ||
+        String(error.message || '').includes('Unknown column')
+      );
+    };
 
-    // 获取工单列表（包含分配人员信息）
-    const orders = await db.query(
-      `SELECT
-        o.id, o.order_id, o.user_id, o.order_type, o.device_type, o.device_type_name, o.device_model,
-        o.problem_description, o.custom_description, o.service_type, o.status,
-        o.estimated_price, o.actual_price, o.created_at, o.updated_at, o.progress,
-        o.assigned_to, o.priority,
-        u.nickname, u.phone, u.real_name as customer_name, u.avatar_url as customer_avatar,
-        t.nickname as assigned_name, t.real_name as assigned_real_name, t.phone as assigned_phone
-       FROM orders o
-       LEFT JOIN users u ON o.user_id = u.id
-       LEFT JOIN users t ON o.assigned_to = t.id
-       ${whereClause}
-       ORDER BY o.created_at DESC
-       LIMIT ? OFFSET ?`,
-      [...params, pageSize, offset]
-    );
+    // COUNT 与列表 SELECT 并行执行，只等一轮数据库往返（原来串行需两轮）
+    const [countRows, orders] = await Promise.all([
+      db.query(
+        `SELECT COUNT(*) as total
+         FROM orders o
+         LEFT JOIN users u ON o.user_id = u.id
+         ${whereClause}`,
+        params
+      ),
+      (async () => {
+        try {
+          return await db.query(
+            `SELECT
+              o.id, o.order_id, o.user_id, o.order_type, o.device_type, o.device_type_name, o.device_model,
+              o.problem_description, o.custom_description, o.service_type, o.status,
+              o.estimated_price, o.actual_price, o.created_at, o.updated_at, o.progress,
+              o.assigned_to, o.priority, o.admin_remark,
+              u.nickname, u.phone, u.real_name as customer_name, u.avatar_url as customer_avatar,
+              t.nickname as assigned_name, t.real_name as assigned_real_name, t.phone as assigned_phone
+             FROM orders o
+             LEFT JOIN users u ON o.user_id = u.id
+             LEFT JOIN users t ON o.assigned_to = t.id
+             ${whereClause}
+             ORDER BY o.created_at DESC
+             LIMIT ? OFFSET ?`,
+            [...params, pageSize, offset]
+          );
+        } catch (queryError) {
+          if (!isMissingColumnError(queryError)) throw queryError;
+
+          // 回退：旧库尚无 admin_remark 列（未执行 010 迁移）时兼容查询
+          console.warn('[工单列表] orders.admin_remark 列不存在，使用兼容查询:', queryError.message);
+          return await db.query(
+            `SELECT
+              o.id, o.order_id, o.user_id, o.order_type, o.device_type, o.device_type_name, o.device_model,
+              o.problem_description, o.custom_description, o.service_type, o.status,
+              o.estimated_price, o.actual_price, o.created_at, o.updated_at, o.progress,
+              o.assigned_to, o.priority,
+              u.nickname, u.phone, u.real_name as customer_name, u.avatar_url as customer_avatar,
+              t.nickname as assigned_name, t.real_name as assigned_real_name, t.phone as assigned_phone
+             FROM orders o
+             LEFT JOIN users u ON o.user_id = u.id
+             LEFT JOIN users t ON o.assigned_to = t.id
+             ${whereClause}
+             ORDER BY o.created_at DESC
+             LIMIT ? OFFSET ?`,
+            [...params, pageSize, offset]
+          );
+        }
+      })()
+    ]);
 
     // 转换设备类型为名称
     const totalCount = countRows && countRows[0] ? countRows[0].total : 0;
@@ -264,7 +298,8 @@ router.get('/repair-orders', authenticateToken, requireManager, async (req, res)
         actual_price: formatMoney(order.actual_price),
         progress: order.progress || 0,
         device_model: order.device_model || '未知设备',
-        assigned_display_name: assignedDisplayName
+        assigned_display_name: assignedDisplayName,
+        admin_remark: order.admin_remark || ''
       };
     });
 
@@ -392,6 +427,41 @@ router.put('/repair-orders/:orderId/status', authenticateToken, requireManager, 
       success: false,
       error: '更新状态失败'
     });
+  }
+});
+
+/**
+ * 更新工单备注
+ * PUT /api/super-admin/repair-orders/:orderId/remark
+ * body: { remark: string }  空字符串表示清空备注
+ */
+router.put('/repair-orders/:orderId/remark', authenticateToken, requireManager, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const remark = (typeof req.body.remark === 'string' ? req.body.remark : '').trim().slice(0, 500);
+
+    // 校验 orderId 为数字
+    if (!/^\d+$/.test(String(orderId))) {
+      return res.status(400).json({ success: false, error: '无效的订单ID' });
+    }
+
+    const result = await db.query(
+      'UPDATE orders SET admin_remark = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [remark || null, orderId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, error: '工单不存在' });
+    }
+
+    res.json({
+      success: true,
+      data: { admin_remark: remark },
+      message: remark ? '备注保存成功' : '备注已清除'
+    });
+  } catch (error) {
+    console.error('更新工单备注错误:', error);
+    res.status(500).json({ success: false, error: '保存备注失败' });
   }
 });
 
@@ -935,70 +1005,74 @@ router.get('/technicians', authenticateToken, requireManager, async (req, res) =
  */
 router.get('/dashboard', authenticateToken, requireManager, async (req, res) => {
   try {
-    // 用户统计
-    const userStats = await db.query(`
-      SELECT
-        COUNT(*) as total_users,
-        SUM(CASE WHEN role = 'user' OR role IS NULL THEN 1 ELSE 0 END) as normal_users,
-        SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) as admin_users,
-        SUM(CASE WHEN role = 'super_admin' THEN 1 ELSE 0 END) as super_admin_users,
-        SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as new_users_week,
-        SUM(CASE WHEN last_login_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 ELSE 0 END) as active_users_day
-      FROM users
-    `);
+    // 并行聚合查询（原来 6 个查询串行 await，仪表盘一次要等 6 轮往返；
+    // 改为 Promise.all 并行后仅需一轮耗时，大幅降低后台打开/刷新延迟）
+    const [userStats, orderStats, revenueStats, partsStats, recentOrders, recentUsers] = await Promise.all([
+      // 用户统计
+      db.query(`
+        SELECT
+          COUNT(*) as total_users,
+          SUM(CASE WHEN role = 'user' OR role IS NULL THEN 1 ELSE 0 END) as normal_users,
+          SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) as admin_users,
+          SUM(CASE WHEN role = 'super_admin' THEN 1 ELSE 0 END) as super_admin_users,
+          SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as new_users_week,
+          SUM(CASE WHEN last_login_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 ELSE 0 END) as active_users_day
+        FROM users
+      `).catch(() => [{ total_users: 0, normal_users: 0, admin_users: 0, super_admin_users: 0, new_users_week: 0, active_users_day: 0 }]),
 
-    // 订单统计
-    const orderStats = await db.query(`
-      SELECT
-        COUNT(*) as total_orders,
-        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_orders,
-        SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing_orders,
-        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_orders,
-        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_orders,
-        SUM(CASE WHEN status = 'review' THEN 1 ELSE 0 END) as review_orders,
-        SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as new_orders_week
-      FROM orders
-    `);
+      // 订单统计
+      db.query(`
+        SELECT
+          COUNT(*) as total_orders,
+          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_orders,
+          SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing_orders,
+          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_orders,
+          SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_orders,
+          SUM(CASE WHEN status = 'review' THEN 1 ELSE 0 END) as review_orders,
+          SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as new_orders_week
+        FROM orders
+      `).catch(() => [{ total_orders: 0, pending_orders: 0, processing_orders: 0, completed_orders: 0, cancelled_orders: 0, review_orders: 0, new_orders_week: 0 }]),
 
-    // 收入统计（以交易收入表为准，与"收入"页一致）
-    const revenueStats = await db.query(`
-      SELECT
-        COALESCE(SUM(CASE WHEN payment_status = 'paid' THEN amount ELSE 0 END), 0) as total_revenue,
-        COALESCE(SUM(CASE WHEN payment_status = 'paid' AND paid_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN amount ELSE 0 END), 0) as monthly_revenue,
-        COALESCE(SUM(CASE WHEN payment_status = 'paid' AND paid_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN amount ELSE 0 END), 0) as weekly_revenue,
-        COALESCE(SUM(CASE WHEN payment_status = 'paid' AND DATE(paid_at) = CURDATE() THEN amount ELSE 0 END), 0) as daily_revenue
-      FROM transaction_income
-    `).catch(() => [{ total_revenue: 0, monthly_revenue: 0, weekly_revenue: 0, daily_revenue: 0 }]);
+      // 收入统计（以交易收入表为准，与"收入"页一致）
+      db.query(`
+        SELECT
+          COALESCE(SUM(CASE WHEN payment_status = 'paid' THEN amount ELSE 0 END), 0) as total_revenue,
+          COALESCE(SUM(CASE WHEN payment_status = 'paid' AND paid_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN amount ELSE 0 END), 0) as monthly_revenue,
+          COALESCE(SUM(CASE WHEN payment_status = 'paid' AND paid_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN amount ELSE 0 END), 0) as weekly_revenue,
+          COALESCE(SUM(CASE WHEN payment_status = 'paid' AND DATE(paid_at) = CURDATE() THEN amount ELSE 0 END), 0) as daily_revenue
+        FROM transaction_income
+      `).catch(() => [{ total_revenue: 0, monthly_revenue: 0, weekly_revenue: 0, daily_revenue: 0 }]),
 
-    // 备件库存统计（表可能不存在）
-    const partsStats = await db.query(`
-      SELECT
-        COUNT(*) as total_parts,
-        SUM(CASE WHEN quantity <= min_quantity THEN 1 ELSE 0 END) as low_stock_parts,
-        SUM(quantity) as total_quantity,
-        SUM(quantity * unit_price) as total_value
-      FROM parts_inventory
-    `).catch(() => [{ total_parts: 0, low_stock_parts: 0, total_quantity: 0, total_value: 0 }]);
+      // 备件库存统计（表可能不存在）
+      db.query(`
+        SELECT
+          COUNT(*) as total_parts,
+          SUM(CASE WHEN quantity <= min_quantity THEN 1 ELSE 0 END) as low_stock_parts,
+          SUM(quantity) as total_quantity,
+          SUM(quantity * unit_price) as total_value
+        FROM parts_inventory
+      `).catch(() => [{ total_parts: 0, low_stock_parts: 0, total_quantity: 0, total_value: 0 }]),
 
-    // 最近订单（最近5条）
-    const recentOrders = await db.query(`
-      SELECT
-        o.id, o.order_id, o.device_type, o.device_model, o.status,
-        o.estimated_price, o.actual_price, o.created_at,
-        u.nickname as customer_name, u.phone
-      FROM orders o
-      LEFT JOIN users u ON o.user_id = u.id
-      ORDER BY o.created_at DESC
-      LIMIT 5
-    `).catch(() => []);
+      // 最近订单（最近5条）
+      db.query(`
+        SELECT
+          o.id, o.order_id, o.device_type, o.device_model, o.status,
+          o.estimated_price, o.actual_price, o.created_at,
+          u.nickname as customer_name, u.phone
+        FROM orders o
+        LEFT JOIN users u ON o.user_id = u.id
+        ORDER BY o.created_at DESC
+        LIMIT 5
+      `).catch(() => []),
 
-    // 最近注册用户（最近5个）
-    const recentUsers = await db.query(`
-      SELECT id, nickname, phone, role, avatar_url, created_at
-      FROM users
-      ORDER BY created_at DESC
-      LIMIT 5
-    `).catch(() => []);
+      // 最近注册用户（最近5个）
+      db.query(`
+        SELECT id, nickname, phone, role, avatar_url, created_at
+        FROM users
+        ORDER BY created_at DESC
+        LIMIT 5
+      `).catch(() => [])
+    ]);
 
     res.json({
       success: true,
@@ -1969,6 +2043,186 @@ router.delete('/prices/:id', authenticateToken, requireManager, async (req, res)
   } catch (err) {
     console.error('删除价格失败:', err);
     res.status(500).json({ success: false, message: '删除价格失败' });
+  }
+});
+
+// ===================== 意见反馈管理 =====================
+
+// 反馈类型映射
+const FEEDBACK_TYPE_MAP = {
+  suggestion: '功能建议',
+  complaint: '问题投诉',
+  other: '其他'
+};
+
+// 反馈状态映射
+const FEEDBACK_STATUS_MAP = {
+  pending: { label: '待处理', color: '#f59e0b', bg: '#fef3c7', icon: '⏳' },
+  replied: { label: '已回复', color: '#10b981', bg: '#d1fae5', icon: '💬' },
+  closed: { label: '已关闭', color: '#9ca3af', bg: '#f3f4f6', icon: '🔒' }
+};
+
+// 补充反馈展示字段
+function decorateFeedback(row) {
+  const st = FEEDBACK_STATUS_MAP[row.status] || FEEDBACK_STATUS_MAP.pending;
+  return {
+    ...row,
+    type_text: FEEDBACK_TYPE_MAP[row.type] || row.type,
+    status_label: st.label,
+    status_color: st.color,
+    status_bg: st.bg,
+    status_icon: st.icon,
+    submitter_name: row.user_real_name || row.user_nickname || ('用户' + row.user_id)
+  };
+}
+
+/**
+ * 反馈统计（用于角标/筛选）
+ * GET /api/super-admin/feedback/stats
+ */
+router.get('/feedback/stats', authenticateToken, requireManager, async (req, res) => {
+  try {
+    const rows = await db.query('SELECT status, COUNT(*) as count FROM feedback GROUP BY status');
+    const stats = { total: 0, pending: 0, replied: 0, closed: 0 };
+    rows.forEach(r => {
+      if (stats[r.status] !== undefined) stats[r.status] = r.count;
+      stats.total += r.count;
+    });
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    console.error('反馈统计错误:', error);
+    res.status(500).json({ success: false, error: '获取反馈统计失败' });
+  }
+});
+
+/**
+ * 反馈列表（管理员）
+ * GET /api/super-admin/feedback?page=&pageSize=&status=&keyword=
+ */
+router.get('/feedback', authenticateToken, requireManager, async (req, res) => {
+  try {
+    const { status, keyword, page = 1, pageSize = 20 } = req.query;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const size = Math.min(100, parseInt(pageSize) || 20);
+    const offset = (pageNum - 1) * size;
+
+    const where = [];
+    const params = [];
+    if (status) {
+      where.push('f.status = ?');
+      params.push(status);
+    }
+    if (keyword) {
+      const kw = `%${keyword}%`;
+      where.push('(f.content LIKE ? OR u.nickname LIKE ? OR u.real_name LIKE ? OR u.phone LIKE ?)');
+      params.push(kw, kw, kw, kw);
+    }
+    const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : '';
+
+    const list = await db.query(
+      `SELECT f.*, u.nickname as user_nickname, u.real_name as user_real_name, u.phone as user_phone
+       FROM feedback f
+       LEFT JOIN users u ON u.id = f.user_id
+       ${whereSql}
+       ORDER BY f.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [...params, size, offset]
+    );
+
+    const [totalRow] = await db.query(
+      `SELECT COUNT(*) as total FROM feedback f ${whereSql}`,
+      params
+    );
+
+    const rows = list.map(decorateFeedback);
+
+    res.json({
+      success: true,
+      data: {
+        list: rows,
+        total: totalRow.total,
+        page: pageNum,
+        pageSize: size,
+        totalPages: Math.ceil((totalRow.total || 0) / size)
+      }
+    });
+  } catch (error) {
+    console.error('反馈列表错误:', error);
+    res.status(500).json({ success: false, error: '获取反馈列表失败' });
+  }
+});
+
+/**
+ * 回复反馈（管理员）
+ * POST /api/super-admin/feedback/:id/reply  body: { admin_reply }
+ */
+router.post('/feedback/:id/reply', authenticateToken, requireManager, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { admin_reply } = req.body || {};
+
+    if (!admin_reply || !String(admin_reply).trim()) {
+      return res.status(400).json({ success: false, error: '请填写回复内容' });
+    }
+    const replyText = String(admin_reply).trim();
+    if (replyText.length > 1000) {
+      return res.status(400).json({ success: false, error: '回复内容不能超过1000字' });
+    }
+
+    const exist = await db.query('SELECT id, status FROM feedback WHERE id = ?', [id]);
+    if (exist.length === 0) {
+      return res.status(404).json({ success: false, error: '反馈不存在' });
+    }
+    const current = exist[0];
+    // 已关闭的反馈不再回复
+    if (current.status === 'closed') {
+      return res.status(400).json({ success: false, error: '该反馈已关闭，无法回复' });
+    }
+
+    await db.query(
+      `UPDATE feedback
+       SET admin_reply = ?, replied_by = ?, replied_at = NOW(),
+           status = 'replied', updated_at = NOW()
+       WHERE id = ?`,
+      [replyText, req.user.id, id]
+    );
+    res.json({ success: true, message: '回复成功' });
+  } catch (error) {
+    console.error('回复反馈错误:', error);
+    res.status(500).json({ success: false, error: '回复失败' });
+  }
+});
+
+/**
+ * 修改反馈处理状态（管理员）
+ * POST /api/super-admin/feedback/:id/status  body: { status: 'pending'|'replied'|'closed' }
+ */
+router.post('/feedback/:id/status', authenticateToken, requireManager, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { status } = req.body || {};
+    const validStatuses = ['pending', 'replied', 'closed'];
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, error: '无效的处理状态' });
+    }
+
+    const exist = await db.query('SELECT id FROM feedback WHERE id = ?', [id]);
+    if (exist.length === 0) {
+      return res.status(404).json({ success: false, error: '反馈不存在' });
+    }
+
+    const extra = status === 'closed' ? ', closed_by = ?, closed_at = NOW()' : '';
+    const extraParams = status === 'closed' ? [req.user.id] : [];
+
+    await db.query(
+      `UPDATE feedback SET status = ?, updated_at = NOW()${extra} WHERE id = ?`,
+      [status, ...extraParams, id]
+    );
+    res.json({ success: true, message: '状态已更新' });
+  } catch (error) {
+    console.error('更新反馈状态错误:', error);
+    res.status(500).json({ success: false, error: '更新状态失败' });
   }
 });
 

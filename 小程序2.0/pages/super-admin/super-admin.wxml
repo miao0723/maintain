@@ -65,6 +65,11 @@
           <text class="tab-label">售后管理</text>
           <view wx:if="{{pendingAfterSalesCount > 0}}" class="tab-badge">{{pendingAfterSalesCount > 99 ? '99+' : pendingAfterSalesCount}}</view>
         </view>
+        <view id="tab-feedback" class="tab {{currentPage === 'feedback' ? 'active' : ''}}" bindtap="switchPage" data-page="feedback">
+          <text class="tab-icon-emoji">💡</text>
+          <text class="tab-label">反馈管理</text>
+          <view wx:if="{{pendingFeedbackCount > 0}}" class="tab-badge">{{pendingFeedbackCount > 99 ? '99+' : pendingFeedbackCount}}</view>
+        </view>
         <view wx:if="{{isSuperAdmin}}" id="tab-income" class="tab {{currentPage === 'income' ? 'active' : ''}}" bindtap="switchPage" data-page="income">
           <text class="tab-icon-emoji">💰</text>
           <text class="tab-label">收入</text>
@@ -302,17 +307,23 @@
               <text class="info-label">分配:</text>
               <text class="info-value">{{item.assigned_display_name || item.assigned_name || (item.order_type === 'recycle' ? '处理人员' : '维修人员')}}</text>
             </view>
+            <!-- 管理员备注展示 -->
+            <view class="order-remark-block" wx:if="{{item.admin_remark}}">
+              <text class="remark-icon">📝</text>
+              <text class="remark-text">{{item.admin_remark}}</text>
+            </view>
           </view>
           <view class="order-footer">
             <view class="order-actions">
+              <button class="action-btn remark-btn" size="mini" bindtap="openRemarkModal" data-order-id="{{item.id}}">备注</button>
               <button class="action-btn primary" size="mini" bindtap="viewOrderDetail" data-order-id="{{item.id}}">详情</button>
               <button class="action-btn success" size="mini" wx:if="{{item.status === 'pending'}}" bindtap="assignOrderToTechnician" data-order-id="{{item.id}}">分配</button>
               <button class="action-btn" size="mini" wx:if="{{item.status === 'pending'}}" bindtap="updateOrderStatus" data-order-id="{{item.id}}" data-current-status="{{item.status}}">状态</button>
               <button class="action-btn" size="mini" wx:if="{{item.status === 'quoted'}}" style="background: #436f95; color: #fff;">等待确认</button>
               <button class="action-btn success" size="mini" wx:if="{{item.status === 'confirmed'}}" bindtap="updateOrderStatus" data-order-id="{{item.id}}" data-current-status="{{item.status}}">开始处理</button>
-              <button class="action-btn feedback" size="mini" wx:if="{{item.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{item.id}}">📹 进度反馈</button>
-              <button class="action-btn success" size="mini" wx:if="{{item.status === 'internal_pending'}}" bindtap="confirmInternalOrder" data-order-id="{{item.id}}">✅ 同意</button>
-              <button class="action-btn danger" size="mini" wx:if="{{item.status === 'internal_pending'}}" bindtap="rejectInternalOrder" data-order-id="{{item.id}}">⛔ 驳回</button>
+              <button class="action-btn feedback" size="mini" wx:if="{{item.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{item.id}}">进度反馈</button>
+              <button class="action-btn success" size="mini" wx:if="{{item.status === 'internal_pending'}}" bindtap="confirmInternalOrder" data-order-id="{{item.id}}">同意</button>
+              <button class="action-btn danger" size="mini" wx:if="{{item.status === 'internal_pending'}}" bindtap="rejectInternalOrder" data-order-id="{{item.id}}">驳回</button>
             </view>
           </view>
         </view>
@@ -408,6 +419,12 @@
               <text class="myo-value myo-price">¥{{utils.formatPrice(item.actual_price || item.estimated_price)}}</text>
             </view>
 
+            <!-- 管理员备注展示 -->
+            <view class="order-remark-block" wx:if="{{item.admin_remark}}">
+              <text class="remark-icon">📝</text>
+              <text class="remark-text">{{item.admin_remark}}</text>
+            </view>
+
             <!-- 进度显示 -->
             <view class="myo-progress-section" wx:if="{{item.status === 'processing'}}">
               <view class="myo-progress-label">
@@ -421,13 +438,14 @@
           </view>
           <view class="myo-footer">
             <view class="myo-actions">
+              <button class="myo-btn remark-btn" size="mini" bindtap="openRemarkModal" data-order-id="{{item.id}}">备注</button>
               <button class="myo-btn primary" size="mini" bindtap="viewOrderDetail" data-order-id="{{item.id}}">详情</button>
-              <button class="myo-btn primary" size="mini" wx:if="{{item.status === 'pending'}}" bindtap="openQuoteModal" data-order-id="{{item.id}}">💰 报价</button>
+              <button class="myo-btn primary" size="mini" wx:if="{{item.status === 'pending'}}" bindtap="openQuoteModal" data-order-id="{{item.id}}">报价</button>
               <button class="myo-btn" size="mini" wx:if="{{item.status === 'quoted'}}" style="background: #436f95; color: #fff;">等待确认</button>
               <button class="myo-btn success" size="mini" wx:if="{{item.status === 'confirmed'}}" bindtap="doUpdateOrderStatus" data-order-id="{{item.id}}" data-status="processing">开始处理</button>
-              <button class="myo-btn feedback" size="mini" wx:if="{{item.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{item.id}}">📹 进度反馈</button>
-              <button class="myo-btn success" size="mini" wx:if="{{item.status === 'internal_pending'}}" bindtap="confirmInternalOrder" data-order-id="{{item.id}}">✅ 同意</button>
-              <button class="myo-btn danger" size="mini" wx:if="{{item.status === 'internal_pending'}}" bindtap="rejectInternalOrder" data-order-id="{{item.id}}">⛔ 驳回</button>
+              <button class="myo-btn feedback" size="mini" wx:if="{{item.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{item.id}}">进度反馈</button>
+              <button class="myo-btn success" size="mini" wx:if="{{item.status === 'internal_pending'}}" bindtap="confirmInternalOrder" data-order-id="{{item.id}}">同意</button>
+              <button class="myo-btn danger" size="mini" wx:if="{{item.status === 'internal_pending'}}" bindtap="rejectInternalOrder" data-order-id="{{item.id}}">驳回</button>
               <button class="myo-btn success" size="mini" wx:if="{{item.status === 'processing'}}" bindtap="doUpdateOrderStatus" data-order-id="{{item.id}}" data-status="completed">完成</button>
               <button class="myo-btn danger" size="mini" wx:if="{{item.status !== 'completed' && item.status !== 'quoted' && item.status !== 'internal_pending'}}" bindtap="doUpdateOrderStatus" data-order-id="{{item.id}}" data-status="cancelled">取消</button>
             </view>
@@ -894,6 +912,107 @@
       </view>
     </view>
 
+    <!-- 意见反馈管理 -->
+    <view class="after-sales" wx:if="{{currentPage === 'feedback'}}">
+      <!-- 统计卡片 -->
+      <view class="pa-stats-row">
+        <view class="pa-stat-card" bindtap="onFbFilterChange" data-status="">
+          <text class="pa-stat-value">{{fbStats.total}}</text>
+          <text class="pa-stat-label">全部</text>
+        </view>
+        <view class="pa-stat-card pending" bindtap="onFbFilterChange" data-status="pending">
+          <text class="pa-stat-value pending-value">{{fbStats.pending}}</text>
+          <text class="pa-stat-label">待处理</text>
+        </view>
+        <view class="pa-stat-card approved" bindtap="onFbFilterChange" data-status="replied">
+          <text class="pa-stat-value approved-value">{{fbStats.replied}}</text>
+          <text class="pa-stat-label">已回复</text>
+        </view>
+        <view class="pa-stat-card resolved" bindtap="onFbFilterChange" data-status="closed">
+          <text class="pa-stat-value resolved-value">{{fbStats.closed}}</text>
+          <text class="pa-stat-label">已关闭</text>
+        </view>
+      </view>
+
+      <!-- 筛选标签 -->
+      <view class="pa-filter-tabs">
+        <view class="pa-filter-tab {{fbStatusFilter === '' ? 'active' : ''}}" bindtap="onFbFilterChange" data-status="">全部</view>
+        <view class="pa-filter-tab {{fbStatusFilter === 'pending' ? 'active' : ''}}" bindtap="onFbFilterChange" data-status="pending">待处理</view>
+        <view class="pa-filter-tab {{fbStatusFilter === 'replied' ? 'active' : ''}}" bindtap="onFbFilterChange" data-status="replied">已回复</view>
+        <view class="pa-filter-tab {{fbStatusFilter === 'closed' ? 'active' : ''}}" bindtap="onFbFilterChange" data-status="closed">已关闭</view>
+      </view>
+
+      <!-- 加载状态 -->
+      <view wx:if="{{fbLoading && fbList.length === 0}}" class="pa-loading-state">
+        <view class="loading-spinner"></view>
+        <text>加载中...</text>
+      </view>
+
+      <!-- 空状态 -->
+      <view wx:elif="{{fbList.length === 0 && !fbLoading}}" class="pa-empty-state">
+        <text class="pa-empty-icon">💡</text>
+        <text class="pa-empty-text">暂无反馈</text>
+      </view>
+
+      <!-- 列表 -->
+      <view wx:else class="pa-list">
+        <view class="pa-card" wx:for="{{fbList}}" wx:key="id">
+          <view class="pa-card-header">
+            <view class="pa-card-header-left">
+              <text class="pa-apply-no">反馈 #{{item.id}}</text>
+              <text class="pa-apply-user">提交人: {{item.submitterName}}</text>
+            </view>
+            <view class="pa-status-badge" style="background: {{item.statusBg}}; color: {{item.statusColor}}">
+              {{item.statusIcon}} {{item.statusLabel}}
+            </view>
+          </view>
+
+          <view class="pa-info-grid">
+            <view class="pa-info-item">
+              <text class="pa-info-label">类型</text>
+              <text class="pa-info-value">{{item.typeText}}</text>
+            </view>
+            <view class="pa-info-item">
+              <text class="pa-info-label">提交时间</text>
+              <text class="pa-info-value time">{{item.createdAt}}</text>
+            </view>
+            <view class="pa-info-item">
+              <text class="pa-info-label">联系方式</text>
+              <text class="pa-info-value">{{item.contact || '无'}}</text>
+            </view>
+            <view class="pa-info-item">
+              <text class="pa-info-label">用户电话</text>
+              <text class="pa-info-value">{{item.user_phone || '无'}}</text>
+            </view>
+          </view>
+
+          <view class="pa-reason-box">
+            <text class="pa-reason-label">反馈内容:</text>
+            <text class="pa-reason-text">{{item.content}}</text>
+          </view>
+
+          <!-- 已回复 显示回复内容 -->
+          <view wx:if="{{item.admin_reply}}" class="pa-approval-note" style="border-left-color: {{item.statusColor}}">
+            <text class="pa-note-label">管理员回复:</text>
+            <text class="pa-note-text">{{item.admin_reply}}</text>
+            <text wx:if="{{item.repliedAt}}" class="pa-note-time">{{item.repliedAt}}</text>
+          </view>
+
+          <!-- 操作：未关闭可回复/关闭 -->
+          <view wx:if="{{item.status !== 'closed'}}" class="pa-action-bar">
+            <view class="pa-action-btn approve" bindtap="onFbOpenReply" data-id="{{item.id}}">💬 回复</view>
+            <view class="pa-action-btn reject" bindtap="onFbStatusChange" data-id="{{item.id}}" data-status="closed">🔒 关闭</view>
+          </view>
+          <view wx:if="{{item.status === 'closed'}}" class="pa-action-bar">
+            <view class="pa-action-btn detail" bindtap="onFbStatusChange" data-id="{{item.id}}" data-status="pending">↩ 重新打开</view>
+          </view>
+        </view>
+
+        <view wx:if="{{fbLoading && fbList.length > 0}}" class="pa-loading-more">加载中...</view>
+        <view wx:if="{{!fbHasMore && fbList.length > 0}}" class="pa-no-more">没有更多了</view>
+      </view>
+    </view>
+
     <!-- 交易收入 -->
     <view class="income" wx:if="{{currentPage === 'income'}}">
       <view class="refresh-bar">
@@ -1328,10 +1447,10 @@
       <button class="detail-btn success" size="default" wx:if="{{orderDetail.status === 'pending'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="quoted">提交报价</button>
       <button class="detail-btn" size="default" wx:if="{{orderDetail.status === 'quoted'}}" style="background: #436f95; color: #fff;">等待用户确认报价</button>
       <button class="detail-btn success" size="default" wx:if="{{orderDetail.status === 'confirmed'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="processing">开始处理</button>
-      <button class="detail-btn feedback" size="default" wx:if="{{orderDetail.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{orderDetail.id}}">📹 进度反馈</button>
+      <button class="detail-btn feedback" size="default" wx:if="{{orderDetail.status === 'processing'}}" bindtap="uploadProgress" data-order-id="{{orderDetail.id}}">进度反馈</button>
       <button class="detail-btn success" size="default" wx:if="{{orderDetail.status === 'processing'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="completed">完成工单</button>
-      <button class="detail-btn internal-confirm" size="default" wx:if="{{orderDetail.status === 'internal_pending'}}" bindtap="confirmInternalOrder" data-order-id="{{orderDetail.id}}">✅ 同意（免付款）</button>
-      <button class="detail-btn internal-reject" size="default" wx:if="{{orderDetail.status === 'internal_pending'}}" bindtap="rejectInternalOrder" data-order-id="{{orderDetail.id}}">⛔ 驳回申请</button>
+      <button class="detail-btn internal-confirm" size="default" wx:if="{{orderDetail.status === 'internal_pending'}}" bindtap="confirmInternalOrder" data-order-id="{{orderDetail.id}}">同意（免付款）</button>
+      <button class="detail-btn internal-reject" size="default" wx:if="{{orderDetail.status === 'internal_pending'}}" bindtap="rejectInternalOrder" data-order-id="{{orderDetail.id}}">驳回申请</button>
       <button class="detail-btn danger" size="default" wx:if="{{orderDetail.status !== 'completed' && orderDetail.status !== 'quoted' && orderDetail.status !== 'internal_pending'}}" bindtap="doUpdateOrderStatus" data-order-id="{{orderDetail.id}}" data-status="cancelled">取消工单</button>
     </view>
   </view>
@@ -1419,6 +1538,53 @@
     <view class="popup-footer">
       <button class="popup-btn cancel" bindtap="closeQuoteModal">取消</button>
       <button class="popup-btn primary" bindtap="submitQuote">确认报价</button>
+    </view>
+  </view>
+</view>
+
+<!-- 备注弹窗 -->
+<view class="popup-overlay" wx:if="{{showRemarkModal}}">
+  <view class="popup-mask" bindtap="closeRemarkModal"></view>
+  <view class="popup-content remark-popup">
+    <view class="popup-header">
+      <text class="popup-title">订单备注</text>
+      <text class="popup-close" bindtap="closeRemarkModal">✕</text>
+    </view>
+    <scroll-view class="popup-scroll" scroll-y>
+      <!-- 订单基本信息 -->
+      <view class="quote-order-info">
+        <view class="quote-info-row">
+          <text class="quote-info-label">订单编号</text>
+          <text class="quote-info-value">{{remarkOrderData.order_id || remarkOrderData.id}}</text>
+        </view>
+        <view class="quote-info-row">
+          <text class="quote-info-label">订单类型</text>
+          <text class="quote-info-value">{{remarkOrderData.order_type === 'recycle' ? '回收' : '维修'}}</text>
+        </view>
+        <view class="quote-info-row" wx:if="{{remarkOrderData.customer_name || remarkOrderData.nickname}}">
+          <text class="quote-info-label">客户</text>
+          <text class="quote-info-value">{{remarkOrderData.customer_name || remarkOrderData.nickname}}</text>
+        </view>
+      </view>
+
+      <!-- 备注输入 -->
+      <view class="quote-section">
+        <text class="quote-section-title">备注内容</text>
+        <textarea
+          class="remark-textarea"
+          placeholder="记录订单识别要点、注意事项等，方便后续快速跟进（最多 500 字）"
+          placeholder-class="remark-placeholder"
+          value="{{remarkFormData.remark}}"
+          maxlength="500"
+          bindinput="onRemarkInput"
+        />
+        <text class="quote-desc-count">{{remarkFormData.remark.length}}/500</text>
+      </view>
+    </scroll-view>
+
+    <view class="popup-footer">
+      <button class="popup-btn cancel" bindtap="closeRemarkModal">取消</button>
+      <button class="popup-btn primary" bindtap="submitRemark">保存备注</button>
     </view>
   </view>
 </view>
@@ -1577,6 +1743,34 @@
     <view class="pa-modal-footer">
       <view class="pa-modal-btn cancel" bindtap="onAsCloseReject">取消</view>
       <view class="pa-modal-btn danger" bindtap="onAsSubmitReject">确认拒绝</view>
+    </view>
+  </view>
+</view>
+
+<!-- 反馈回复弹窗 -->
+<view wx:if="{{fbShowReplyModal}}" class="pa-modal-overlay" bindtap="onFbCloseReply">
+  <view class="pa-modal-content" catchtap="noop">
+    <view class="pa-modal-header">
+      <text class="pa-modal-title">回复反馈</text>
+      <view class="pa-modal-close" bindtap="onFbCloseReply">×</view>
+    </view>
+    <view class="pa-modal-body">
+      <view class="pa-modal-info">
+        <text class="pa-modal-info-label">反馈 #{{fbCurrent.id}}</text>
+        <text class="pa-modal-info-label">提交人: {{fbCurrent.submitterName}}</text>
+      </view>
+      <view class="pa-approval-note">
+        <text class="pa-note-label">用户反馈:</text>
+        <text class="pa-note-text">{{fbCurrent.content}}</text>
+      </view>
+      <view class="pa-form-group">
+        <text class="pa-form-label">回复内容 <text class="pa-required">*</text></text>
+        <textarea class="pa-form-textarea" placeholder="请输入回复内容，用户可在「我的反馈」中查看" value="{{fbReplyText}}" bindinput="onFbReplyInput" maxlength="1000"/>
+      </view>
+    </view>
+    <view class="pa-modal-footer">
+      <view class="pa-modal-btn cancel" bindtap="onFbCloseReply">取消</view>
+      <view class="pa-modal-btn primary" bindtap="onFbSubmitReply">确认回复</view>
     </view>
   </view>
 </view>

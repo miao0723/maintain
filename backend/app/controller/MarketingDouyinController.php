@@ -3,10 +3,20 @@
 namespace app\controller;
 
 use app\common\Result;
+use app\service\PublishDispatcher;
+use app\service\PublisherService;
 use think\facade\Db;
 
 class MarketingDouyinController
 {
+    /**
+     * 取某平台的发布编排器（脚本发布模式）
+     */
+    private function dispatcher(string $platform): PublishDispatcher
+    {
+        return new PublishDispatcher($platform);
+    }
+
     public function testCozeConnection()
     {
         try {
@@ -273,7 +283,24 @@ class MarketingDouyinController
         }
     }
 
+    /**
+     * 发布到抖音。
+     *
+     * 默认走「脚本发布」模式（Playwright 自动化，PUBLISHER_MODE=script）；
+     * 如需临时回退到影刀 RPA，把 backend/.env 的 PUBLISHER_MODE 改成 rpa 即可。
+     */
     public function publish($id)
+    {
+        if (PublisherService::enabled()) {
+            return $this->dispatcher('douyin')->publish($id);
+        }
+        return $this->publishViaRpa($id);
+    }
+
+    /**
+     * 【旧链路，保留备用】通过影刀文件触发器发布
+     */
+    private function publishViaRpa($id)
     {
         try {
             $content = Db::name('marketing_douyin_content')->find($id);
@@ -435,6 +462,14 @@ $description = (string)($content['description'] ?? '');
 
     public function publishCallback()
     {
+        if (PublisherService::enabled()) {
+            return $this->dispatcher('douyin')->callback();
+        }
+        return $this->publishCallbackViaRpa();
+    }
+
+    private function publishCallbackViaRpa()
+    {
         $data = request()->post();
         $id = $data['id'] ?? null;
         $status = $data['status'] ?? 'unknown';
@@ -465,7 +500,18 @@ $description = (string)($content['description'] ?? '');
         }
     }
 
+    /**
+     * 查询抖音发布进度（脚本模式下返回真实百分比与当前步骤）
+     */
     public function checkPublishStatus($id)
+    {
+        if (PublisherService::enabled()) {
+            return $this->dispatcher('douyin')->status($id);
+        }
+        return $this->checkPublishStatusViaRpa($id);
+    }
+
+    private function checkPublishStatusViaRpa($id)
     {
         try {
             $triggerDir = env('RPA_TRIGGER_DIR', 'E:/我的/文件触发器');
@@ -763,9 +809,20 @@ $description = (string)($content['description'] ?? '');
     }
 
     /**
-     * Publish to B站 - trigger RPA file
+     * 发布到B站（脚本发布模式，失败时可通过 PUBLISHER_MODE=rpa 回退影刀）
      */
     public function publishBili($id)
+    {
+        if (PublisherService::enabled()) {
+            return $this->dispatcher('bilibili')->publish($id);
+        }
+        return $this->publishBiliViaRpa($id);
+    }
+
+    /**
+     * 【旧链路，保留备用】B站影刀文件触发发布
+     */
+    private function publishBiliViaRpa($id)
     {
         $config = $this->getRpaConfigBili();
 
@@ -844,9 +901,20 @@ $description = (string)($content['description'] ?? '');
     }
 
     /**
-     * RPA B站 publish callback
+     * B站发布回调：脚本模式走 publisher-service，旧影刀模式保留
      */
     public function publishCallbackBili()
+    {
+        if (PublisherService::enabled()) {
+            return $this->dispatcher('bilibili')->callback();
+        }
+        return $this->publishCallbackBiliViaRpa();
+    }
+
+    /**
+     * 【旧链路，保留备用】RPA B站 publish callback
+     */
+    private function publishCallbackBiliViaRpa()
     {
         $data = request()->post();
         $id = $data['id'] ?? null;
@@ -879,9 +947,20 @@ $description = (string)($content['description'] ?? '');
     }
 
     /**
-     * Check B站 publish status
+     * 查询B站发布进度
      */
     public function checkPublishStatusBili($id)
+    {
+        if (PublisherService::enabled()) {
+            return $this->dispatcher('bilibili')->status($id);
+        }
+        return $this->checkPublishStatusBiliViaRpa($id);
+    }
+
+    /**
+     * 【旧链路，保留备用】Check B站 publish status
+     */
+    private function checkPublishStatusBiliViaRpa($id)
     {
         $config = $this->getRpaConfigBili();
         try {
@@ -923,9 +1002,20 @@ $description = (string)($content['description'] ?? '');
     }
 
     /**
-     * Publish to 快手 - trigger RPA file
+     * 快手发布：脚本模式走 publisher-service
      */
     public function publishKs($id)
+    {
+        if (PublisherService::enabled()) {
+            return $this->dispatcher('kuaishou')->publish($id);
+        }
+        return $this->publishKsViaRpa($id);
+    }
+
+    /**
+     * 【旧链路，保留备用】Publish to 快手 - trigger RPA file
+     */
+    private function publishKsViaRpa($id)
     {
         $config = $this->getRpaConfigKs();
 
@@ -1004,9 +1094,20 @@ $description = (string)($content['description'] ?? '');
     }
 
     /**
-     * RPA 快手 publish callback
+     * 快手发布回调
      */
     public function publishCallbackKs()
+    {
+        if (PublisherService::enabled()) {
+            return $this->dispatcher('kuaishou')->callback();
+        }
+        return $this->publishCallbackKsViaRpa();
+    }
+
+    /**
+     * 【旧链路，保留备用】RPA 快手 publish callback
+     */
+    private function publishCallbackKsViaRpa()
     {
         $data = request()->post();
         $id = $data['id'] ?? null;
@@ -1039,9 +1140,20 @@ $description = (string)($content['description'] ?? '');
     }
 
     /**
-     * Check 快手 publish status
+     * 查询快手发布进度
      */
     public function checkPublishStatusKs($id)
+    {
+        if (PublisherService::enabled()) {
+            return $this->dispatcher('kuaishou')->status($id);
+        }
+        return $this->checkPublishStatusKsViaRpa($id);
+    }
+
+    /**
+     * 【旧链路，保留备用】Check 快手 publish status
+     */
+    private function checkPublishStatusKsViaRpa($id)
     {
         $config = $this->getRpaConfigKs();
         try {

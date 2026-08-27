@@ -19,14 +19,16 @@ const server = http.createServer(app);
 // progressRoutes 写盘路径为 routes/../uploads = 容器 /app/uploads，因此主静态目录必须也是 /app/uploads
 // （server.js 位于 /app，故 __dirname/uploads = /app/uploads）。
 const uploadsRoot = path.join(__dirname, 'uploads');
-app.use('/uploads', express.static(uploadsRoot));
+// 静态资源启用浏览器缓存（文件名含时间戳、内容不可变，maxAge 安全；显著减少图片重复下载）
+const staticOptions = { maxAge: '7d', immutable: true };
+app.use('/uploads', express.static(uploadsRoot, staticOptions));
 // 冗余兜底：同时通过 API 前缀暴露，避免 nginx 仅反代 /mp-api 时根路径 /uploads 取不到文件
-app.use('/api/uploads', express.static(uploadsRoot));
+app.use('/api/uploads', express.static(uploadsRoot, staticOptions));
 // 兼容兜底：旧部署（电子维修2.0，已删除）曾把宿主机 uploads 挂到容器根 /uploads，
 // 若容器内仍有历史残留文件可被读取。express.static 在文件不存在时会 next() 到下一层，正常目录优先，互不影响。
 const legacyUploadsRoot = path.join(__dirname, '../uploads');
-app.use('/uploads', express.static(legacyUploadsRoot));
-app.use('/api/uploads', express.static(legacyUploadsRoot));
+app.use('/uploads', express.static(legacyUploadsRoot, staticOptions));
+app.use('/api/uploads', express.static(legacyUploadsRoot, staticOptions));
 
 // 中间件
 app.use(cors());
@@ -71,6 +73,7 @@ const userDevicesRoutes = require('./routes/userDevicesRoutes');
 const recycleRoutes = require('./routes/recycleRoutes');
 const scanRoutes = require('./routes/scanRoutes');
 const afterSalesRoutes = require('./routes/afterSalesRoutes');
+const feedbackRoutes = require('./routes/feedbackRoutes');
 const { expireOldReviewOrders } = require('./utils/reviewExpire');
 const { ensureIncomeTable, backfillIncome } = require('./services/incomeService');
 
@@ -97,6 +100,7 @@ app.use('/api/diagnose', diagnoseRoutes);
 app.use('/api/recycle', recycleRoutes);
 app.use('/api/scan', scanRoutes);
 app.use('/api/after-sales', afterSalesRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // 健康检查
 app.get('/health', (req, res) => {

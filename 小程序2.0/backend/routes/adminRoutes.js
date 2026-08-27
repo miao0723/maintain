@@ -258,20 +258,6 @@ router.get('/my-orders', authenticateToken, async (req, res) => {
       params.push(status);
     }
 
-    // 查询总数
-    const countResult = await db.query(
-      `SELECT COUNT(*) as total
-       FROM orders o
-       LEFT JOIN users u ON o.user_id = u.id
-       ${whereClause}`,
-      params
-    );
-
-    const total = { total: 0 };
-    if (countResult && countResult[0]) {
-      total.total = countResult[0].total;
-    }
-
     const isMissingColumnError = (error) => {
       return error && (
         error.code === 'ER_BAD_FIELD_ERROR' ||
@@ -280,105 +266,122 @@ router.get('/my-orders', authenticateToken, async (req, res) => {
       );
     };
 
-    // 查询订单列表（包含分配人员信息）
-    let orders;
-    try {
-      orders = await db.query(
-        `SELECT
-          o.id,
-          o.order_id,
-          o.user_id,
-          o.order_type,
-          o.device_type,
-          o.device_model,
-          o.problem_description,
-          o.custom_description,
-          o.images,
-          o.service_type,
-          o.brand_id,
-          o.device_condition,
-          o.is_internal,
-          o.device_source,
-          o.status,
-          o.assigned_to,
-          o.created_at,
-          o.updated_at,
-          o.completed_at,
-          o.estimated_price,
-          o.actual_price,
-          o.progress,
-          o.priority,
-          o.quote_status,
-          o.quote_price,
-          o.quote_description,
-          o.quote_rejected_reason,
-          o.repair_report_files,
-          (SELECT COUNT(*) FROM progress_apply pa WHERE pa.order_id = o.id AND pa.approval_status = 'approved') as approved_progress_count,
-          u.nickname,
-          u.phone,
-          u.real_name as customer_name,
-          u.avatar_url as customer_avatar,
-          t.nickname as assigned_name,
-          t.real_name as assigned_real_name
+    // COUNT 与列表 SELECT 并行执行，减少一轮数据库往返
+    const [countResult, orders] = await Promise.all([
+      db.query(
+        `SELECT COUNT(*) as total
          FROM orders o
          LEFT JOIN users u ON o.user_id = u.id
-         LEFT JOIN users t ON o.assigned_to = t.id
-         ${whereClause}
-         ORDER BY o.created_at DESC
-         LIMIT ? OFFSET ?`,
-        [...params, pageSize, offset]
-      );
-    } catch (queryError) {
-      console.error('[查询订单列表错误]', queryError);
+         ${whereClause}`,
+        params
+      ),
+      (async () => {
+        try {
+          return await db.query(
+            `SELECT
+              o.id,
+              o.order_id,
+              o.user_id,
+              o.order_type,
+              o.device_type,
+              o.device_model,
+              o.problem_description,
+              o.custom_description,
+              o.images,
+              o.service_type,
+              o.brand_id,
+              o.device_condition,
+              o.is_internal,
+              o.device_source,
+              o.status,
+              o.assigned_to,
+              o.created_at,
+              o.updated_at,
+              o.completed_at,
+              o.estimated_price,
+              o.actual_price,
+              o.progress,
+              o.priority,
+              o.quote_status,
+              o.quote_price,
+              o.quote_description,
+              o.quote_rejected_reason,
+              o.repair_report_files,
+              o.admin_remark,
+              (SELECT COUNT(*) FROM progress_apply pa WHERE pa.order_id = o.id AND pa.approval_status = 'approved') as approved_progress_count,
+              u.nickname,
+              u.phone,
+              u.real_name as customer_name,
+              u.avatar_url as customer_avatar,
+              t.nickname as assigned_name,
+              t.real_name as assigned_real_name
+             FROM orders o
+             LEFT JOIN users u ON o.user_id = u.id
+             LEFT JOIN users t ON o.assigned_to = t.id
+             ${whereClause}
+             ORDER BY o.created_at DESC
+             LIMIT ? OFFSET ?`,
+            [...params, pageSize, offset]
+          );
+        } catch (queryError) {
+          console.error('[查询订单列表错误]', queryError);
 
-      if (!isMissingColumnError(queryError)) {
-        throw queryError;
-      }
+          if (!isMissingColumnError(queryError)) {
+            throw queryError;
+          }
 
-      // 回退到兼容旧数据库的查询
-      orders = await db.query(
-        `SELECT
-          o.id,
-          o.order_id,
-          o.user_id,
-          o.order_type,
-          o.device_type,
-          o.device_model,
-          o.problem_description,
-          o.custom_description,
-          o.images,
-          o.service_type,
-          o.brand_id,
-          o.device_condition,
-          o.status,
-          o.assigned_to,
-          o.created_at,
-          o.updated_at,
-          o.completed_at,
-          o.estimated_price,
-          o.actual_price,
-          o.progress,
-          o.priority,
-          o.quote_status,
-          NULL as quote_price,
-          NULL as quote_description,
-          NULL as quote_rejected_reason,
-          NULL as repair_report_files,
-          (SELECT COUNT(*) FROM progress_apply pa WHERE pa.order_id = o.id AND pa.approval_status = 'approved') as approved_progress_count,
-          u.nickname,
-          u.phone,
-          u.real_name as customer_name,
-          u.avatar_url as customer_avatar,
-          t.nickname as assigned_name,
-          t.real_name as assigned_real_name
-         FROM orders o
-         LEFT JOIN users u ON o.user_id = u.id
-         LEFT JOIN users t ON o.assigned_to = t.id
-         ${whereClause}
-         ORDER BY o.created_at DESC
-         LIMIT ? OFFSET ?`,
-        [...params, pageSize, offset]
-      );
+          // 回退到兼容旧数据库的查询
+          return await db.query(
+            `SELECT
+              o.id,
+              o.order_id,
+              o.user_id,
+              o.order_type,
+              o.device_type,
+              o.device_model,
+              o.problem_description,
+              o.custom_description,
+              o.images,
+              o.service_type,
+              o.brand_id,
+              o.device_condition,
+              o.status,
+              o.assigned_to,
+              o.created_at,
+              o.updated_at,
+              o.completed_at,
+              o.estimated_price,
+              o.actual_price,
+              o.progress,
+              o.priority,
+              o.quote_status,
+              NULL as quote_price,
+              NULL as quote_description,
+              NULL as quote_rejected_reason,
+              NULL as repair_report_files,
+              NULL as admin_remark,
+              (SELECT COUNT(*) FROM progress_apply pa WHERE pa.order_id = o.id AND pa.approval_status = 'approved') as approved_progress_count,
+              u.nickname,
+              u.phone,
+              u.real_name as customer_name,
+              u.avatar_url as customer_avatar,
+              t.nickname as assigned_name,
+              t.real_name as assigned_real_name
+             FROM orders o
+             LEFT JOIN users u ON o.user_id = u.id
+             LEFT JOIN users t ON o.assigned_to = t.id
+             ${whereClause}
+             ORDER BY o.created_at DESC
+             LIMIT ? OFFSET ?`,
+            [...params, pageSize, offset]
+          );
+        }
+      })()
+    ]);
+
+    const total = { total: 0 };
+    if (countResult && countResult[0]) {
+      total.total = countResult[0].total;
     }
     orders = (orders || []).map(order => {
       const assignedDisplayName = order.assigned_name || order.assigned_real_name || '';
@@ -406,6 +409,7 @@ router.get('/my-orders', authenticateToken, async (req, res) => {
         progress: order.progress || 0,
         priority: order.priority || 2,
         repair_report_files: parseJsonFiles(order.repair_report_files),
+        admin_remark: order.admin_remark || '',
         approved_progress_count: parseInt(order.approved_progress_count) || 0,
         customer_name: order.customer_name || order.nickname || '未知用户',
         customer_phone: order.phone || '',

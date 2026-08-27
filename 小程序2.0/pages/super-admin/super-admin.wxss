@@ -836,6 +836,35 @@ page {
   margin-bottom: 0;
 }
 
+/* 管理员备注展示条（全部订单 / 我的订单共用） */
+.order-remark-block {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 16rpx;
+  padding: 14rpx 18rpx;
+  background: #fff8ec;
+  border-left: 6rpx solid #f5a623;
+  border-radius: 10rpx;
+  overflow: hidden;
+}
+
+.order-remark-block .remark-icon {
+  flex-shrink: 0;
+  font-size: 24rpx;
+  margin-right: 10rpx;
+  line-height: 1.5;
+}
+
+.order-remark-block .remark-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 25rpx;
+  color: #7a5b1d;
+  line-height: 1.55;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
 .info-label {
   font-size: 24rpx;
   color: var(--gray-500);
@@ -878,15 +907,19 @@ page {
 .order-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12rpx;
+  align-items: center;
+  gap: 10rpx;
 }
 
 .action-btn {
-  font-size: 22rpx;
-  padding: 10rpx 20rpx;
-  border-radius: 20rpx;
+  font-size: 21rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 18rpx;
   background: var(--gray-100);
   color: var(--gray-700);
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0 !important;
 }
 
 .action-btn.primary {
@@ -902,6 +935,19 @@ page {
 .action-btn.danger {
   background: var(--danger);
   color: #fff;
+}
+
+/* 备注按钮（action-btn / myo-btn 共用）：浅琥珀色描边，视觉不抢主操作 */
+.action-btn.remark-btn,
+.myo-btn.remark-btn {
+  background: #fff7e8 !important;
+  color: #b07312 !important;
+  border: 1rpx solid #f2d9a8 !important;
+}
+
+.action-btn.remark-btn:active,
+.myo-btn.remark-btn:active {
+  background: #ffefd6 !important;
 }
 
 /* 分页 */
@@ -1587,17 +1633,20 @@ page {
 
 .myo-actions {
   display: flex;
-  flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 12rpx;
+  align-items: center;
+  gap: 10rpx;
 }
 
 .myo-btn {
-  font-size: 22rpx;
-  padding: 10rpx 20rpx;
-  border-radius: 20rpx;
+  font-size: 21rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 18rpx;
   background: var(--gray-100);
   color: var(--gray-700);
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0 !important;
 }
 
 .myo-btn.primary {
@@ -3664,6 +3713,32 @@ page {
   font-size: 22rpx;
   color: var(--gray-400);
   margin-top: 8rpx;
+}
+
+/* =================== 订单备注弹窗 =================== */
+.remark-popup {
+  width: 100%;
+}
+
+.remark-textarea {
+  width: 100%;
+  height: 240rpx;
+  padding: 20rpx;
+  font-size: 27rpx;
+  color: var(--gray-800);
+  background: var(--gray-50);
+  border: 2rpx solid var(--gray-200);
+  border-radius: 12rpx;
+  box-sizing: border-box;
+}
+
+.remark-textarea:focus {
+  border-color: #f5a623;
+  background: #fff;
+}
+
+.remark-placeholder {
+  color: var(--gray-400);
 }
 
 /* =================== 售后管理 =================== */

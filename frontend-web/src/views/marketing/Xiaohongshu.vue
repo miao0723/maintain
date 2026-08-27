@@ -126,7 +126,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getXiaohongshuList, createXiaohongshu, updateXiaohongshu, deleteXiaohongshu, publishXiaohongshu } from '@/api/marketing'
+import { getXiaohongshuList, createXiaohongshu, updateXiaohongshu, deleteXiaohongshu, publishXiaohongshu, getXiaohongshuPublishStatus } from '@/api/marketing'
 import SingleImageUpload from '@/components/SingleImageUpload.vue'
 
 const activeTab = ref('library')
@@ -190,15 +190,44 @@ const handleEdit = (row) => {
 
 const handlePublish = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要发布到小红书吗？将触发RPA自动化发布。', '提示', { type: 'warning' })
+    await ElMessageBox.confirm('确定要发布到小红书吗？将自动填写文案与话题并上传。', '提示', { type: 'warning' })
     const res = await publishXiaohongshu(row.id)
-    ElMessage.success(res.message || '发布任务已提交')
+    if (res.code === 0) {
+      ElMessage.success(res.message || '发布任务已提交')
+      pollPublishStatus(row.id)
+    } else {
+      ElMessage.error(res.message || '发布失败')
+    }
   } catch (e) {
     if (e !== 'cancel') {
       console.error(e)
       ElMessage.error(e.message || '发布失败')
     }
   }
+}
+
+const pollPublishStatus = async (id) => {
+  let count = 0
+  const check = async () => {
+    try {
+      const res = await getXiaohongshuPublishStatus(id)
+      const st = res.data?.status
+      if (st === 'success') {
+        ElMessage.success('发布成功')
+        fetchData()
+      } else if (st === 'failed' || st === 'error') {
+        ElMessage.error((res.data && res.data.message) || '发布失败')
+      } else if (count >= 150) {
+        ElMessage.warning('发布超时，请稍后刷新查看')
+      } else {
+        count++
+        setTimeout(check, 3000)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+  setTimeout(check, 2000)
 }
 
 const handleDelete = async (row) => {

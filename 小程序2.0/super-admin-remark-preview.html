@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>超级管理员订单备注功能预览 v2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #eef1f6;
+    padding: 24px;
+    color: #2c3e50;
+  }
+  .page-title { font-size: 18px; font-weight: 700; color: #21344d; margin-bottom: 4px; }
+  .page-sub { font-size: 12px; color: #6a7b8c; margin-bottom: 20px; }
+  .grid { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+  .col { flex: 1; min-width: 380px; }
+
+  /* 订单卡片（模拟手机宽度 ~375px） */
+  .phone-frame {
+    max-width: 400px; background: #f4f6fa; border-radius: 20px;
+    padding: 14px; box-shadow: 0 6px 20px rgba(33,52,77,.1);
+  }
+  .order-card {
+    background: #fff; border-radius: 16px; padding: 14px 16px;
+    box-shadow: 0 3px 12px rgba(33, 52, 77, 0.07); margin-bottom: 12px;
+  }
+  .oh { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .oh-left { display: flex; align-items: center; gap: 8px; }
+  .order-no { font-size: 13.5px; font-weight: 700; color: #21344d; }
+  .tag { font-size: 10px; padding: 2px 9px; border-radius: 9px; color: #fff; }
+  .tag-repair { background: #f5701e; }
+  .tag-recycle { background: #10b981; }
+  .status { font-size: 10.5px; padding: 3px 11px; border-radius: 9px; color: #fff; background: #436f95; }
+  .info-row { display: flex; margin-bottom: 7px; font-size: 12.5px; }
+  .label { color: #8a97a5; width: 52px; flex-shrink: 0; }
+  .value { color: #2c3e50; flex: 1; }
+
+  /* 备注展示条 */
+  .remark-block {
+    display: flex; align-items: flex-start; margin-top: 4px; margin-bottom: 2px;
+    padding: 8px 11px; background: #fff8ec; border-left: 4px solid #f5a623; border-radius: 8px;
+  }
+  .remark-block .icon { font-size: 12px; margin-right: 7px; line-height: 1.5; }
+  .remark-block .text { font-size: 12px; color: #7a5b1d; line-height: 1.55; word-break: break-all; }
+
+  /* 按钮行：一行内显示，纯文字 */
+  .of {
+    display: flex; justify-content: stretch; align-items: center; gap: 7px;
+    border-top: 1px solid #f0f3f7; padding-top: 11px; margin-top: 9px;
+    flex-wrap: nowrap;
+  }
+  .btn {
+    font-size: 11.5px; padding: 5px 11px; border-radius: 10px; border: none; cursor: pointer;
+    background: #eef1f6; color: #5a6b7c; white-space: nowrap; flex: 1 1 auto; min-width: 0;
+  }
+  .btn.primary { background: #f5701e; color: #fff; }
+  .btn.remark { background: #fff7e8; color: #b07312; border: 1px solid #f2d9a8; }
+  .btn.success { background: #10b981; color: #fff; }
+  .btn.danger { background: #e74c3c; color: #fff; }
+  .btn.feedback { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: #fff; }
+
+  /* 全宽底部弹窗 */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(15, 28, 42, 0.5);
+    display: flex; align-items: flex-end; z-index: 10;
+  }
+  .popup {
+    width: 100%; background: #f6f8fb; border-radius: 20px 20px 0 0;
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.2); animation: slideUp .3s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .popup-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 15px 20px; background: #fff; border-radius: 20px 20px 0 0;
+  }
+  .popup-title { font-size: 15px; font-weight: 700; color: #21344d; }
+  .popup-close { font-size: 15px; color: #9aa7b4; cursor: pointer; }
+  .popup-body { padding: 14px 20px; }
+  .info-box { background: #fff; border-radius: 10px; padding: 11px 13px; margin-bottom: 12px; }
+  .info-line { display: flex; font-size: 12.5px; margin-bottom: 6px; }
+  .info-line:last-child { margin-bottom: 0; }
+  .info-label { color: #8a97a5; width: 68px; flex-shrink: 0; }
+  .info-value { color: #2c3e50; }
+  .sec-title { font-size: 12.5px; font-weight: 600; color: #21344d; margin-bottom: 8px; }
+  .textarea {
+    width: 100%; height: 100px; border: 1.5px solid #e2e8ef; border-radius: 10px;
+    padding: 10px 12px; font-size: 13px; color: #2c3e50; background: #fff;
+    resize: none; outline: none; font-family: inherit;
+  }
+  .textarea:focus { border-color: #f5a623; }
+  .counter { display: block; text-align: right; font-size: 11px; color: #a3aeb9; margin-top: 6px; }
+  .popup-footer { display: flex; gap: 10px; padding: 4px 20px 18px; }
+  .popup-footer .btn { flex: 1; padding: 10px 0; font-size: 13px; }
+  .btn.cancel { background: #eef1f6; color: #5a6b7c; }
+  .btn.save { background: #f5701e; color: #fff; }
+  .hint { font-size: 12px; color: #6a7b8c; line-height: 1.7; margin-top: 6px; }
+  .hint b { color: #f5701e; }
+</style>
+</head>
+<body>
+  <div class="page-title">超级管理员 · 订单备注功能预览（v2）</div>
+  <div class="page-sub">弹窗已改为全宽底部弹出（占满左右屏幕）；订单按钮已去图标、纯文字，5 个按钮一行放得下</div>
+
+  <div class="grid">
+    <!-- 左列：手机帧内订单卡片 -->
+    <div class="col">
+      <div class="phone-frame">
+        <!-- 有备注 + 5 按钮（处理中：备注/详情/进度反馈/完成/取消） -->
+        <div class="order-card">
+          <div class="oh">
+            <div class="oh-left">
+              <span class="order-no">WX20260825001</span>
+              <span class="tag tag-repair">维修</span>
+            </div>
+            <span class="status">处理中</span>
+          </div>
+          <div class="info-row"><span class="label">客户:</span><span class="value">张师傅</span></div>
+          <div class="info-row"><span class="label">设备:</span><span class="value">iPhone 13 Pro 128G</span></div>
+          <div class="info-row"><span class="label">描述:</span><span class="value">屏幕破碎，后盖碎裂，无法触摸</span></div>
+          <div class="info-row"><span class="label">价格:</span><span class="value">¥680.00</span></div>
+          <div class="remark-block"><span class="icon">📝</span><span class="text">该客户是老客，屏幕优先推荐原装拆机件；需在 3 天内完成。</span></div>
+          <div class="of">
+            <button class="btn remark">备注</button>
+            <button class="btn primary">详情</button>
+            <button class="btn feedback">进度反馈</button>
+            <button class="btn success">完成</button>
+            <button class="btn danger">取消</button>
+          </div>
+        </div>
+
+        <!-- 无备注 + 4 按钮（待处理：备注/详情/报价/状态） -->
+        <div class="order-card">
+          <div class="oh">
+            <div class="oh-left">
+              <span class="order-no">WX20260824018</span>
+              <span class="tag tag-recycle">回收</span>
+            </div>
+            <span class="status">待处理</span>
+          </div>
+          <div class="info-row"><span class="label">客户:</span><span class="value">李女士</span></div>
+          <div class="info-row"><span class="label">设备:</span><span class="value">MacBook Air M1</span></div>
+          <div class="info-row"><span class="label">描述:</span><span class="value">成色良好，键盘轻微磨损</span></div>
+          <div class="info-row"><span class="label">价格:</span><span class="value">¥3200.00</span></div>
+          <div class="of">
+            <button class="btn remark">备注</button>
+            <button class="btn primary">详情</button>
+            <button class="btn">报价</button>
+            <button class="btn">状态</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右列：全宽备注弹窗示意 -->
+    <div class="col">
+      <div class="overlay" style="position: static; background: transparent; padding-top: 0;">
+        <div class="popup">
+          <div class="popup-header">
+            <span class="popup-title">订单备注</span>
+            <span class="popup-close">✕</span>
+          </div>
+          <div class="popup-body">
+            <div class="info-box">
+              <div class="info-line"><span class="info-label">订单编号</span><span class="info-value">WX20260825001</span></div>
+              <div class="info-line"><span class="info-label">订单类型</span><span class="info-value">维修</span></div>
+              <div class="info-line"><span class="info-label">客户</span><span class="info-value">张师���</span></div>
+            </div>
+            <div class="sec-title">备注内容</div>
+            <textarea class="textarea" placeholder="记录订单识别要点、注意事项等，方便后续快速跟进（最多 500 字）">该客户是老客，屏幕优先推荐原装拆机件；需在 3 天内完成。</textarea>
+            <span class="counter">36/500</span>
+          </div>
+          <div class="popup-footer">
+            <button class="btn cancel">取消</button>
+            <button class="btn save">保存备注</button>
+          </div>
+        </div>
+      </div>
+      <div class="hint">
+        <b>本轮改动：</b>① 备注弹窗由 640rpx 窄窗改回全宽底部弹窗（占满左右，与其他弹窗一致）；② 订单按钮全部去掉图标改纯文字（备注/详情/报价/进度反馈/同意/驳回/完成/取消）；③ 按钮行取消换行（nowrap）+ 按钮紧凑化，5 个按钮也能在一行内显示，不再挤到第二行。
+      </div>
+    </div>
+  </div>
+</body>
+</html>

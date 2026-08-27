@@ -200,3 +200,32 @@ export function updatePartner(id, data) {
 export function deletePartner(id) {
   return request({ url: `/marketing/partners/${id}`, method: 'delete' })
 }
+
+// ===== 自动发布服务（publisher-service）账号管理 =====
+export function getPublisherHealth() {
+  return request({ url: '/marketing/publisher/health', method: 'get' })
+}
+
+export function getPublisherAccounts() {
+  return request({ url: '/marketing/publisher/accounts', method: 'get' })
+}
+
+export function startPublisherLogin(platform, data = {}) {
+  return request({ url: `/marketing/publisher/${platform}/login`, method: 'post', data })
+}
+
+export function getPublisherLoginStatus(platform, session) {
+  return request({ url: `/marketing/publisher/${platform}/login/${session}`, method: 'get' })
+}
+
+export function cancelPublisherLogin(platform, session) {
+  return request({ url: `/marketing/publisher/${platform}/login/${session}/cancel`, method: 'post' })
+}
+
+export function checkPublisherAccount(platform, data = {}) {
+  return request({ url: `/marketing/publisher/${platform}/check`, method: 'post', data, timeout: 120000 })
+}
+
+export function logoutPublisher(platform) {
+  return request({ url: `/marketing/publisher/${platform}`, method: 'delete' })
+}

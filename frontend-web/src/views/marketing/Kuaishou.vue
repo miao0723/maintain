@@ -214,16 +214,21 @@ const handlePublish = async (row) => {
 }
 
 const pollPublishStatus = async (id) => {
+  let count = 0
   const check = async () => {
     try {
       const res = await getKuaishouPublishStatus(id)
-      if (res.data?.status === 'success') {
+      const st = res.data?.status
+      if (st === 'success') {
         ElMessage.success('发布成功')
         fetchData()
-      } else if (res.data?.status === 'processing' || res.data?.status === 'pending') {
-        setTimeout(check, 3000)
-      } else if (res.data?.status === 'failed' || res.data?.status === 'error') {
+      } else if (st === 'failed' || st === 'error') {
         ElMessage.error(res.data?.message || '发布失败')
+      } else if (count >= 150) {
+        ElMessage.warning('发布超时，请稍后刷新查看')
+      } else {
+        count++
+        setTimeout(check, 3000)
       }
     } catch (e) {
       console.error(e)

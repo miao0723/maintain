@@ -45,8 +45,10 @@ class Database {
           user: process.env.DB_USER,
           password: process.env.DB_PASSWORD,
           database: process.env.DB_NAME,
-          connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,
+          connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 30,
+          maxIdle: parseInt(process.env.DB_MAX_IDLE) || 15,
           connectTimeout: 10000,
+          idleTimeout: 60000,
           charset: 'utf8mb4',
           timezone: '+08:00',
           dateStrings: true,
@@ -225,6 +227,7 @@ class Database {
 
     await this.ensureChatServiceSchema(connection);
     await this.ensureAfterSalesSchema(connection);
+    await this.ensureFeedbackSchema(connection);
     await this.ensureAdminCreatedSchema(connection);
 
     // 同步设备类型表，使其与前端 deviceData.js 的 deviceTypes 保持一致
@@ -438,6 +441,37 @@ class Database {
       console.log('[DB] after_sales_requests 表已就绪');
     } catch (err) {
       console.error('[DB] 创建 after_sales_requests 表警告（已忽略）:', err.message);
+    }
+  }
+
+  /**
+   * 意见反馈表（幂等）
+   * - 用户提交意见/建议，管理员回复并标记处理状态
+   */
+  async ensureFeedbackSchema(connection) {
+    try {
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS feedback (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          user_id INT NOT NULL COMMENT '提交用户ID',
+          type VARCHAR(32) NOT NULL DEFAULT 'suggestion' COMMENT '反馈类型: suggestion功能建议/complaint问题投诉/other其他',
+          content TEXT NOT NULL COMMENT '反馈内容',
+          contact VARCHAR(64) DEFAULT '' COMMENT '联系方式（手机号/微信号）',
+          status ENUM('pending','replied','closed') NOT NULL DEFAULT 'pending' COMMENT '状态: pending待处理/replied已回复/closed已关闭',
+          admin_reply TEXT COMMENT '管理员回复内容',
+          replied_by INT NULL COMMENT '回复管理员ID',
+          replied_at DATETIME NULL COMMENT '回复时间',
+          closed_by INT NULL COMMENT '关闭操作管理员ID',
+          closed_at DATETIME NULL COMMENT '关闭时间',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_user_id (user_id),
+          INDEX idx_status (status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log('[DB] feedback 表已就绪');
+    } catch (err) {
+      console.error('[DB] 创建 feedback 表警告（已忽略）:', err.message);
     }
   }
 

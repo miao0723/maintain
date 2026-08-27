@@ -279,6 +279,13 @@
       "pages": [
         "device-detail"
       ]
+    },
+    {
+      "root": "pages/feedback",
+      "name": "feedback",
+      "pages": [
+        "feedback"
+      ]
     }
   ],
   "preloadRule": {

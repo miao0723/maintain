@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>编辑资料页 - 美化预览</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #c9d2dc;
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", Helvetica, sans-serif;
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 30px 0; min-height: 100vh;
+  }
+  .phone {
+    width: 375px; background: #eef1f6; border-radius: 38px;
+    overflow: hidden; box-shadow: 0 30px 70px rgba(0,0,0,.35);
+    position: relative;
+  }
+  .notch { height: 0; }
+
+  /* 头像区（背景透明，仅保留圆框） */
+  .avatar-section {
+    position: relative; background: transparent;
+    padding: 28px 0 12px; display: flex; justify-content: center; align-items: center;
+  }
+  .avatar-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; z-index: 1; }
+  .avatar-ring {
+    position: relative; width: 102px; height: 102px; border-radius: 50%;
+    background: linear-gradient(145deg,#fff 0%,#eaf0f6 100%);
+    border: 1px solid #e2e8ef;
+    box-shadow: 0 0 0 3px rgba(255,255,255,.9), 0 6px 15px rgba(33,52,73,.16);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .avatar-ring.has-img { border-color: #fff; box-shadow: 0 0 0 3px rgba(226,232,239,.9), 0 6px 15px rgba(33,52,73,.18); }
+  .avatar {
+    width: 100%; height: 100%; border-radius: 50%;
+    background: linear-gradient(135deg,#ffb27d 0%,#f5701e 100%);
+    display: flex; align-items: center; justify-content: center; font-size: 40px; color: #fff;
+  }
+  .avatar-badge {
+    position: absolute; right: 4px; bottom: 4px; width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg,#ff8a3d 0%,#f5701e 100%);
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+    box-shadow: 0 2px 6px rgba(245,112,30,.4); border: 2px solid #fff; z-index: 2;
+  }
+  .avatar-tip { margin-top: 13px; z-index: 1; }
+  .avatar-tip span { font-size: 12px; color: #6a7b8c; letter-spacing: .5px; }
+
+  /* 卡片 */
+  .form-section {
+    background: #fff; margin: 11px 12px 0; border-radius: 12px;
+    padding: 3px 16px; box-shadow: 0 3px 10px rgba(33,52,73,.06);
+  }
+  .form-item { display: flex; align-items: center; padding: 16px 0; border-bottom: 1px solid #f1f3f6; position: relative; }
+  .form-item:last-child { border-bottom: none; }
+  .form-label { width: 80px; flex-shrink: 0; display: flex; align-items: center; }
+  .label-dot { width: 4px; height: 14px; border-radius: 2px; background: linear-gradient(180deg,#ff8a3d 0%,#f5701e 100%); margin-right: 7px; }
+  .label-text { font-size: 14px; color: #2c3e50; font-weight: 600; }
+  .form-input { flex: 1; min-width: 0; font-size: 14px; color: #2c3e50; padding: 6px 10px; border: 1px solid #dde5ee; border-radius: 8px; background: #fff; }
+  .ph { color: #b3bcc6; }
+
+  .phone-row { flex: 1; display: flex; align-items: center; justify-content: space-between; min-width: 0; }
+  .phone-left { flex: 1; min-width: 0; display: flex; align-items: center; }
+  .phone-icon { font-size: 14px; margin-right: 6px; }
+  .phone-value { flex: 1; min-width: 0; font-size: 14px; color: #2c3e50; font-weight: 500; white-space: nowrap; }
+  .phone-empty { color: #b3bcc6; font-weight: 400; }
+  .phone-btn {
+    margin-left: 6px; padding: 0 10px; height: 26px; line-height: 26px; font-size: 11px; font-weight: 600;
+    color: #fff; background: linear-gradient(135deg,#ff8a3d 0%,#f5701e 100%); border-radius: 13px;
+    flex-shrink: 0; box-shadow: 0 2px 6px rgba(245,112,30,.22); border: none; cursor: pointer;
+  }
+
+  .section-header { padding: 15px 0; border-bottom: 1px solid #f1f3f6; }
+  .section-title { font-size: 14px; color: #2c3e50; font-weight: 700; }
+  .addr-display { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; }
+  .addr-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .addr-name { font-size: 14px; color: #2c3e50; font-weight: 700; margin-bottom: 5px; }
+  .addr-detail { font-size: 12px; color: #99a3ad; line-height: 18px; }
+  .arrow { font-size: 20px; color: #c4cdd6; margin-left: 8px; }
+
+  .bottom-action { padding: 22px 16px 6px; }
+  .save-btn {
+    width: 100%; height: 47px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg,#ff8a3d 0%,#f5701e 100%); border-radius: 23px; color: #fff;
+    font-size: 16px; font-weight: 700; letter-spacing: 1px; border: none; cursor: pointer;
+    box-shadow: 0 7px 15px rgba(245,112,30,.3);
+  }
+  .caption { text-align: center; color: #6a7b8c; font-size: 12px; margin-top: 18px; }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="avatar-section">
+      <div class="avatar-wrapper">
+        <div class="avatar-ring has-img">
+          <div class="avatar">🧑‍🔧</div>
+          <div class="avatar-badge">✏️</div>
+        </div>
+        <div class="avatar-tip"><span>读取微信头像或从相册上传</span></div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-item">
+        <div class="form-label"><span class="label-dot"></span><span class="label-text">昵称</span></div>
+        <div class="form-input">维修小能手</div>
+        <span class="ph" style="font-size:11px;color:#b3bcc6;">5/20</span>
+      </div>
+      <div class="form-item">
+        <div class="form-label"><span class="label-dot"></span><span class="label-text">真实姓名</span></div>
+        <div class="form-input">张师傅</div>
+      </div>
+      <div class="form-item">
+        <div class="form-label"><span class="label-dot"></span><span class="label-text">联系电话</span></div>
+        <div class="phone-row">
+          <div class="phone-left">
+            <span class="phone-icon">📱</span>
+            <span class="phone-value">13612345678</span>
+          </div>
+          <button class="phone-btn">更换</button>
+        </div>
+      </div>
+      <div class="form-item">
+        <div class="form-label"><span class="label-dot"></span><span class="label-text">电子邮箱</span></div>
+        <div class="form-input ph">请输入电子邮箱</div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-header"><span class="section-title">默认地址</span></div>
+      <div class="addr-display">
+        <div class="addr-info">
+          <div class="addr-name">张先生 138****6677</div>
+          <div class="addr-detail">广东省 深圳市 南山区 科技园路 1 号</div>
+        </div>
+        <span class="arrow">›</span>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-header"><span class="section-title">默认单位</span></div>
+      <div class="addr-display">
+        <div class="addr-info">
+          <div class="addr-name">某某科技有限公司</div>
+          <div class="addr-detail">广东省 深圳市 福田区 中心三路 8 号</div>
+        </div>
+        <span class="arrow">›</span>
+      </div>
+    </div>
+
+    <div class="bottom-action">
+      <button class="save-btn">保存修改</button>
+    </div>
+    <div class="caption">编辑资料页 · 维修行业风格美化预览</div>
+  </div>
+</body>
+</html>
