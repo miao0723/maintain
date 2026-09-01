@@ -19,6 +19,31 @@
     </view>
   </view>
 
+  <!-- 账号信息（角色中英文映射 + 手机号掩码） -->
+  <view class="form-section">
+    <view class="section-header">
+      <text class="section-title">账号信息</text>
+    </view>
+    <view class="account-card">
+      <view class="account-row">
+        <text class="account-label">当前角色</text>
+        <view class="role-tag role-{{roleTheme}}">
+          <text class="role-icon">{{roleIcon}}</text>
+          <text class="role-text">{{roleText || '客户 / Customer'}}</text>
+        </view>
+      </view>
+      <text class="role-desc" wx:if="{{roleDesc}}">{{roleDesc}}</text>
+      <view class="account-row" wx:if="{{uidText}}">
+        <text class="account-label">账号 ID</text>
+        <text class="account-value">{{uidText}}</text>
+      </view>
+      <view class="account-row" wx:if="{{createdAtText}}">
+        <text class="account-label">注册时间</text>
+        <text class="account-value">{{createdAtText}}</text>
+      </view>
+    </view>
+  </view>
+
   <!-- 信息表单 -->
   <view class="form-section">
     <view class="section-header">
@@ -63,12 +88,16 @@
       <view class="phone-row">
         <view class="phone-left">
           <text class="phone-icon">📱</text>
-          <text class="phone-value {{phoneNumber ? '' : 'phone-empty'}}">{{phoneNumber || '尚未绑定手机号'}}</text>
+          <text class="phone-value {{phoneNumber ? '' : 'phone-empty'}}">{{phoneDisplay || '尚未绑定手机号'}}</text>
+          <text class="phone-toggle" wx:if="{{phoneNumber}}" catchtap="togglePhoneVisible">{{phoneVisible ? '隐藏' : '显示'}}</text>
         </view>
         <button
           class="phone-btn"
           open-type="getPhoneNumber"
           bindgetphonenumber="onGetPhoneNumber">{{phoneNumber ? '更换' : '微信授权'}}</button>
+      </view>
+      <view class="privacy-tip" wx:if="{{phoneNumber}}">
+        <text class="privacy-tip-text">{{phoneVisible ? '已展示完整号码，核对后建议点击「隐藏」' : '手机号已做中间四位掩码处理，保护您的隐私'}}</text>
       </view>
     </view>
 

@@ -1,6 +1,7 @@
 // pages/profile-edit/profile-edit.js
 const { DEFAULT_AVATAR_URL: defaultAvatarUrl, normalizeAvatarUrl } = require('../../utils/avatar.js')
 const { userApi } = require('../../utils/api.js')
+const { buildProfileView, maskPhone } = require('../../utils/profileUtils.js')
 
 Page({
   data: {
@@ -10,6 +11,16 @@ Page({
     },
     realName: '',
     phoneNumber: '',
+    // 手机号展示：默认中间四位掩码，用户可临时切换明文核对
+    phoneDisplay: '',
+    phoneVisible: false,
+    // 账号信息：角色以「中文 / 英文」标识映射展示
+    roleText: '',
+    roleIcon: '👤',
+    roleTheme: 'user',
+    roleDesc: '',
+    uidText: '',
+    createdAtText: '',
     email: '',
     defaultAddress: null,
     defaultUnit: null,
@@ -63,6 +74,9 @@ Page({
         wx.setStorageSync('userInfo', { ...localUserInfo, ...profile })
         app.globalData.userInfo = { ...globalUserInfo, ...profile }
 
+        // 角色映射 + 手机号掩码：所有展示口径统一由 profileUtils 产出
+        const view = buildProfileView(profile)
+
         this.setData({
           userInfo: {
             avatarUrl: normalizeAvatarUrl(profile.avatar_url),
@@ -70,8 +84,15 @@ Page({
           },
           realName: profile.real_name || '',
           phoneNumber: profile.phone || '',
-          email: profile.email || ''
+          email: profile.email || '',
+          roleText: view.roleText,
+          roleIcon: view.roleIcon,
+          roleTheme: view.roleTheme,
+          roleDesc: view.roleDesc,
+          uidText: profile.id ? String(profile.id) : '',
+          createdAtText: profile.created_at ? String(profile.created_at).split(' ')[0] : ''
         });
+        this.syncPhoneDisplay();
       })
       .catch(err => {
         console.error('加载用户信息失败', err);
@@ -88,10 +109,34 @@ Page({
           phoneNumber: profile.phoneNumber || '',
           email: profile.email || ''
         });
+        this.syncPhoneDisplay();
       })
       .finally(() => {
         wx.hideLoading();
       });
+  },
+
+  /**
+   * 同步手机号展示：默认掩码，切换后展示明文
+   */
+  syncPhoneDisplay() {
+    const { phoneNumber, phoneVisible } = this.data
+    if (!phoneNumber) {
+      this.setData({ phoneDisplay: '' })
+      return
+    }
+    this.setData({
+      phoneDisplay: phoneVisible ? phoneNumber : maskPhone(phoneNumber)
+    })
+  },
+
+  /**
+   * 掩码 / 明文切换（仅前端展示切换，不修改数据库）
+   */
+  togglePhoneVisible() {
+    this.setData({ phoneVisible: !this.data.phoneVisible }, () => {
+      this.syncPhoneDisplay()
+    })
   },
 
   onAvatarError() {
@@ -412,6 +457,7 @@ Page({
         }
 
         this.setData({ phoneNumber: phone })
+        this.syncPhoneDisplay()
         wx.showToast({ title: '手机号已绑定', icon: 'success' })
       })
       .catch(err => {

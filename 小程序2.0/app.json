@@ -286,6 +286,20 @@
       "pages": [
         "feedback"
       ]
+    },
+    {
+      "root": "pages/agreement",
+      "name": "agreement",
+      "pages": [
+        "agreement"
+      ]
+    },
+    {
+      "root": "pages/account-cancel",
+      "name": "account-cancel",
+      "pages": [
+        "account-cancel"
+      ]
     }
   ],
   "preloadRule": {
@@ -303,7 +317,7 @@
     },
     "pages/mine/mine": {
       "network": "all",
-      "packages": ["profile-edit", "my-orders", "order-detail", "address", "address-edit", "units", "unit-edit", "my-devices", "device-edit", "progress-apply-list"]
+      "packages": ["profile-edit", "my-orders", "order-detail", "address", "address-edit", "units", "unit-edit", "my-devices", "device-edit", "progress-apply-list", "agreement", "account-cancel"]
     }
   },
   "window": {

@@ -31,8 +31,8 @@ html, body {
   background: #c0c4cc;
 }
 
-// 暗色模式
-.dark {
+// 暗色模式（dark 类挂在 <html> 上，需用 html.dark 匹配）
+html.dark {
   html, body {
     background: #121212;
     color: #e0e0e0;

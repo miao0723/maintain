@@ -408,6 +408,31 @@ const userApi = {
   // 绑定微信手机号（传入 getPhoneNumber 返回的 code，后端解密并写库）
   bindPhone(code) {
     return request('/user/bind-phone', 'POST', { code });
+  },
+
+  /**
+   * 注销前置检查：返回未完成的业务（阻断项）与账号资产概览
+   * GET /user/delete-account/check
+   */
+  checkDeletable(options = {}) {
+    return request('/user/delete-account/check', 'GET', null, {
+      suppressErrorToast: true,
+      ...options
+    });
+  },
+
+  /**
+   * 注销账号（不可逆）
+   * 说明：后端在存在未完业务时返回 409 + blockers 明细，
+   * 这里用 resolveOnHttpError 把该响应体 resolve 出来（而不是 reject），
+   * 便于页面直接渲染「拦截提示 + 去处理入口」。
+   */
+  deleteAccount() {
+    return request('/user/delete-account', 'DELETE', null, {
+      suppressErrorToast: true,
+      resolveOnHttpError: true,
+      timeout: 20000
+    });
   }
 };
 

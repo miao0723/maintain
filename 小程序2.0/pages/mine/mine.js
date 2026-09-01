@@ -3,6 +3,7 @@ const { DEFAULT_AVATAR_URL: defaultAvatarUrl, normalizeAvatarUrl } = require('..
 
 const { userApi, request } = require('../../utils/api.js')
 const { getUnreadProgressOrders, syncProgressUnreadState } = require('../../utils/progressUnread.js')
+const { buildProfileView } = require('../../utils/profileUtils.js')
 const {
   CACHE_KEYS,
   CACHE_TTL,
@@ -17,6 +18,12 @@ Page({
       avatarUrl: defaultAvatarUrl,
       nickName: '游客'
     },
+    // 个人资料展示：角色以中英文映射展示，手机号中间四位掩码
+    roleText: '',
+    roleIcon: '👤',
+    roleTheme: 'user',
+    maskedPhone: '',
+    hasPhone: false,
     orderCount: {
       pending: 0,
       processing: 0,
@@ -100,6 +107,17 @@ Page({
         nextData.isInternal = localUserInfo.role === 'internal'
       }
     }
+
+    // 角色中英文映射 + 手机号掩码（优先用缓存的角色/手机号，缺失时回退本地存储）
+    const localForView = wx.getStorageSync('userInfo') || {}
+    const roleForView = (userCache.hasCache && userCache.data && userCache.data.userInfo && userCache.data.userInfo.role) || localForView.role || ''
+    const phoneForView = (userCache.hasCache && userCache.data && userCache.data.userInfo && userCache.data.userInfo.phone) || localForView.phone || ''
+    const viewForCache = buildProfileView({ role: roleForView, phone: phoneForView })
+    nextData.roleText = viewForCache.roleText
+    nextData.roleIcon = viewForCache.roleIcon
+    nextData.roleTheme = viewForCache.roleTheme
+    nextData.maskedPhone = viewForCache.maskedPhone
+    nextData.hasPhone = viewForCache.hasPhone
 
     if (orderCache.hasCache && orderCache.data) {
       nextData.orderCount = orderCache.data.orderCount || this.data.orderCount
@@ -359,12 +377,17 @@ Page({
         // 以数据库数据为准，拉取最新头像和昵称
         await this.fetchUserInfoFromAPI(force)
       } else {
-        // 未登录状态
+        // 未登录状态：清空个人资料展示（角色徽标 + 掩码手机号）
         this.setData({
           userInfo: {
             avatarUrl: defaultAvatarUrl,
             nickName: '游客'
-          }
+          },
+          roleText: '',
+          roleIcon: '👤',
+          roleTheme: 'user',
+          maskedPhone: '',
+          hasPhone: false
         })
       }
       return
@@ -391,7 +414,10 @@ Page({
           return {
             userInfo: {
               avatarUrl: normalizeAvatarUrl(profile.avatar_url || profile.avatarUrl),
-              nickName: profile.nickname || '微信用户'
+              nickName: profile.nickname || '微信用户',
+              // 供缓存恢复时直接做角色映射与手机号掩码，避免角色徽标闪成默认值
+              role: profile.role || 'user',
+              phone: profile.phone || ''
             },
             isAdmin: profile.role === 'super_admin' || profile.role === 'admin',
             isInternal: profile.role === 'internal',
@@ -415,10 +441,18 @@ Page({
         app.globalData.userInfo = storedUser
         wx.setStorageSync('userInfo', storedUser)
 
+        // 个人资料展示视图：角色中英文映射 + 手机号掩码
+        const profileView = buildProfileView(storedUser)
+
         this.setData({
           userInfo: userInfo.userInfo,
           isAdmin: !!userInfo.isAdmin,
-          isInternal: !!userInfo.isInternal
+          isInternal: !!userInfo.isInternal,
+          roleText: profileView.roleText,
+          roleIcon: profileView.roleIcon,
+          roleTheme: profileView.roleTheme,
+          maskedPhone: profileView.maskedPhone,
+          hasPhone: profileView.hasPhone
         })
       }
     } catch (error) {
@@ -426,13 +460,19 @@ Page({
       // 如果API失败，回退到本地存储的用户信息
       const localUserInfo = wx.getStorageSync('userInfo')
       if (localUserInfo) {
+        const fallbackView = buildProfileView(localUserInfo)
         this.setData({
           userInfo: {
             avatarUrl: normalizeAvatarUrl(localUserInfo.avatar_url || localUserInfo.avatarUrl),
             nickName: localUserInfo.nickname || localUserInfo.nickName || '游客'
           },
           isAdmin: localUserInfo.role === 'super_admin' || localUserInfo.role === 'admin',
-          isInternal: localUserInfo.role === 'internal'
+          isInternal: localUserInfo.role === 'internal',
+          roleText: fallbackView.roleText,
+          roleIcon: fallbackView.roleIcon,
+          roleTheme: fallbackView.roleTheme,
+          maskedPhone: fallbackView.maskedPhone,
+          hasPhone: fallbackView.hasPhone
         })
       }
     } finally {
@@ -1298,78 +1338,44 @@ Page({
   },
 
   /**
+   * 查看协议全文（用户协议 / 隐私政策 / 账号注销协议）
+   * 独立页面承载完整条款，避免 showModal 截断长文本
+   */
+  goToAgreement(e) {
+    const type = (e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.type) || 'user'
+    wx.navigateTo({
+      url: `/pages/agreement/agreement?type=${type}`
+    })
+  },
+
+  /**
    * 用户协议
    */
   showUserAgreement() {
-    wx.showModal({
-      title: '用户协议',
-      content: '欢迎使用电子维修服务平台！\n\n1. 本平台提供电子设备维修信息发布与对接服务。\n2. 用户应确保提交的维修信息真实有效。\n3. 维修价格仅供参考，最终价格以实际检测为准。\n4. 用户应遵守相关法律法规，文明使用平台。\n5. 本平台有权对违规用户进行限制处理。\n\n如有疑问请联系客服。',
-      showCancel: false,
-      confirmText: '我已知晓'
-    })
+    this.goToAgreement({ currentTarget: { dataset: { type: 'user' } } })
   },
 
   /**
    * 隐私政策
    */
   showPrivacyPolicy() {
-    wx.showModal({
-      title: '隐私政策',
-      content: '我们重视您的隐私保护：\n\n1. 个人信息仅用于提供服务，不会出售给第三方。\n2. 位置信息仅在您授权时使用，用于地址选择功能。\n3. 相机/相册权限仅用于上传维修照片和头像。\n4. 您可随时在设置中关闭通知权限。\n5. 注销账号后，我们将删除您的所有个人数据。\n\n如有疑问请联系客服。',
-      showCancel: false,
-      confirmText: '我已知晓'
-    })
+    this.goToAgreement({ currentTarget: { dataset: { type: 'privacy' } } })
   },
 
   /**
-   * 注销账号确认
+   * 注销账号：跳转独立的注销页
+   * 注销为不可逆操作，流程（未完业务拦截 → 协议确认 → 二次弹窗强确认 → 输入「注销」）
+   * 全部在 pages/account-cancel 页面完成，此处不做删除动作，避免设置面板内误触。
    */
   showDeleteAccountConfirm() {
-    wx.showModal({
-      title: '注销账号',
-      content: '注销后您的所有数据将被永久删除，无法恢复！\n\n如有未完成的订单，请先处理完毕。\n\n确定要注销账号吗？',
-      confirmText: '确认注销',
-      confirmColor: '#ff4757',
-      success: (res) => {
-        if (res.confirm) {
-          this.deleteAccount()
-        }
-      }
-    })
-  },
-
-  /**
-   * 执行注销账号
-   */
-  async deleteAccount() {
-    wx.showLoading({ title: '注销中...' })
-    try {
-      const app = getApp()
-      const token = wx.getStorageSync('token')
-
-      // 与订单列表同源（本地优先候选地址）
-      const res = await request('/user/delete-account', 'DELETE', null, { suppressErrorToast: true })
-
-      wx.hideLoading()
-
-      if (res && res.success) {
-        // 清除本地所有数据
-        wx.clearStorageSync()
-        app.globalData.isLoggedIn = false
-        app.globalData.userInfo = null
-
-        wx.showToast({ title: '账号已注销', icon: 'success' })
-        setTimeout(() => {
-          wx.redirectTo({ url: '/pages/welcome/welcome' })
-        }, 1500)
-      } else {
-        wx.showToast({ title: res?.error || '注销失败', icon: 'none' })
-      }
-    } catch (error) {
-      wx.hideLoading()
-      console.error('注销账号失败:', error)
-      wx.showToast({ title: '注销失败，请稍后重试', icon: 'none' })
+    const app = getApp()
+    if (!app.globalData.isLoggedIn && !wx.getStorageSync('token')) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
     }
+    wx.navigateTo({
+      url: '/pages/account-cancel/account-cancel'
+    })
   },
 
   /**

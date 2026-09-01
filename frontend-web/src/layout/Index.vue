@@ -64,8 +64,11 @@
           <el-popover
             v-model:visible="noticeVisible"
             placement="bottom-end"
-            :width="360"
+            :width="380"
             trigger="click"
+            popper-class="notice-popper"
+            :offset="8"
+            :show-arrow="false"
             @show="onNoticeShow"
           >
             <template #reference>
@@ -78,20 +81,21 @@
 
             <div class="notice-panel">
               <div class="notice-panel-header">
-                <span class="notice-title">消息通知</span>
-                <div class="notice-actions">
-                  <el-link
-                    v-if="unreadCount > 0"
-                    type="primary"
-                    :underline="false"
-                    @click="handleMarkAllAsRead"
-                  >全部已读</el-link>
-                  <el-link type="info" :underline="false" @click="goToNotifications">查看全部</el-link>
+                <div class="notice-title">
+                  <span>消息通知</span>
+                  <span v-if="unreadCount > 0" class="notice-count">{{ unreadCount > 99 ? '99+' : unreadCount }} 条未读</span>
                 </div>
+                <el-link
+                  v-if="unreadCount > 0"
+                  type="primary"
+                  :underline="false"
+                  class="notice-mark-all"
+                  @click="handleMarkAllAsRead"
+                >全部已读</el-link>
               </div>
 
               <el-tabs v-model="noticeTab" class="notice-tabs">
-                <el-tab-pane label="未读" name="unread">
+                <el-tab-pane :label="unreadList.length ? `未读 (${unreadList.length})` : '未读'" name="unread">
                   <div v-if="unreadList.length" class="notice-list">
                     <div
                       v-for="item in unreadList"
@@ -129,6 +133,13 @@
                   <el-empty v-else :image-size="60" description="暂无历史消息" />
                 </el-tab-pane>
               </el-tabs>
+
+              <div class="notice-panel-footer">
+                <el-button text type="primary" size="small" class="notice-view-all" @click="goToNotifications">
+                  查看全部消息
+                  <el-icon class="notice-view-all-icon"><ArrowRight /></el-icon>
+                </el-button>
+              </div>
             </div>
           </el-popover>
 
@@ -222,6 +233,7 @@ import {
   Fold,
   Expand,
   ArrowDown,
+  ArrowRight,
   Lock,
   SwitchButton,
   Sunny,
@@ -383,6 +395,7 @@ const toggleCollapse = () => {
 
 // 跳转到通知页面
 const goToNotifications = () => {
+  noticeVisible.value = false
   router.push({ name: 'Notifications' })
 }
 
@@ -558,110 +571,15 @@ const handlePasswordSubmit = async () => {
 
     .notice-badge {
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
 
       .header-icon {
         font-size: 20px;
 
         &:hover {
           color: #409eff;
-        }
-      }
-    }
-
-    // 通知下拉面板
-    .notice-panel {
-      .notice-panel-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #f0f0f0;
-
-        .notice-title {
-          font-size: 15px;
-          font-weight: 600;
-          color: #303133;
-        }
-
-        .notice-actions {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-      }
-
-      .notice-tabs {
-        :deep(.el-tabs__header) {
-          margin-top: 8px;
-          margin-bottom: 4px;
-        }
-
-        .notice-list {
-          max-height: 360px;
-          overflow-y: auto;
-        }
-
-        .notice-item {
-          display: flex;
-          align-items: flex-start;
-          padding: 10px 8px;
-          border-bottom: 1px solid #f5f5f5;
-          cursor: pointer;
-          position: relative;
-          transition: background 0.2s;
-
-          &:hover {
-            background: #f5f7fa;
-          }
-
-          &.unread {
-            background: #fbfcff;
-          }
-
-          .notice-item-icon {
-            font-size: 18px;
-            color: #409eff;
-            margin-right: 10px;
-            margin-top: 2px;
-          }
-
-          .notice-item-body {
-            flex: 1;
-            min-width: 0;
-
-            .notice-item-title {
-              font-size: 14px;
-              font-weight: 500;
-              color: #303133;
-              margin-bottom: 2px;
-            }
-
-            .notice-item-content {
-              font-size: 13px;
-              color: #606266;
-              line-height: 1.5;
-              display: -webkit-box;
-              -webkit-line-clamp: 2;
-              -webkit-box-orient: vertical;
-              overflow: hidden;
-            }
-
-            .notice-item-time {
-              font-size: 12px;
-              color: #909399;
-              margin-top: 4px;
-            }
-          }
-
-          .notice-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #f56c6c;
-            position: absolute;
-            top: 14px;
-            right: 4px;
-          }
         }
       }
     }
@@ -747,5 +665,301 @@ const handlePasswordSubmit = async () => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+</style>
+
+<!--
+  通知面板会随 el-popover 一起被传送（teleport）到 body 下，
+  因此样式必须写在非 scoped 的样式块中，否则不会生效（面板会被撑开、溢出到系统可视区之外）。
+-->
+<style lang="scss">
+.el-popper.notice-popper {
+  padding: 0 !important;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.notice-popper {
+  .notice-panel {
+    display: flex;
+    flex-direction: column;
+    // 面板总高度上限：不超过视口，避免消息过多时撑出屏幕
+    // （第一行为老浏览器兜底，不支持 min() 时忽略第二行）
+    max-height: 520px;
+    max-height: min(520px, calc(100vh - 90px));
+    box-sizing: border-box;
+  }
+
+  .notice-panel-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fff;
+
+    .notice-title {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #303133;
+    }
+
+    .notice-count {
+      font-size: 12px;
+      font-weight: 400;
+      color: #f56c6c;
+      background: #fef0f0;
+      border-radius: 10px;
+      padding: 1px 8px;
+      line-height: 18px;
+    }
+
+    .notice-mark-all {
+      font-size: 13px;
+    }
+  }
+
+  .notice-tabs {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0 12px;
+
+    .el-tabs__header {
+      margin: 0;
+      flex: 0 0 auto;
+    }
+
+    .el-tabs__nav-wrap {
+      padding: 0 2px;
+
+      &::after {
+        height: 1px;
+        background-color: #f0f0f0;
+      }
+    }
+
+    .el-tabs__item {
+      height: 38px;
+      line-height: 38px;
+      font-size: 14px;
+    }
+
+    .el-tabs__content {
+      flex: 1 1 auto;
+      min-height: 0;
+      // 真正的滚动容器：面板高度固定，这里内部滚动
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #dcdfe6;
+        border-radius: 3px;
+
+        &:hover {
+          background: #c0c4cc;
+        }
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+    }
+
+    .el-tab-pane {
+      padding-bottom: 4px;
+    }
+  }
+
+  .notice-list {
+    padding: 4px 2px 0;
+  }
+
+  .notice-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 10px 10px 8px;
+    border-bottom: 1px solid #f5f5f5;
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+
+    &:hover {
+      background: #f5f7fa;
+    }
+
+    &.unread {
+      background: #fbfcff;
+
+      .notice-item-title {
+        color: #303133;
+        font-weight: 600;
+      }
+    }
+
+    .notice-item-icon {
+      flex: 0 0 auto;
+      font-size: 18px;
+      color: #409eff;
+      margin-right: 10px;
+      margin-top: 2px;
+    }
+
+    .notice-item-body {
+      flex: 1;
+      min-width: 0;
+
+      .notice-item-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: #303133;
+        margin-bottom: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .notice-item-content {
+        font-size: 13px;
+        color: #606266;
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        word-break: break-word;
+      }
+
+      .notice-item-time {
+        font-size: 12px;
+        color: #909399;
+        margin-top: 4px;
+      }
+    }
+
+    .notice-dot {
+      flex: 0 0 auto;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #f56c6c;
+      margin: 5px 0 0 8px;
+    }
+  }
+
+  .el-empty {
+    padding: 24px 0;
+  }
+
+  .notice-panel-footer {
+    flex: 0 0 auto;
+    border-top: 1px solid #f0f0f0;
+    text-align: center;
+    background: #fff;
+
+    .notice-view-all {
+      width: 100%;
+      height: 40px;
+      margin: 0;
+      font-size: 13px;
+
+      .notice-view-all-icon {
+        margin-left: 2px;
+        transition: transform 0.2s;
+      }
+
+      &:hover .notice-view-all-icon {
+        transform: translateX(2px);
+      }
+    }
+  }
+}
+
+// 暗色模式下的通知面板
+html.dark {
+  .el-popper.notice-popper {
+    background: #1f1f1f;
+    border-color: #2c2c2c;
+  }
+
+  .notice-popper {
+    .notice-panel-header {
+      background: #1f1f1f;
+      border-bottom-color: #2c2c2c;
+
+      .notice-title {
+        color: #e5eaf3;
+      }
+
+      .notice-count {
+        color: #f78989;
+        background: rgba(245, 108, 108, 0.16);
+      }
+    }
+
+    .notice-tabs {
+      .el-tabs__item {
+        color: #c0c4cc;
+
+        &.is-active {
+          color: #409eff;
+        }
+      }
+
+      .el-tabs__nav-wrap::after {
+        background-color: #2c2c2c;
+      }
+
+      .el-tabs__content::-webkit-scrollbar-thumb {
+        background: #4c4d4f;
+      }
+    }
+
+    .notice-item {
+      border-bottom-color: #2c2c2c;
+
+      &:hover {
+        background: #262626;
+      }
+
+      &.unread {
+        background: rgba(64, 158, 255, 0.08);
+
+        &:hover {
+          background: rgba(64, 158, 255, 0.14);
+        }
+      }
+
+      .notice-item-title {
+        color: #e5eaf3;
+      }
+
+      .notice-item-content {
+        color: #a3a6ad;
+      }
+
+      .notice-item-time {
+        color: #7b7f87;
+      }
+    }
+
+    .notice-panel-footer {
+      background: #1f1f1f;
+      border-top-color: #2c2c2c;
+    }
+  }
 }
 </style>

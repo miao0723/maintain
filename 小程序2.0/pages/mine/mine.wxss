@@ -256,12 +256,99 @@
   z-index: 1;
 }
 
+.user-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .user-name {
   font-size: 36rpx;
   font-weight: 700;
   color: #223548;
   margin-bottom: 6rpx;
   letter-spacing: 0.5rpx;
+}
+
+/* 角色徽标：中文 / 英文 双标识映射展示 */
+.role-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 14rpx;
+  margin-bottom: 6rpx;
+  padding: 5rpx 16rpx;
+  border-radius: 20rpx;
+  background: #eef3f8;
+  border: 1rpx solid rgba(200, 214, 228, 0.9);
+}
+
+.role-icon {
+  font-size: 20rpx;
+  margin-right: 6rpx;
+}
+
+.role-text {
+  font-size: 21rpx;
+  color: #4f6b84;
+  font-weight: 500;
+}
+
+.role-tag.role-internal {
+  background: #eef7f1;
+  border-color: rgba(190, 226, 205, 0.9);
+}
+
+.role-tag.role-internal .role-text {
+  color: #3f7a5a;
+}
+
+.role-tag.role-repair {
+  background: #fdf3e7;
+  border-color: rgba(240, 219, 184, 0.9);
+}
+
+.role-tag.role-repair .role-text {
+  color: #a3702a;
+}
+
+.role-tag.role-admin,
+.role-tag.role-super-admin {
+  background: #f3eefb;
+  border-color: rgba(219, 205, 240, 0.9);
+}
+
+.role-tag.role-admin .role-text,
+.role-tag.role-super-admin .role-text {
+  color: #6b4fa3;
+}
+
+/* 掩码手机号 */
+.user-phone-row {
+  display: flex;
+  align-items: center;
+  margin-top: -8rpx;
+  margin-bottom: 14rpx;
+}
+
+.phone-icon {
+  font-size: 20rpx;
+  margin-right: 6rpx;
+}
+
+.user-phone {
+  font-size: 24rpx;
+  color: #40556b;
+  letter-spacing: 1rpx;
+  font-weight: 500;
+}
+
+.phone-mask-tip {
+  margin-left: 10rpx;
+  font-size: 18rpx;
+  color: #8a98a8;
+  background: #f1f5f8;
+  padding: 2rpx 10rpx;
+  border-radius: 14rpx;
 }
 
 .user-idline {

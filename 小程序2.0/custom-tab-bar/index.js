@@ -18,6 +18,19 @@ Component({
     progressUnreadCount: 0,
     badgeTotal: 0
   },
+  // 监听 selected：无论由哪个 tab 页 onShow 设置，阴影滑块都自动重新定位，
+  // 避免「图标高亮与阴影错位」（如：主页图标亮、阴影却停在客服）
+  observers: {
+    'selected'(selected) {
+      this._calcSlider(selected, false);
+    }
+  },
+  lifetimes: {
+    ready() {
+      // 首屏/组件就绪后定位一次，确保初始阴影位置正确
+      this._calcSlider(this.data.selected, false);
+    }
+  },
   pageLifetimes: {
     show() {
       this._restoreBadgeFromCache();

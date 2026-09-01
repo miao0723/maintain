@@ -1,0 +1,403 @@
+/* pages/account-cancel/account-cancel.wxss - light theme */
+.page-container {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+/* 不可逆警告 */
+.warn-banner {
+  display: flex;
+  align-items: flex-start;
+  background: #fff2f0;
+  border: 1rpx solid #ffd3cc;
+  border-radius: 18rpx;
+  padding: 26rpx 24rpx;
+}
+
+.warn-icon {
+  font-size: 36rpx;
+  margin-right: 16rpx;
+  line-height: 1.4;
+}
+
+.warn-copy {
+  flex: 1;
+}
+
+.warn-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #c8452f;
+}
+
+.warn-desc {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 25rpx;
+  line-height: 1.7;
+  color: #a05a4d;
+}
+
+/* 通用卡片 */
+.card {
+  margin-top: 24rpx;
+  background: #ffffff;
+  border-radius: 20rpx;
+  padding: 28rpx 26rpx;
+  box-shadow: 0 4rpx 20rpx rgba(15, 34, 58, 0.06);
+}
+
+.card-title {
+  display: block;
+  font-size: 29rpx;
+  font-weight: 600;
+  color: #1f2d3d;
+  margin-bottom: 20rpx;
+}
+
+/* 账号概要 */
+.profile-row {
+  display: flex;
+  align-items: center;
+}
+
+.profile-avatar {
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 52rpx;
+  background: #eef2f6;
+  margin-right: 22rpx;
+}
+
+.profile-main {
+  flex: 1;
+}
+
+.profile-name {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1f2d3d;
+}
+
+/* 角色中英文映射徽标 */
+.role-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 12rpx;
+  padding: 6rpx 18rpx;
+  border-radius: 24rpx;
+  background: #eef4fb;
+  border: 1rpx solid #d6e3f0;
+}
+
+.role-icon {
+  font-size: 22rpx;
+  margin-right: 8rpx;
+}
+
+.role-text {
+  font-size: 24rpx;
+  color: #4f6b84;
+}
+
+.role-tag.role-internal {
+  background: #eef7f1;
+  border-color: #d2e9dc;
+}
+.role-tag.role-internal .role-text { color: #3f7a5a; }
+
+.role-tag.role-repair {
+  background: #fdf3e7;
+  border-color: #f3e0c4;
+}
+.role-tag.role-repair .role-text { color: #a3702a; }
+
+.role-tag.role-admin,
+.role-tag.role-super-admin {
+  background: #f3eefb;
+  border-color: #e0d4f5;
+}
+.role-tag.role-admin .role-text,
+.role-tag.role-super-admin .role-text { color: #6b4fa3; }
+
+.profile-meta {
+  display: flex;
+  margin-top: 24rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #eef1f5;
+}
+
+.meta-item {
+  flex: 1;
+}
+
+.meta-label {
+  display: block;
+  font-size: 22rpx;
+  color: #94a3b4;
+}
+
+.meta-value {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 28rpx;
+  color: #2c3e50;
+  letter-spacing: 1rpx;
+}
+
+.privacy-tip {
+  margin-top: 18rpx;
+  background: #f6f9fc;
+  border-radius: 12rpx;
+  padding: 14rpx 18rpx;
+}
+
+.privacy-tip-text {
+  font-size: 22rpx;
+  color: #7b8b9c;
+}
+
+/* 拦截项 */
+.danger-card {
+  border: 1rpx solid #ffd9d2;
+}
+
+.danger-title {
+  color: #c8452f;
+}
+
+.blocker-item {
+  background: #fff8f7;
+  border-radius: 14rpx;
+  padding: 20rpx 22rpx;
+  margin-bottom: 16rpx;
+}
+
+.blocker-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.blocker-label {
+  font-size: 27rpx;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.blocker-count {
+  font-size: 24rpx;
+  color: #c8452f;
+}
+
+.blocker-tip {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #7b6a66;
+}
+
+.blocker-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 12rpx;
+}
+
+.blocker-action-text {
+  font-size: 25rpx;
+  color: #4f6b84;
+}
+
+.blocker-arrow {
+  font-size: 28rpx;
+  color: #4f6b84;
+  margin-left: 6rpx;
+}
+
+.blocked-hint {
+  font-size: 23rpx;
+  color: #a3847d;
+  line-height: 1.6;
+}
+
+/* 提示项 */
+.notice-item {
+  padding: 12rpx 0;
+}
+
+.notice-label {
+  font-size: 26rpx;
+  color: #2c3e50;
+}
+
+.notice-count {
+  font-size: 24rpx;
+  color: #b07d1f;
+  margin-left: 10rpx;
+}
+
+.notice-tip {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 23rpx;
+  color: #8b8b7a;
+  line-height: 1.6;
+}
+
+.loading-card {
+  text-align: center;
+}
+
+.loading-text {
+  font-size: 26rpx;
+  color: #7b8b9c;
+}
+
+/* 数据概览 */
+.asset-grid {
+  display: flex;
+}
+
+.asset-item {
+  flex: 1;
+  text-align: center;
+}
+
+.asset-value {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #4f6b84;
+}
+
+.asset-label {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 23rpx;
+  color: #8b9aab;
+}
+
+/* 数据清单 */
+.data-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f2f5f8;
+}
+
+.data-item:last-child {
+  border-bottom: none;
+}
+
+.data-icon {
+  font-size: 30rpx;
+  margin-right: 16rpx;
+  line-height: 1.5;
+}
+
+.data-copy {
+  flex: 1;
+}
+
+.data-label {
+  display: block;
+  font-size: 27rpx;
+  color: #2c3e50;
+}
+
+.data-desc {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 23rpx;
+  color: #8b9aab;
+  line-height: 1.6;
+}
+
+/* 协议勾选 */
+.agreement-box {
+  margin-top: 24rpx;
+  background: #ffffff;
+  border-radius: 20rpx;
+  padding: 24rpx 26rpx;
+  box-shadow: 0 4rpx 20rpx rgba(15, 34, 58, 0.06);
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.checkbox {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 10rpx;
+  border: 2rpx solid #c8d3de;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4rpx;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.checkbox.checked {
+  background: #4f6b84;
+  border-color: #4f6b84;
+}
+
+.check-mark {
+  color: #ffffff;
+  font-size: 24rpx;
+  line-height: 1;
+}
+
+.agreement-copy {
+  flex: 1;
+  font-size: 25rpx;
+  line-height: 1.8;
+  color: #4a5b6d;
+}
+
+.agreement-text {
+  color: #4a5b6d;
+}
+
+.agreement-link {
+  color: #4f6b84;
+  font-weight: 600;
+}
+
+/* 底部操作 */
+.bottom-action {
+  margin-top: 36rpx;
+}
+
+.cancel-btn {
+  width: 100%;
+  height: 92rpx;
+  line-height: 92rpx;
+  background: #e04b3a;
+  color: #ffffff;
+  font-size: 30rpx;
+  border-radius: 46rpx;
+}
+
+.cancel-btn::after {
+  border: none;
+}
+
+.cancel-btn.disabled {
+  background: #c3ccd6;
+  color: #f3f6f9;
+}
+
+.bottom-space {
+  height: 60rpx;
+}

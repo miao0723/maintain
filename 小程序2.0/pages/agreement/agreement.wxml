@@ -1,0 +1,29 @@
+<!--pages/agreement/agreement.wxml-->
+<view class="page-container">
+  <view class="doc-header">
+    <text class="doc-title">{{doc.title}}</text>
+    <text class="doc-subtitle">{{doc.subtitle}}</text>
+    <text class="doc-updated">更新日期：{{doc.updatedAt}}</text>
+  </view>
+
+  <view class="doc-intro">
+    <text class="intro-text">{{doc.intro}}</text>
+  </view>
+
+  <view class="doc-body">
+    <view class="doc-section" wx:for="{{doc.sections}}" wx:key="title">
+      <text class="section-title">{{item.title}}</text>
+      <text class="section-p" wx:for="{{item.paragraphs}}" wx:for-item="p" wx:key="*this">{{p}}</text>
+    </view>
+  </view>
+
+  <view class="doc-footer" wx:if="{{type === 'cancel'}}">
+    <text class="footer-warn">注销为不可逆操作，请确认已了解上述全部后果。</text>
+  </view>
+
+  <view class="bottom-action" wx:if="{{from === 'cancel'}}">
+    <button class="agree-btn" bindtap="onAgree">我已阅读并同意</button>
+  </view>
+
+  <view class="bottom-space"></view>
+</view>

@@ -1,0 +1,148 @@
+<!--pages/account-cancel/account-cancel.wxml-->
+<view class="page-container">
+  <!-- 不可逆警告 -->
+  <view class="warn-banner">
+    <text class="warn-icon">⚠️</text>
+    <view class="warn-copy">
+      <text class="warn-title">注销为不可逆操作</text>
+      <text class="warn-desc">注销成功后数据无法恢复，也无法再次使用该账号登录，请谨慎操作。</text>
+    </view>
+  </view>
+
+  <!-- 账号概要（角色中英文映射 + 手机号掩码） -->
+  <view class="card profile-card">
+    <view class="card-title">当前账号</view>
+    <view class="profile-row">
+      <image class="profile-avatar" src="{{profile.avatarUrl}}" mode="aspectFill"></image>
+      <view class="profile-main">
+        <text class="profile-name">{{profile.nickName}}</text>
+        <view class="role-tag role-{{profile.roleTheme}}">
+          <text class="role-icon">{{profile.roleIcon}}</text>
+          <text class="role-text">{{profile.roleText}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="profile-meta">
+      <view class="meta-item">
+        <text class="meta-label">手机号</text>
+        <text class="meta-value">{{profile.hasPhone ? profile.maskedPhone : '未绑定'}}</text>
+      </view>
+      <view class="meta-item" wx:if="{{profile.createdAtText}}">
+        <text class="meta-label">注册时间</text>
+        <text class="meta-value">{{profile.createdAtText}}</text>
+      </view>
+    </view>
+    <view class="privacy-tip">
+      <text class="privacy-tip-text">手机号已做中间四位掩码处理，保护您的隐私安全</text>
+    </view>
+  </view>
+
+  <!-- 未完业务拦截 -->
+  <view class="card danger-card" wx:if="{{blockers.length > 0}}">
+    <view class="card-title danger-title">检测到未完成的业务（{{blockers.length}} 项）</view>
+    <view class="blocker-list">
+      <view class="blocker-item" wx:for="{{blockers}}" wx:key="key">
+        <view class="blocker-head">
+          <text class="blocker-label">{{item.label}}</text>
+          <text class="blocker-count">{{item.count}} 项</text>
+        </view>
+        <text class="blocker-tip">{{item.tip}}</text>
+        <view class="blocker-action" data-route="{{item.route}}" bindtap="goHandleBlocker">
+          <text class="blocker-action-text">去处理</text>
+          <text class="blocker-arrow">›</text>
+        </view>
+      </view>
+    </view>
+    <view class="blocked-hint">以上业务处理完毕后方可申请注销，以保障您的交易安全。</view>
+  </view>
+
+  <!-- 提示项（不阻断） -->
+  <view class="card notice-card" wx:if="{{notices.length > 0}}">
+    <view class="card-title">温馨提示</view>
+    <view class="notice-item" wx:for="{{notices}}" wx:key="key">
+      <text class="notice-label">{{item.label}}</text>
+      <text class="notice-count">{{item.count}} 项</text>
+      <text class="notice-tip">{{item.tip}}</text>
+    </view>
+  </view>
+
+  <!-- 加载态 -->
+  <view class="card loading-card" wx:if="{{loading}}">
+    <text class="loading-text">正在检查账号状态...</text>
+  </view>
+
+  <!-- 数据资产概览 -->
+  <view class="card" wx:if="{{!loading}}">
+    <view class="card-title">账号数据概览</view>
+    <view class="asset-grid">
+      <view class="asset-item">
+        <text class="asset-value">{{assets.orders}}</text>
+        <text class="asset-label">历史订单</text>
+      </view>
+      <view class="asset-item">
+        <text class="asset-value">{{assets.devices}}</text>
+        <text class="asset-label">绑定设备</text>
+      </view>
+      <view class="asset-item">
+        <text class="asset-value">{{assets.addresses}}</text>
+        <text class="asset-label">地址</text>
+      </view>
+      <view class="asset-item">
+        <text class="asset-value">{{assets.units}}</text>
+        <text class="asset-label">单位</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 注销后被清除的数据 -->
+  <view class="card">
+    <view class="card-title">注销后将被永久清除</view>
+    <view class="data-item" wx:for="{{clearList}}" wx:key="label">
+      <text class="data-icon">{{item.icon}}</text>
+      <view class="data-copy">
+        <text class="data-label">{{item.label}}</text>
+        <text class="data-desc">{{item.desc}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 注销后依法留档的数据 -->
+  <view class="card">
+    <view class="card-title">注销后依法留档（不随账号删除）</view>
+    <view class="data-item" wx:for="{{keepList}}" wx:key="label">
+      <text class="data-icon">{{item.icon}}</text>
+      <view class="data-copy">
+        <text class="data-label">{{item.label}}</text>
+        <text class="data-desc">{{item.desc}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 协议勾选 -->
+  <view class="agreement-box">
+    <view class="checkbox-row" bindtap="toggleAgreement">
+      <view class="checkbox {{checked ? 'checked' : ''}}">
+        <text class="check-mark" wx:if="{{checked}}">✓</text>
+      </view>
+      <view class="agreement-copy">
+        <text class="agreement-text">我已阅读并同意</text>
+        <text class="agreement-link" data-type="user" catchtap="openAgreement">《用户协议》</text>
+        <text class="agreement-text">与</text>
+        <text class="agreement-link" data-type="cancel" catchtap="openAgreement">《账号注销协议》</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作 -->
+  <view class="bottom-action">
+    <button
+      class="cancel-btn {{canDelete && checked && !loading ? '' : 'disabled'}}"
+      bindtap="onCancelAccount"
+      loading="{{submitting}}"
+      disabled="{{submitting}}">
+      {{blockers.length > 0 ? '存在未完成业务，暂无法注销' : (checked ? '确认注销账号' : '请先同意注销协议')}}
+    </button>
+  </view>
+
+  <view class="bottom-space"></view>
+</view>

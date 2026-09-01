@@ -636,23 +636,218 @@ router.post('/avatar', authenticateToken, upload.single('avatar'), async (req, r
 });
 
 /**
- * 注销账号
+ * 服务端手机号掩码：接口层不返回明文手机号，避免完整号码落入日志与客户端缓存
+ * - 11 位手机号：前三 + **** + 后四
+ * - 其它长度：至少保留首三位与末两位，中间打码
+ */
+function maskPhoneForClient(phone) {
+  const raw = String(phone || '').trim()
+  if (!raw) return ''
+
+  const digits = raw.replace(/\D/g, '')
+  if (digits.length === 11) {
+    return `${digits.slice(0, 3)}****${digits.slice(7)}`
+  }
+  if (digits.length >= 6) {
+    return `${digits.slice(0, 3)}****${digits.slice(-2)}`
+  }
+  if (digits.length > 0) {
+    return `${digits.slice(0, 1)}****`
+  }
+  return ''
+}
+
+/**
+ * 注销前置检查（账号注销与用户协议：未完成业务拦截）
+ * ------------------------------------------------------------------
+ * 与 DELETE /delete-account 共用同一套判定规则，保证「页面提示」与「服务端校验」
+ * 完全一致，避免前端绕过拦截直接调删除接口。
+ *
+ * 阻断项（blockers，存在任意一项即禁止注销）：
+ *  - active_orders      ：进行中的维修/回收订单（pending / quoted / processing / internal_pending）
+ *  - unpaid_orders      ：尚未完成支付的订单（payment_status = 'unpaid'，交易未闭环）
+ *  - pending_after_sale ：待处理/处理中的售后工单
+ * 提示项（notices，不阻断，仅提示）：
+ *  - review_orders      ：已完成待评价订单
+ *  - 资产概览           ：设备/地址/单位/历史订单数量
+ *
+ * GET /api/user/delete-account/check
+ */
+async function buildDeleteAccountReport(userId) {
+  const safeCount = async (sql, params) => {
+    try {
+      const rows = await db.query(sql, params)
+      return Number(rows && rows[0] ? rows[0].total : 0) || 0
+    } catch (err) {
+      // 表不存在/字段缺失时不应阻断注销流程，按 0 处理并记录告警
+      console.warn('[注销检查] 统计失败已忽略:', err.message)
+      return 0
+    }
+  }
+
+  const [
+    activeOrders,
+    internalPending,
+    unpaidOrders,
+    pendingAfterSale,
+    reviewOrders,
+    totalOrders,
+    devices,
+    addresses,
+    units,
+    feedbacks
+  ] = await Promise.all([
+    safeCount(
+      "SELECT COUNT(*) AS total FROM orders WHERE user_id = ? AND status IN ('pending', 'quoted', 'processing')",
+      [userId]
+    ),
+    safeCount(
+      "SELECT COUNT(*) AS total FROM orders WHERE user_id = ? AND status = 'internal_pending'",
+      [userId]
+    ),
+    safeCount(
+      "SELECT COUNT(*) AS total FROM orders WHERE user_id = ? AND payment_status = 'unpaid' AND status NOT IN ('cancelled')",
+      [userId]
+    ),
+    safeCount(
+      "SELECT COUNT(*) AS total FROM after_sales_requests WHERE user_id = ? AND status IN ('pending', 'processing')",
+      [userId]
+    ),
+    safeCount(
+      "SELECT COUNT(*) AS total FROM orders WHERE user_id = ? AND status = 'review'",
+      [userId]
+    ),
+    safeCount('SELECT COUNT(*) AS total FROM orders WHERE user_id = ?', [userId]),
+    safeCount('SELECT COUNT(*) AS total FROM user_devices WHERE user_id = ?', [userId]),
+    safeCount('SELECT COUNT(*) AS total FROM user_addresses WHERE user_id = ?', [userId]),
+    safeCount('SELECT COUNT(*) AS total FROM user_units WHERE user_id = ?', [userId]),
+    safeCount('SELECT COUNT(*) AS total FROM feedback WHERE user_id = ?', [userId])
+  ])
+
+  // 阻断项：含明确跳转入口，供前端「去处理」按钮直达
+  const blockers = []
+  if (activeOrders > 0) {
+    blockers.push({
+      key: 'active_orders',
+      label: '进行中的订单',
+      count: activeOrders,
+      tip: '维修/回收尚未完成，请先等待订单结束或联系客服取消',
+      route: '/pages/orders/orders?status=processing'
+    })
+  }
+  if (internalPending > 0) {
+    blockers.push({
+      key: 'internal_pending',
+      label: '待确认的内部申请',
+      count: internalPending,
+      tip: '内部免付款申请还在确认中，请先联系管理员确认或取消',
+      route: '/pages/orders/orders?status=internal_pending'
+    })
+  }
+  if (unpaidOrders > 0) {
+    blockers.push({
+      key: 'unpaid_orders',
+      label: '待支付订单',
+      count: unpaidOrders,
+      tip: '存在未完成支付的订单，请先完成支付以保障交易安全',
+      route: '/pages/orders/orders?status=quoted'
+    })
+  }
+  if (pendingAfterSale > 0) {
+    blockers.push({
+      key: 'pending_after_sale',
+      label: '处理中的售后工单',
+      count: pendingAfterSale,
+      tip: '售后服务尚未闭环，请等待售后处理完成',
+      route: '/pages/orders/orders?status=completed'
+    })
+  }
+
+  const notices = []
+  if (reviewOrders > 0) {
+    notices.push({
+      key: 'review_orders',
+      label: '待评价订单',
+      count: reviewOrders,
+      tip: '订单已完成，评价后可获得更准确的服务推荐',
+      route: '/pages/orders/orders?status=review'
+    })
+  }
+
+  return {
+    canDelete: blockers.length === 0,
+    blockers,
+    notices,
+    assets: {
+      orders: totalOrders,
+      devices,
+      addresses,
+      units,
+      feedbacks
+    }
+  }
+}
+
+/**
+ * 注销前置检查接口
+ * GET /api/user/delete-account/check
+ */
+router.get('/delete-account/check', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId
+
+    const [report, userRows] = await Promise.all([
+      buildDeleteAccountReport(userId),
+      db
+        .query('SELECT id, nickname, phone, role, created_at FROM users WHERE id = ?', [userId])
+        .catch(() => [])
+    ])
+
+    const user = userRows && userRows[0] ? userRows[0] : null
+
+    res.json({
+      success: true,
+      canDelete: report.canDelete,
+      blockers: report.blockers,
+      notices: report.notices,
+      assets: report.assets,
+      user: user
+        ? {
+            id: user.id,
+            nickname: user.nickname || '',
+            // 服务端同样做掩码：接口层不返回完整手机号，避免明文落日志/落缓存
+            phone_masked: maskPhoneForClient(user.phone),
+            has_phone: !!user.phone,
+            role: user.role,
+            created_at: user.created_at
+          }
+        : null
+    })
+  } catch (error) {
+    console.error('注销前置检查错误:', error)
+    res.status(500).json({ success: false, error: '注销检查失败，请稍后重试' })
+  }
+})
+
+/**
+ * 注销账号（不可逆操作）
  * DELETE /api/user/delete-account
+ * 前置校验与 /check 完全一致：存在未完成业务时返回 409 + blockers 明细，
+ * 前端据此展示拦截提示，不执行任何删除。
  */
 router.delete('/delete-account', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    // 检查是否有进行中的订单
-    const activeOrders = await db.query(
-      "SELECT id FROM orders WHERE user_id = ? AND status IN ('pending', 'processing', 'quoted')",
-      [userId]
-    );
-
-    if (activeOrders.length > 0) {
-      return res.status(400).json({
+    // 未完成业务拦截（与 GET /delete-account/check 同一套规则）
+    const report = await buildDeleteAccountReport(userId);
+    if (!report.canDelete) {
+      return res.status(409).json({
         success: false,
-        error: '您有进行中的订单，请先处理完毕后再注销账号'
+        error: '存在未完成的业务，暂时无法注销账号',
+        blockers: report.blockers,
+        notices: report.notices,
+        assets: report.assets
       });
     }
 
@@ -663,14 +858,23 @@ router.delete('/delete-account', authenticateToken, async (req, res) => {
     await db.query('DELETE FROM user_addresses WHERE user_id = ?', [userId]);
     // 3. 删除单位
     await db.query('DELETE FROM user_units WHERE user_id = ?', [userId]);
-    // 4. 将用户订单的 user_id 置空（保留订单记录用于统计）
+    // 4. 删除个人反馈记录（用户主动注销应清除其个人数据；管理员回复随记录一并移除）
+    try {
+      await db.query('DELETE FROM feedback WHERE user_id = ?', [userId]);
+    } catch (e) {
+      console.warn('[注销] 清理反馈记录失败已忽略:', e.message);
+    }
+    // 5. 将用户订单的 user_id 置空（保留订单记录用于统计与售后追溯）
     await db.query('UPDATE orders SET user_id = NULL WHERE user_id = ?', [userId]);
-    // 5. 删除用户
+    // 6. 删除用户
     await db.query('DELETE FROM users WHERE id = ?', [userId]);
+
+    console.log(`[注销] 用户 ${userId} 已注销，归档订单/清理资产:`, report.assets);
 
     res.json({
       success: true,
-      message: '账号已注销'
+      message: '账号已注销',
+      archived: report.assets
     });
   } catch (error) {
     console.error('注销账号错误:', error);
