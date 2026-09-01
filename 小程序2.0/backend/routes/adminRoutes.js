@@ -383,7 +383,7 @@ router.get('/my-orders', authenticateToken, async (req, res) => {
     if (countResult && countResult[0]) {
       total.total = countResult[0].total;
     }
-    orders = (orders || []).map(order => {
+    const formattedOrders = (orders || []).map(order => {
       const assignedDisplayName = order.assigned_name || order.assigned_real_name || '';
       return {
         id: order.id,
@@ -417,12 +417,12 @@ router.get('/my-orders', authenticateToken, async (req, res) => {
       };
     });
 
-    console.log('[我的订单查询成功] 返回', orders.length, '条订单，总计', total.total, '条');
+    console.log('[我的订单查询成功] 返回', formattedOrders.length, '条订单，总计', total.total, '条');
 
     res.json({
       success: true,
       data: {
-        orders,
+        orders: formattedOrders,
         total: total.total,
         page,
         pageSize
