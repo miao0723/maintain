@@ -257,6 +257,13 @@ Route::group('api', function () {
         Route::post('statistics/expense/summary', 'StatisticsController/generateExpenseSummary');
         Route::get('statistics/orders', 'StatisticsController/orders');
         Route::get('statistics/repair/analysis', 'RepairStatisticsController/analysis');
+        // 小程序订单增值费用（检测费等）- repair 库 order_service_fees
+        Route::group('repair/service-fees', function () {
+            Route::get('/', 'RepairServiceFeeController/index');
+            Route::post('/', 'RepairServiceFeeController/save');
+            Route::put('/:id/pay', 'RepairServiceFeeController/pay');
+            Route::delete('/:id', 'RepairServiceFeeController/delete');
+        });
         Route::get('statistics/repair/orders', 'RepairStatisticsController/orders');
         Route::get('statistics/repair/finance', 'RepairStatisticsController/finance');
         Route::get('statistics/repair/personnel', 'RepairStatisticsController/personnel');
@@ -815,6 +822,12 @@ Route::group('api', function () {
             Route::group('refunds', function () {
                 Route::get('/', 'RepairTransactionController/refunds');
                 Route::put('/:id', 'RepairTransactionController/reviewRefund');
+            });
+
+            // 支付配置（repair 库 system_config）
+            Route::group('config', function () {
+                Route::get('/', 'PaymentConfigController/index');
+                Route::put('/', 'PaymentConfigController/save');
             });
 
             // 转账支付

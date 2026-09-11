@@ -42,3 +42,67 @@ export function reviewRefund(id, data) {
     data
   })
 }
+
+/**
+ * 读取支付配置（repair 库 system_config）
+ */
+export function getPaymentConfig() {
+  return request({
+    url: '/payment/config',
+    method: 'get'
+  })
+}
+
+/**
+ * 保存支付配置
+ */
+export function savePaymentConfig(values) {
+  return request({
+    url: '/payment/config',
+    method: 'put',
+    data: { values }
+  })
+}
+
+/**
+ * 费用单列表（检测费等）
+ */
+export function getServiceFeeList(params) {
+  return request({
+    url: '/repair/service-fees',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 创建费用单（检测费）
+ */
+export function createServiceFee(data) {
+  return request({
+    url: '/repair/service-fees',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 收款 / 减免费用单
+ */
+export function payServiceFee(id, data) {
+  return request({
+    url: `/repair/service-fees/${id}/pay`,
+    method: 'put',
+    data
+  })
+}
+
+/**
+ * 删除费用单
+ */
+export function deleteServiceFee(id) {
+  return request({
+    url: `/repair/service-fees/${id}`,
+    method: 'delete'
+  })
+}
