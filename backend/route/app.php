@@ -81,7 +81,7 @@ Route::group('api', function () {
                         'access_token' => $token,
                         'refresh_token' => $refreshToken,
                         'token_type' => 'Bearer',
-                        'expires_in' => 7200,
+                        'expires_in' => config('jwt.access_ttl'),
                         'user' => [
                             'id' => $user->id,
                             'username' => $user->username,

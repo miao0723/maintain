@@ -64,7 +64,7 @@ class SimpleAuth
             'access_token' => $accessToken,      // 标准字段
             'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',
-            'expires_in' => 7200,
+            'expires_in' => config('jwt.access_ttl'),
             'user' => [
                 'id' => $user->id,
                 'username' => $user->username,
