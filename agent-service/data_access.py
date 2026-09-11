@@ -554,3 +554,75 @@ def query_rag(question: str, limit: int = 5) -> List[Dict[str, Any]]:
         """,
         params,
     )
+
+
+def query_finance_summary() -> Dict[str, Any]:
+    """交易收入汇总（repair.transaction_income 真实入账流水）。"""
+    totals = fetch_one(
+        REPAIR_ENGINE,
+        """
+        SELECT
+            COALESCE(SUM(amount), 0) AS total_amount,
+            COUNT(*) AS total_count,
+            COALESCE(SUM(CASE WHEN paid_at >= DATE_FORMAT(NOW(), '%Y-%m-01') THEN amount ELSE 0 END), 0) AS month_amount,
+            COALESCE(SUM(CASE WHEN paid_at >= CURDATE() THEN amount ELSE 0 END), 0) AS today_amount,
+            COALESCE(SUM(CASE WHEN payment_status = 'refunded' THEN 1 ELSE 0 END), 0) AS refunded_count
+        FROM transaction_income
+        """,
+    ) or {}
+    recent = safe_fetch_rows(
+        REPAIR_ENGINE,
+        """
+        SELECT order_no, order_type, income_type, amount, payment_channel, payment_status, paid_at
+        FROM transaction_income
+        ORDER BY paid_at DESC, id DESC
+        LIMIT 5
+        """,
+    )
+    return {"totals": totals, "recent_transactions": recent}
+
+
+def query_refunds(limit: int = 5) -> List[Dict[str, Any]]:
+    """退款中的小程序订单（repair.orders 退款字段）。"""
+    return safe_fetch_rows(
+        REPAIR_ENGINE,
+        """
+        SELECT o.id, o.order_id AS order_no, o.refund_status, o.refund_amount,
+               o.refund_reason, o.refunded_at, o.updated_at,
+               u.nickname AS user_name
+        FROM orders o
+        LEFT JOIN users u ON u.id = o.user_id
+        WHERE o.refund_status IN ('refunding', 'refunded', 'failed')
+           OR o.payment_status IN ('refunding', 'refunded')
+        ORDER BY o.updated_at DESC
+        LIMIT :limit
+        """,
+        {"limit": limit},
+    )
+
+
+def query_service_fees(limit: int = 5) -> Dict[str, Any]:
+    """检测费等增值费用汇总（表不存在时返回空，不报错）。"""
+    rows = safe_fetch_rows(
+        REPAIR_ENGINE,
+        """
+        SELECT f.fee_no, f.fee_type, f.amount, f.status, f.paid_at,
+               o.order_id AS order_no
+        FROM order_service_fees f
+        LEFT JOIN orders o ON o.id = f.order_id
+        ORDER BY f.id DESC
+        LIMIT :limit
+        """,
+        {"limit": limit},
+    )
+    summary_rows = safe_fetch_rows(
+        REPAIR_ENGINE,
+        """
+        SELECT
+            COALESCE(SUM(CASE WHEN status = 'unpaid' THEN amount ELSE 0 END), 0) AS unpaid_amount,
+            COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) AS paid_amount,
+            COALESCE(SUM(CASE WHEN status = 'unpaid' THEN 1 ELSE 0 END), 0) AS unpaid_count
+        FROM order_service_fees
+        """,
+    )
+    return {"summary": summary_rows[0] if summary_rows else {}, "recent_fees": rows}

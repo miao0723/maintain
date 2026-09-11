@@ -13,15 +13,18 @@ from langgraph.graph import END, START, StateGraph
 from data_access import (
     env,
     query_business_overview,
+    query_finance_summary,
     query_inventory,
     query_knowledge_overview,
     query_orders,
     query_personnel,
     query_progress,
     query_rag,
+    query_refunds,
     query_repair_order_detail,
     query_repair_order_workload,
     query_repair_personnel,
+    query_service_fees,
     query_supplier_inventory_ranking,
     query_suppliers,
     query_user_context,
@@ -73,12 +76,18 @@ SUGGESTION_NORMALIZERS = [
 SCENARIO_PROMPTS = {
     "repair_order": "这是企业维修订单场景。先给结论，再说明订单状态、负责人、进度、更新时间、异常点和下一步建议。",
     "work_order": "这是企业 CMMS 工单场景。优先给出工单状态、优先级、故障描述、责任人和处理建议。",
+    "finance": "这是企业财务交易场景。优先给出收入汇总结论、数据口径（transaction_income 真实入账）、退款风险和建议动作。",
     "inventory": "这是企业库存或供应商场景。优先给出结论、查询范围、关键数据、风险判断以及补货或供应建议。",
     "personnel": "这是企业人员场景。优先给出人员身份、角色、联系方式、工作负载和适合的管理动作。",
     "knowledge": "这是企业知识库或流程说明场景。优先基于知识库给出摘要、适用模块、关键流程节点和落地建议。",
     "overview": "这是企业系统模块概览场景。优先按侧边栏模块、页面入口、核心能力、关联数据和使用场景来组织回答。",
     "general": "这是企业综合问答场景。回答要像后台管理智能助手，先结论，再依据，再建议。",
 }
+
+
+def is_finance_question(message: str) -> bool:
+    finance_tokens = ["收入", "入账", "交易额", "交易记录", "财务", "营业额", "流水", "退款", "检测费", "费用单"]
+    return any(token in message for token in finance_tokens)
 
 ENTERPRISE_SYSTEM_PROMPT = """你是企业级维修管理系统的系统智能体，服务对象是管理员、运营人员、仓库人员和维修负责人。
 
@@ -102,8 +111,9 @@ STATUS_LABELS = {
     "pending": "待处理",
     "quoted": "待确认报价",
     "confirmed": "已确认报价",
-    "processing": "处理中",
+    "processing": "维修中",
     "completed": "已完成",
+    "review": "待评价",
     "cancelled": "已取消",
 }
 
@@ -304,12 +314,15 @@ def analyze_user_message(payload: str) -> str:
     scores = {
         "repair_order": 0,
         "work_order": 0,
+        "finance": 0,
         "inventory": 0,
         "personnel": 0,
         "knowledge": 0,
         "overview": 0,
         "general": 1,
     }
+    if is_finance_question(normalized):
+        scores["finance"] += 8
     if any(token in normalized for token in ["订单", "维修单", "报价", "进度", "维修负责人"]):
         scores["repair_order"] += 4
     if miniprogram_question:
@@ -367,6 +380,9 @@ def analyze_user_message(payload: str) -> str:
         "needs_workload": is_repair_order_analytics_query(normalized),
         "needs_supplier_ranking": is_supplier_inventory_ranking_query(normalized),
         "use_broad_query": should_use_broad_query(normalized),
+        "needs_finance_summary": any(token in normalized for token in ["收入", "入账", "交易", "财务", "营业额", "流水", "赚"]),
+        "needs_refunds": "退款" in normalized,
+        "needs_service_fees": any(token in normalized for token in ["检测费", "费用单"]),
     }
     return json.dumps(response, ensure_ascii=False)
 
@@ -410,6 +426,8 @@ def build_llm() -> ChatOpenAI:
         model=env("AGENT_MODEL", "deepseek-chat"),
         base_url=env("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1"),
         temperature=0.1,
+        timeout=float(env("AGENT_LLM_TIMEOUT", "45")),
+        max_retries=int(env("AGENT_LLM_RETRIES", "1")),
     )
 
 
@@ -560,6 +578,25 @@ def repair_order_node(state: AgentState) -> AgentState:
     return local_state
 
 
+def finance_node(state: AgentState) -> AgentState:
+    message = state["normalized_message"]
+    analysis = state["analysis"]
+    local_state: AgentState = {"tool_outputs": [], "tools_used": [], "tool_errors": []}
+
+    if analysis.get("needs_finance_summary") or analysis.get("use_broad_query") or not (
+        analysis.get("needs_refunds") or analysis.get("needs_service_fees")
+    ):
+        safe_append_tool(local_state, "query_finance_summary", lambda: query_finance_summary())
+
+    if analysis.get("needs_refunds") or "退款" in message:
+        safe_append_tool(local_state, "query_refunds", lambda: query_refunds(limit=5))
+
+    if analysis.get("needs_service_fees") or "检测费" in message or "费用单" in message:
+        safe_append_tool(local_state, "query_service_fees", lambda: query_service_fees(limit=5))
+
+    return local_state
+
+
 def inventory_node(state: AgentState) -> AgentState:
     message = state["normalized_message"]
     analysis = state["analysis"]
@@ -666,9 +703,9 @@ def general_node(state: AgentState) -> AgentState:
     return local_state
 
 
-def route_scenario(state: AgentState) -> Literal["repair_order", "inventory", "personnel", "knowledge", "overview", "general"]:
+def route_scenario(state: AgentState) -> Literal["repair_order", "finance", "inventory", "personnel", "knowledge", "overview", "general"]:
     scenario = state["analysis"]["primary_scenario"]
-    if scenario not in {"repair_order", "work_order", "inventory", "personnel", "knowledge", "overview"}:
+    if scenario not in {"repair_order", "work_order", "finance", "inventory", "personnel", "knowledge", "overview"}:
         return "general"
     if scenario == "work_order":
         return "repair_order"
@@ -708,6 +745,7 @@ def no_data_node(state: AgentState) -> AgentState:
 
     no_data_messages = {
         "repair_order": "当前未查到符合条件的维修订单或订单进度。建议提供准确订单号，或先查看当前订单列表。",
+        "finance": "当前未查到交易收入或退款数据。可能原因：transaction_income 尚无入账流水（订单完成并评价后才会记账），或相关表还未建立。建议先查看交易记录页确认是否有真实入账。",
         "inventory": "当前未查到符合条件的库存或供应商数据。建议先查看全部库存、低库存列表或供应商排行。",
         "personnel": "当前未查到符合条件的人员数据。建议提供人员姓名、手机号或角色关键词继续查询。",
         "knowledge": "当前未查到相关知识库资料。建议补充更具体的流程、制度或文档关键词。",
@@ -719,6 +757,79 @@ def no_data_node(state: AgentState) -> AgentState:
 
 def build_direct_answer(message: str, tool_outputs: List[Dict[str, Any]]) -> str | None:
     tool_map = {item["tool"]: item.get("data") for item in tool_outputs if item.get("tool")}
+
+    # ===== 财务/退款/检测费（免 LLM，直接基于 transaction_income / orders 真实数据作答） =====
+    if "query_finance_summary" in tool_map and any(
+        token in message for token in ["收入", "入账", "交易", "财务", "营业额", "流水", "赚"]
+    ):
+        data = tool_map["query_finance_summary"] or {}
+        totals = data.get("totals", {}) or {}
+        recent = data.get("recent_transactions", []) or []
+        total_amount = float(totals.get("total_amount") or 0)
+        if totals.get("total_count") or recent:
+            lines = [
+                f"结论：当前累计入账 ¥{total_amount:.2f}，共 {totals.get('total_count', 0)} 笔（数据来自 transaction_income 真实入账流水，已扣除退款）。",
+                f"关键依据：本月入账 ¥{float(totals.get('month_amount') or 0):.2f}；今日入账 ¥{float(totals.get('today_amount') or 0):.2f}；全额退款 {totals.get('refunded_count', 0)} 笔。",
+            ]
+            if recent:
+                samples = "；".join(
+                    f"{row.get('order_no') or '-'} ¥{float(row.get('amount') or 0):.2f}（{row.get('paid_at') or '时间未知'}）"
+                    for row in recent[:3]
+                )
+                lines.append(f"最近入账：{samples}。")
+            lines.append("下一步建议：可以继续追问退款中的订单、检测费待收情况，或某笔订单的收入明细。")
+            return "\n".join(lines)
+        return build_empty_result_answer(
+            "交易收入数据",
+            "repair 数据库中的 transaction_income 收入流水（订单完成并评价/过期后记账）",
+            ["确认是否已有已完成订单", "查看交易记录页是否有入账", "追问某笔具体订单的支付状态"],
+        )
+
+    if "query_refunds" in tool_map and "退款" in message:
+        rows = tool_map["query_refunds"] or []
+        if rows:
+            refund_status_labels = {"refunding": "退款中", "refunded": "已退款", "failed": "退款失败/已拒绝", "none": "待审核"}
+            parts = []
+            for row in rows[:5]:
+                status_label = refund_status_labels.get(row.get("refund_status"), row.get("refund_status") or "未知")
+                parts.append(
+                    f"{row.get('order_no')}(状态{status_label}, 金额¥{float(row.get('refund_amount') or 0):.2f}, 用户{row.get('user_name') or '未知'})"
+                )
+            return (
+                f"结论：当前共查到 {len(rows)} 笔退款相关订单。\n"
+                f"关键依据：{'；'.join(parts)}。\n"
+                "下一步建议：可在「支付管理 → 退款管理」页审核退款（同意后进入退款中，等待微信退款到账）。"
+            )
+        return build_empty_result_answer(
+            "退款记录",
+            "repair 数据库 orders 表的退款字段（refund_status/refund_amount）",
+            ["确认是否有用户发起过退款", "查看支付管理-退款管理页面", "追问某笔订单的支付状态"],
+        )
+
+    if "query_service_fees" in tool_map:
+        data = tool_map["query_service_fees"] or {}
+        summary = data.get("summary", {}) or {}
+        rows = data.get("recent_fees", []) or []
+        if summary or rows:
+            unpaid = float(summary.get("unpaid_amount") or 0)
+            paid = float(summary.get("paid_amount") or 0)
+            lines = [
+                f"结论：检测费当前待收 ¥{unpaid:.2f}（{summary.get('unpaid_count', 0)} 笔），已收 ¥{paid:.2f}。",
+            ]
+            if rows:
+                fee_status_labels = {"unpaid": "待收款", "paid": "已收款", "waived": "已减免"}
+                samples = "；".join(
+                    f"{row.get('fee_no')} ¥{float(row.get('amount') or 0):.2f}（{fee_status_labels.get(row.get('status'), '未知')}，订单{row.get('order_no') or '-'}）"
+                    for row in rows[:3]
+                )
+                lines.append(f"最近费用单：{samples}。")
+            lines.append("下一步建议：可在「维修业务 → 检测费用」页面完成收款或减免操作。")
+            return "\n".join(lines)
+        return build_empty_result_answer(
+            "检测费数据",
+            "repair 数据库 order_service_fees 费用表（首次使用检测费功能时自动建表）",
+            ["先在后台创建一笔检测费用单", "确认是否已经使用过检测费功能"],
+        )
 
     if (
         "query_system_features" in tool_map
@@ -947,9 +1058,31 @@ def answer_node(state: AgentState) -> AgentState:
             )
         ),
     ]
-    response = llm.invoke(prompt)
-    answer = response.content if isinstance(response, AIMessage) else str(response)
+    try:
+        response = llm.invoke(prompt)
+        answer = response.content if isinstance(response, AIMessage) else str(response)
+    except Exception as exc:
+        log_debug("llm-failed", {"error": str(exc)})
+        # LLM 不可用时降级：直接输出本次查到的真实数据摘要，而不是整个请求失败
+        data_summary = summarize_tool_outputs(tool_outputs)
+        answer = (
+            "大模型服务暂时不可用，以下是基于数据库真实查询结果的摘要：\n"
+            f"{data_summary}\n"
+            "建议稍后重试以获得更完整的分析。"
+        )
     return {"answer": answer}
+
+
+def summarize_tool_outputs(tool_outputs: List[Dict[str, Any]]) -> str:
+    parts: List[str] = []
+    for item in tool_outputs[:6]:
+        tool_name = item.get("tool", "")
+        data = item.get("data")
+        if isinstance(data, list) and data:
+            parts.append(f"{tool_name} 查到 {len(data)} 条记录，示例：{json.dumps(data[0], ensure_ascii=False, default=str)[:300]}")
+        elif isinstance(data, dict) and data:
+            parts.append(f"{tool_name} 返回：{json.dumps(data, ensure_ascii=False, default=str)[:300]}")
+    return "\n".join(parts) if parts else "本次没有查询到业务数据。"
 
 
 @lru_cache(maxsize=1)
@@ -959,6 +1092,7 @@ def build_graph():
     graph.add_node("load_user_state", load_user_state)
     graph.add_node("analyze_state", analyze_state)
     graph.add_node("repair_order", repair_order_node)
+    graph.add_node("finance", finance_node)
     graph.add_node("inventory", inventory_node)
     graph.add_node("personnel", personnel_node)
     graph.add_node("knowledge", knowledge_node)
@@ -976,6 +1110,7 @@ def build_graph():
         route_scenario,
         {
             "repair_order": "repair_order",
+            "finance": "finance",
             "inventory": "inventory",
             "personnel": "personnel",
             "knowledge": "knowledge",
@@ -984,6 +1119,7 @@ def build_graph():
         },
     )
     graph.add_edge("repair_order", "merge_branch_results")
+    graph.add_edge("finance", "merge_branch_results")
     graph.add_edge("inventory", "merge_branch_results")
     graph.add_edge("personnel", "merge_branch_results")
     graph.add_edge("knowledge", "merge_branch_results")

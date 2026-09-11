@@ -5,7 +5,7 @@
         <div class="hero-badge">System Agent</div>
         <h1>系统智能体</h1>
         <p>
-          面向管理员的全局问答入口。智能体会结合维修知识库与业务工具，自动分析问题并查询人员、订单、进度、库存与供应商信息。
+          面向管理员的全局问答入口。智能体会结合维修知识库与业务工具，自动分析问题并查询人员、订单、进度、库存、交易收入与供应商信息。
         </p>
       </div>
       <div class="hero-tools">
@@ -15,7 +15,19 @@
 
     <section class="agent-shell">
       <aside class="prompt-panel">
-        <div class="panel-title">建议提问</div>
+        <div class="panel-title">
+          建议提问
+          <el-button
+            link
+            type="danger"
+            size="small"
+            class="clear-btn"
+            :disabled="messages.length === 0 || loading"
+            @click="clearConversation"
+          >
+            清空会话
+          </el-button>
+        </div>
         <button
           v-for="prompt in promptSuggestions"
           :key="prompt"
@@ -72,6 +84,9 @@
           />
           <div class="composer-actions">
             <span class="composer-tip">Enter 发送，Shift+Enter 换行</span>
+            <el-button v-if="loading" type="danger" plain @click="stopGeneration">
+              停止生成
+            </el-button>
             <el-button type="primary" :loading="loading" @click="submitMessage">
               发送给 Agent
             </el-button>
@@ -94,6 +109,7 @@ const inputMessage = ref('')
 const loading = ref(false)
 const messageListRef = ref(null)
 const messages = ref([])
+let abortController = null
 
 const toolTags = [
   'LangGraph',
@@ -105,6 +121,7 @@ const toolTags = [
   '维修订单',
   '维修进度',
   '库存分析',
+  '交易收入',
   '供应商'
 ]
 
@@ -116,11 +133,11 @@ const buildPromptSuggestions = () => {
   return [
     '查看当前维修订单列表。',
     `查看订单 ${orderRef} 当前的状态、进度和负责人。`,
-    '查看当前维修人员列表。',
+    '查看当前累计收入和本月入账情况。',
+    '查看当前退款中的订单有哪些。',
     '查看当前低库存配件。',
     '查看库存金额最高的供应商排行。',
-    '查看系统侧边栏中的维修业务模块包含哪些内容。',
-    '查看知识库里和维修流程相关的资料。'
+    '查看系统侧边栏中的维修业务模块包含哪些内容。'
   ]
 }
 
@@ -215,33 +232,85 @@ const submitMessage = async () => {
   loading.value = true
   await scrollToBottom()
 
-  try {
-    const res = await sendAgentMessage({
-      message: content,
-      history
-    })
+  // 支持中途停止生成
+  abortController = new AbortController()
+  const signal = abortController.signal
 
-    messages.value.push({
+  try {
+    const res = await sendAgentMessage(
+      {
+        message: content,
+        history
+      },
+      { signal }
+    )
+
+    // 打字机效果：逐步展示完整回答
+    const fullAnswer = res.data?.answer || '未获得有效回复'
+    const reply = {
       id: `${Date.now()}-assistant`,
       role: 'assistant',
-      content: res.data?.answer || '未获得有效回复',
+      content: '',
       tools: res.data?.tools_used || [],
       createdAt: new Date().toISOString(),
       requestId: res.data?.request_id || ''
-    })
+    }
+    messages.value.push(reply)
+    await typeOutAnswer(reply, fullAnswer, signal)
   } catch (error) {
-    const errorMessage = error.response?.data?.message || error.response?.data?.data?.detail || error.message || 'Agent 请求失败'
-    messages.value.push({
-      id: `${Date.now()}-assistant-error`,
-      role: 'assistant',
-      content: `本次请求失败：${errorMessage}`,
-      createdAt: new Date().toISOString()
-    })
-    ElMessage.error(errorMessage)
+    if (error.code === 'ERR_CANCELED' || signal.aborted) {
+      messages.value.push({
+        id: `${Date.now()}-assistant-stopped`,
+        role: 'assistant',
+        content: '已停止本次请求。',
+        createdAt: new Date().toISOString()
+      })
+    } else {
+      const errorMessage = error.response?.data?.message || error.response?.data?.data?.detail || error.message || 'Agent 请求失败'
+      messages.value.push({
+        id: `${Date.now()}-assistant-error`,
+        role: 'assistant',
+        content: `本次请求失败：${errorMessage}`,
+        createdAt: new Date().toISOString()
+      })
+      ElMessage.error(errorMessage)
+    }
   } finally {
     loading.value = false
+    abortController = null
     await scrollToBottom()
   }
+}
+
+// 打字机输出：按块渐进显示，中途停止时立即定格
+const typeOutAnswer = async (reply, fullAnswer, signal) => {
+  const chunkSize = Math.max(2, Math.ceil(fullAnswer.length / 60))
+  for (let i = 0; i < fullAnswer.length; i += chunkSize) {
+    if (signal?.aborted) {
+      reply.content = fullAnswer
+      return
+    }
+    reply.content = fullAnswer.slice(0, i + chunkSize)
+    await scrollToBottom()
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((resolve) => setTimeout(resolve, 24))
+  }
+  reply.content = fullAnswer
+}
+
+const stopGeneration = () => {
+  if (abortController) {
+    abortController.abort()
+  }
+}
+
+const clearConversation = () => {
+  if (abortController) {
+    abortController.abort()
+  }
+  messages.value = []
+  localStorage.removeItem(STORAGE_KEY)
+  ElMessage.success('会话已清空')
 }
 
 watch(
@@ -354,10 +423,17 @@ onMounted(async () => {
 }
 
 .panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 14px;
   font-size: 15px;
   font-weight: 700;
   color: #0f172a;
+
+  .clear-btn {
+    font-weight: 400;
+  }
 }
 
 .prompt-card {
