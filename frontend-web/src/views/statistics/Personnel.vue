@@ -1,103 +1,53 @@
 <template>
   <div class="personnel-report-container">
-    <el-card shadow="never">
-      <!-- 查询条件 -->
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="日期范围">
-          <el-date-picker
-            v-model="searchForm.date_range"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-          />
-        </el-form-item>
-        <el-form-item label="部门">
-          <el-select v-model="searchForm.department_id" placeholder="请选择" clearable>
-            <el-option label="全部" value="" />
-            <el-option
-              v-for="dept in departments"
-              :key="dept.id"
-              :label="dept.name"
-              :value="dept.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleExport">导出报表</el-button>
-        </el-form-item>
-      </el-form>
-
+    <el-card shadow="never" v-loading="loading">
       <!-- 统计卡片 -->
       <el-row :gutter="20" style="margin-bottom: 20px">
         <el-col :span="6">
-          <el-statistic title="人员总数" :value="statistics.total" />
+          <el-statistic title="工程师总数" :value="cards.engineer_count" />
         </el-col>
         <el-col :span="6">
-          <el-statistic title="在岗人数" :value="statistics.active" />
+          <el-statistic title="累计工单" :value="cards.total_orders" />
         </el-col>
         <el-col :span="6">
-          <el-statistic title="本月完成工单" :value="statistics.completed_orders" />
+          <el-statistic title="累计完成" :value="cards.total_completed">
+            <template #suffix>
+              <span style="color: #67C23A">↗</span>
+            </template>
+          </el-statistic>
         </el-col>
         <el-col :span="6">
-          <el-statistic title="平均评分" :value="statistics.avg_rating" :precision="1" />
+          <el-statistic title="平均评分" :value="cards.avg_rating" :precision="1" suffix="分" />
         </el-col>
       </el-row>
 
       <!-- 图表区域 -->
       <el-row :gutter="20">
-        <el-col :span="12">
+        <el-col :span="24">
           <div class="chart-container">
-            <h4>人员绩效排名</h4>
+            <h4>工程师绩效排名</h4>
             <div id="performance-chart" style="height: 300px"></div>
-          </div>
-        </el-col>
-        <el-col :span="12">
-          <div class="chart-container">
-            <h4>工单完成趋势</h4>
-            <div id="trend-chart" style="height: 300px"></div>
-          </div>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="20" style="margin-top: 20px">
-        <el-col :span="12">
-          <div class="chart-container">
-            <h4>技能等级分布</h4>
-            <div id="skill-chart" style="height: 300px"></div>
-          </div>
-        </el-col>
-        <el-col :span="12">
-          <div class="chart-container">
-            <h4>工作量分布</h4>
-            <div id="workload-chart" style="height: 300px"></div>
           </div>
         </el-col>
       </el-row>
 
       <!-- 详细数据表格 -->
       <div class="table-container">
-        <h4>人员绩效详情</h4>
-        <el-table :data="tableData" border stripe>
+        <h4>工程师绩效详情</h4>
+        <el-table :data="engineers" border stripe>
           <el-table-column type="index" label="排名" width="80" />
-          <el-table-column prop="name" label="姓名" width="120" />
-          <el-table-column prop="department" label="部门" width="120" />
-          <el-table-column prop="completed_orders" label="完成工单" width="100" />
-          <el-table-column prop="total_hours" label="总工时(小时)" width="120" />
-          <el-table-column prop="avg_response_time" label="平均响应(分钟)" width="130" />
-          <el-table-column prop="avg_duration" label="平均时长(小时)" width="130" />
-          <el-table-column prop="avg_rating" label="平均评分" width="100">
+          <el-table-column prop="name" label="姓名" min-width="120" />
+          <el-table-column prop="order_count" label="工单总数" width="120" />
+          <el-table-column prop="completed_count" label="完成工单" width="120" />
+          <el-table-column prop="avg_rating" label="平均评分" width="120">
             <template #default="{ row }">
-              <el-rate v-model="row.avg_rating" disabled />
+              <span v-if="row.avg_rating != null && row.avg_rating !== ''">{{ Number(row.avg_rating).toFixed(1) }} 分</span>
+              <span v-else>-</span>
             </template>
           </el-table-column>
-          <el-table-column prop="satisfaction" label="满意度" width="100">
-            <template #default="{ row }">
-              {{ (row.satisfaction * 100).toFixed(1) }}%
-            </template>
-          </el-table-column>
+          <template #empty>
+            <el-empty description="暂无工程师数据" />
+          </template>
         </el-table>
       </div>
     </el-card>
@@ -105,163 +55,63 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
+import { getRepairPersonnelReport } from '@/api/statistics'
 
-const searchForm = reactive({
-  date_range: [],
-  department_id: ''
-})
-
-const statistics = ref({
-  total: 25,
-  active: 22,
-  completed_orders: 385,
-  avg_rating: 4.6
-})
-
-const tableData = ref([])
-const departments = ref([])
+const loading = ref(false)
+const cards = ref({ engineer_count: 0, total_orders: 0, total_completed: 0, avg_rating: 0 })
+const engineers = ref([])
 
 let charts = []
 
 const fetchData = async () => {
+  loading.value = true
   try {
-    // TODO: 调用API获取人员报表数据
-    tableData.value = [
-      {
-        name: '张三',
-        department: '维修部',
-        completed_orders: 45,
-        total_hours: 180,
-        avg_response_time: 15,
-        avg_duration: 4.0,
-        avg_rating: 4.8,
-        satisfaction: 0.95
-      },
-      {
-        name: '李四',
-        department: '维修部',
-        completed_orders: 42,
-        total_hours: 168,
-        avg_response_time: 18,
-        avg_duration: 4.0,
-        avg_rating: 4.6,
-        satisfaction: 0.92
-      },
-      {
-        name: '王五',
-        department: '工程部',
-        completed_orders: 38,
-        total_hours: 152,
-        avg_response_time: 20,
-        avg_duration: 4.0,
-        avg_rating: 4.5,
-        satisfaction: 0.90
-      }
-    ]
-    departments.value = [
-      { id: 1, name: '维修部' },
-      { id: 2, name: '工程部' }
-    ]
+    const res = await getRepairPersonnelReport()
+    const data = res.data || {}
+    cards.value = data.cards || cards.value
+    engineers.value = data.engineers || []
+    nextTick(initCharts)
   } catch (error) {
-    console.error('获取报表数据失败:', error)
+    console.error('获取人员报表数据失败:', error)
+  } finally {
+    loading.value = false
   }
 }
 
 const initCharts = () => {
+  charts.forEach(c => c.dispose())
+  charts = []
+
   // 绩效排名柱状图
   const performanceChart = echarts.init(document.getElementById('performance-chart'))
   performanceChart.setOption({
     tooltip: { trigger: 'axis' },
+    legend: { data: ['工单总数', '完成工单'] },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: ['张三', '李四', '王五', '赵六', '孙七']
+      data: engineers.value.map(i => i.name),
+      axisLabel: { interval: 0, rotate: engineers.value.length > 8 ? 30 : 0 }
     },
-    yAxis: { type: 'value' },
+    yAxis: { type: 'value', name: '工单数' },
     series: [
+      {
+        name: '工单总数',
+        type: 'bar',
+        data: engineers.value.map(i => i.order_count),
+        itemStyle: { color: '#409EFF' }
+      },
       {
         name: '完成工单',
         type: 'bar',
-        data: [45, 42, 38, 35, 30],
+        data: engineers.value.map(i => i.completed_count),
         itemStyle: { color: '#67C23A' }
       }
     ]
   })
   charts.push(performanceChart)
-
-  // 工单完成趋势图
-  const trendChart = echarts.init(document.getElementById('trend-chart'))
-  trendChart.setOption({
-    tooltip: { trigger: 'axis' },
-    xAxis: {
-      type: 'category',
-      data: ['1月', '2月', '3月', '4月', '5月', '6月']
-    },
-    yAxis: { type: 'value' },
-    series: [
-      {
-        name: '完成工单',
-        type: 'line',
-        data: [60, 65, 62, 70, 68, 75],
-        smooth: true
-      }
-    ]
-  })
-  charts.push(trendChart)
-
-  // 技能等级饼图
-  const skillChart = echarts.init(document.getElementById('skill-chart'))
-  skillChart.setOption({
-    tooltip: { trigger: 'item' },
-    legend: { orient: 'vertical', left: 'left' },
-    series: [
-      {
-        name: '技能等级',
-        type: 'pie',
-        radius: '50%',
-        data: [
-          { value: 5, name: '专家工程师' },
-          { value: 8, name: '高级工程师' },
-          { value: 10, name: '中级工程师' },
-          { value: 2, name: '初级工程师' }
-        ]
-      }
-    ]
-  })
-  charts.push(skillChart)
-
-  // 工作量柱状图
-  const workloadChart = echarts.init(document.getElementById('workload-chart'))
-  workloadChart.setOption({
-    tooltip: { trigger: 'axis' },
-    xAxis: {
-      type: 'category',
-      data: ['张三', '李四', '王五', '赵六', '孙七']
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { formatter: '{value}小时' }
-    },
-    series: [
-      {
-        name: '总工时',
-        type: 'bar',
-        data: [180, 168, 152, 145, 130],
-        itemStyle: { color: '#409EFF' }
-      }
-    ]
-  })
-  charts.push(workloadChart)
-}
-
-const handleSearch = () => {
-  fetchData()
-}
-
-const handleExport = () => {
-  ElMessage.info('导出功能开发中')
 }
 
 const handleResize = () => {
@@ -270,7 +120,6 @@ const handleResize = () => {
 
 onMounted(() => {
   fetchData()
-  initCharts()
   window.addEventListener('resize', handleResize)
 })
 
@@ -282,10 +131,6 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .personnel-report-container {
-  .search-form {
-    margin-bottom: 20px;
-  }
-
   .chart-container {
     padding: 20px;
     background: #fff;

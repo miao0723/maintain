@@ -188,6 +188,33 @@ class SparePartController extends BaseController
     }
 
     /**
+     * 配件盘点
+     */
+    public function stocktake($id)
+    {
+        try {
+            $data = $this->getRequestData();
+
+            $actualQuantity = $data['actual_quantity'] ?? null;
+            if ($actualQuantity === null || !is_numeric($actualQuantity) || $actualQuantity < 0) {
+                return $this->error('盘点数量无效', 422);
+            }
+
+            $userId = Request::instance()->userId ?? null;
+            $result = $this->service->stocktake(
+                $id,
+                (int)$actualQuantity,
+                $userId,
+                $data['remark'] ?? null
+            );
+
+            return $this->success($result, '盘点成功');
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), 400);
+        }
+    }
+
+    /**
      * 获取库存记录
      */
     public function records()

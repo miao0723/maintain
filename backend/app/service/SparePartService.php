@@ -215,6 +215,19 @@ class SparePartService
     }
 
     /**
+     * 配件盘点
+     */
+    public function stocktake($id, $actualQuantity, $operatorId = null, $remark = null)
+    {
+        $part = SparePart::find($id);
+        if (!$part) {
+            throw new \Exception('配件不存在');
+        }
+
+        return $part->stocktake($actualQuantity, $operatorId, $remark);
+    }
+
+    /**
      * 获取库存预警列表
      */
     public function getAlerts()

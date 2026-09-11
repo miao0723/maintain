@@ -256,6 +256,12 @@ Route::group('api', function () {
         Route::get('statistics/expense', 'StatisticsController/expense');
         Route::post('statistics/expense/summary', 'StatisticsController/generateExpenseSummary');
         Route::get('statistics/orders', 'StatisticsController/orders');
+        Route::get('statistics/repair/analysis', 'RepairStatisticsController/analysis');
+        Route::get('statistics/repair/orders', 'RepairStatisticsController/orders');
+        Route::get('statistics/repair/finance', 'RepairStatisticsController/finance');
+        Route::get('statistics/repair/personnel', 'RepairStatisticsController/personnel');
+        Route::get('statistics/repair/maintenance', 'RepairStatisticsController/maintenance');
+        Route::get('statistics/repair/devices', 'RepairStatisticsController/devices');
         Route::post('statistics/orders/summary', 'StatisticsController/generateOrderSummary');
         Route::get('statistics/timeout', 'StatisticsController/timeout');
         Route::post('statistics/timeout/summary', 'StatisticsController/generateSummary');
@@ -602,6 +608,7 @@ Route::group('api', function () {
 
             Route::post('/:id/in', 'SparePartController/stockIn');
             Route::post('/:id/out', 'SparePartController/stockOut');
+            Route::post('/:id/stocktake', 'SparePartController/stocktake');
         })->middleware([\app\middleware\PermissionCheck::class]);
 
         // 供应商管理
@@ -799,6 +806,17 @@ Route::group('api', function () {
 
         // 支付模块
         Route::group('payment', function () {
+            // 小程序交易/退款（repair 库真实数据）
+            Route::group('transactions', function () {
+                Route::get('/', 'RepairTransactionController/index');
+                Route::get('statistics', 'RepairTransactionController/statistics');
+            });
+
+            Route::group('refunds', function () {
+                Route::get('/', 'RepairTransactionController/refunds');
+                Route::put('/:id', 'RepairTransactionController/reviewRefund');
+            });
+
             // 转账支付
             Route::group('transfers', function () {
                 Route::get('/', 'TransferController/index');

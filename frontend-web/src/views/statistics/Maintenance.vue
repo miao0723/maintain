@@ -1,53 +1,27 @@
 <template>
   <div class="maintenance-report-container">
-    <el-card shadow="never">
-      <!-- 查询条件 -->
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="日期范围">
-          <el-date-picker
-            v-model="searchForm.date_range"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-          />
-        </el-form-item>
-        <el-form-item label="维保类型">
-          <el-select v-model="searchForm.type" placeholder="请选择" clearable>
-            <el-option label="全部" value="" />
-            <el-option label="预防性维护" value="preventive" />
-            <el-option label="定期巡检" value="inspection" />
-            <el-option label="故障维修" value="repair" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleExport">导出报表</el-button>
-        </el-form-item>
-      </el-form>
-
+    <el-card shadow="never" v-loading="loading">
       <!-- 统计卡片 -->
       <el-row :gutter="20">
         <el-col :span="6">
-          <el-statistic title="维保工单总数" :value="statistics.total" />
+          <el-statistic title="维保工单总数" :value="cards.total" />
         </el-col>
         <el-col :span="6">
-          <el-statistic title="已完成" :value="statistics.completed">
+          <el-statistic title="已完成" :value="cards.completed">
             <template #suffix>
               <span style="color: #67C23A">↗</span>
             </template>
           </el-statistic>
         </el-col>
         <el-col :span="6">
-          <el-statistic title="进行中" :value="statistics.ongoing">
+          <el-statistic title="进行中" :value="cards.ongoing">
             <template #suffix>
               <span style="color: #E6A23C">↗</span>
             </template>
           </el-statistic>
         </el-col>
         <el-col :span="6">
-          <el-statistic title="完成率" :value="statistics.completion_rate" suffix="%" />
+          <el-statistic title="完成率" :value="cards.completion_rate" suffix="%" />
         </el-col>
       </el-row>
 
@@ -61,235 +35,157 @@
         </el-col>
         <el-col :span="12">
           <div class="chart-container">
-            <h4>维保类型分布</h4>
-            <div id="type-chart" style="height: 300px"></div>
-          </div>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="20" style="margin-top: 20px">
-        <el-col :span="12">
-          <div class="chart-container">
-            <h4>响应时间分析</h4>
-            <div id="response-chart" style="height: 300px"></div>
-          </div>
-        </el-col>
-        <el-col :span="12">
-          <div class="chart-container">
-            <h4>维保成本分析</h4>
-            <div id="cost-chart" style="height: 300px"></div>
+            <h4>服务方式分布</h4>
+            <div id="service-chart" style="height: 300px"></div>
           </div>
         </el-col>
       </el-row>
 
       <!-- 详细数据表格 -->
       <div class="table-container">
-        <h4>维保详细记录</h4>
+        <h4>已完成订单明细</h4>
         <el-table :data="tableData" border stripe>
-          <el-table-column prop="order_no" label="工单编号" width="150" />
-          <el-table-column prop="device_name" label="设备名称" width="150" />
-          <el-table-column prop="type" label="维保类型" width="120">
-            <template #default="{ row }">
-              <el-tag :type="getTypeTag(row.type)">
-                {{ getTypeText(row.type) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="engineer" label="工程师" width="100" />
-          <el-table-column prop="start_time" label="开始时间" width="160" />
-          <el-table-column prop="end_time" label="完成时间" width="160" />
-          <el-table-column prop="duration" label="耗时(小时)" width="100" />
-          <el-table-column prop="cost" label="成本" width="100">
-            <template #default="{ row }">
-              ¥{{ row.cost.toFixed(2) }}
-            </template>
+          <el-table-column prop="order_id" label="工单编号" min-width="160" show-overflow-tooltip />
+          <el-table-column prop="device_model" label="设备型号" min-width="130" show-overflow-tooltip />
+          <el-table-column prop="engineer_name" label="工程师" width="110">
+            <template #default="{ row }">{{ row.engineer_name || '-' }}</template>
           </el-table-column>
           <el-table-column prop="status" label="状态" width="100">
             <template #default="{ row }">
-              <el-tag :type="row.status === 'completed' ? 'success' : 'warning'">
-                {{ row.status === 'completed' ? '已完成' : '进行中' }}
-              </el-tag>
+              <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
             </template>
           </el-table-column>
+          <el-table-column prop="progress" label="进度" width="90">
+            <template #default="{ row }">
+              <span v-if="row.progress != null">{{ row.progress }}%</span>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="actual_price" label="金额" width="110" align="right">
+            <template #default="{ row }">
+              <span v-if="row.actual_price != null" class="amount-text">¥{{ Number(row.actual_price).toFixed(2) }}</span>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="created_at" label="创建时间" width="160" />
+          <el-table-column prop="completed_at" label="完成时间" width="160">
+            <template #default="{ row }">{{ row.completed_at || '-' }}</template>
+          </el-table-column>
+          <template #empty>
+            <el-empty description="暂无订单数据" />
+          </template>
         </el-table>
+        <el-pagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.pageSize"
+          :total="pagination.total"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
+          @size-change="handleSizeChange"
+          @current-change="fetchData"
+        />
       </div>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
+import { getRepairMaintenanceReport } from '@/api/statistics'
 
-const searchForm = reactive({
-  date_range: [],
-  type: ''
-})
-
-const statistics = ref({
-  total: 156,
-  completed: 142,
-  ongoing: 14,
-  completion_rate: 91.0
-})
-
+const loading = ref(false)
+const cards = ref({ total: 0, completed: 0, ongoing: 0, completion_rate: 0 })
+const trend = ref([])
+const servicePie = ref([])
 const tableData = ref([])
+const pagination = reactive({ page: 1, pageSize: 10, total: 0 })
 
 let charts = []
 
-const getTypeTag = (type) => {
-  const map = {
-    preventive: 'success',
-    inspection: 'info',
-    repair: 'warning'
-  }
-  return map[type] || ''
+const STATUS_MAP = {
+  pending: { text: '待处理', type: 'info' },
+  quoted: { text: '已报价', type: 'warning' },
+  confirmed: { text: '已确认', type: 'primary' },
+  processing: { text: '维修中', type: 'warning' },
+  completed: { text: '已完成', type: 'success' },
+  review: { text: '待评价', type: 'info' },
+  cancelled: { text: '已取消', type: 'danger' }
 }
 
-const getTypeText = (type) => {
-  const map = {
-    preventive: '预防性维护',
-    inspection: '定期巡检',
-    repair: '故障维修'
-  }
-  return map[type] || type
-}
+const getStatusText = (status) => STATUS_MAP[status]?.text || status || '未知'
+const getStatusType = (status) => STATUS_MAP[status]?.type || 'info'
 
 const fetchData = async () => {
+  loading.value = true
   try {
-    // TODO: 调用API获取维保报表数据
-    tableData.value = [
-      {
-        order_no: 'WO20240324001',
-        device_name: '中央空调A',
-        type: 'preventive',
-        engineer: '张三',
-        start_time: '2024-03-24 09:00:00',
-        end_time: '2024-03-24 12:00:00',
-        duration: 3,
-        cost: 300.00,
-        status: 'completed'
-      }
-    ]
+    const res = await getRepairMaintenanceReport({ page: pagination.page, page_size: pagination.pageSize })
+    const data = res.data || {}
+    cards.value = data.cards || cards.value
+    trend.value = data.trend || []
+    servicePie.value = data.service_pie || []
+    tableData.value = data.list?.items || []
+    pagination.total = data.list?.total || 0
+    nextTick(initCharts)
   } catch (error) {
-    console.error('获取报表数据失败:', error)
+    console.error('获取维保报表数据失败:', error)
+  } finally {
+    loading.value = false
   }
+}
+
+const handleSizeChange = () => {
+  pagination.page = 1
+  fetchData()
 }
 
 const initCharts = () => {
-  // 维保工单趋势图
+  charts.forEach(c => c.dispose())
+  charts = []
+
+  // 维保工单趋势折线图
   const trendChart = echarts.init(document.getElementById('trend-chart'))
   trendChart.setOption({
     tooltip: { trigger: 'axis' },
-    legend: { data: ['预防性维护', '定期巡检', '故障维修'] },
-    xAxis: {
-      type: 'category',
-      data: ['1月', '2月', '3月', '4月', '5月', '6月']
-    },
-    yAxis: { type: 'value' },
+    legend: { data: ['订单总数', '已完成'] },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'category', data: trend.value.map(i => i.month) },
+    yAxis: { type: 'value', name: '工单数' },
     series: [
       {
-        name: '预防性维护',
+        name: '订单总数',
         type: 'line',
-        data: [15, 18, 16, 20, 18, 22],
-        smooth: true
+        data: trend.value.map(i => i.total),
+        smooth: true,
+        itemStyle: { color: '#409EFF' },
+        areaStyle: { color: 'rgba(64, 158, 255, 0.15)' }
       },
       {
-        name: '定期巡检',
+        name: '已完成',
         type: 'line',
-        data: [8, 10, 9, 11, 10, 12],
-        smooth: true
-      },
-      {
-        name: '故障维修',
-        type: 'line',
-        data: [12, 14, 13, 15, 14, 16],
-        smooth: true
+        data: trend.value.map(i => i.completed),
+        smooth: true,
+        itemStyle: { color: '#67C23A' }
       }
     ]
   })
   charts.push(trendChart)
 
-  // 维保类型饼图
-  const typeChart = echarts.init(document.getElementById('type-chart'))
-  typeChart.setOption({
-    tooltip: { trigger: 'item' },
+  // 服务方式饼图
+  const serviceChart = echarts.init(document.getElementById('service-chart'))
+  serviceChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: { orient: 'vertical', left: 'left' },
     series: [
       {
-        name: '维保类型',
+        name: '服务方式',
         type: 'pie',
-        radius: '50%',
-        data: [
-          { value: 109, name: '预防性维护' },
-          { value: 60, name: '定期巡检' },
-          { value: 84, name: '故障维修' }
-        ]
+        radius: '55%',
+        data: servicePie.value
       }
     ]
   })
-  charts.push(typeChart)
-
-  // 响应时间图
-  const responseChart = echarts.init(document.getElementById('response-chart'))
-  responseChart.setOption({
-    tooltip: { trigger: 'axis' },
-    xAxis: {
-      type: 'category',
-      data: ['1月', '2月', '3月', '4月', '5月', '6月']
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { formatter: '{value}分钟' }
-    },
-    series: [
-      {
-        name: '平均响应时间',
-        type: 'bar',
-        data: [15, 18, 12, 14, 16, 13],
-        itemStyle: { color: '#409EFF' }
-      }
-    ]
-  })
-  charts.push(responseChart)
-
-  // 维保成本图
-  const costChart = echarts.init(document.getElementById('cost-chart'))
-  costChart.setOption({
-    tooltip: { trigger: 'axis' },
-    xAxis: {
-      type: 'category',
-      data: ['1月', '2月', '3月', '4月', '5月', '6月']
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { formatter: '¥{value}' }
-    },
-    series: [
-      {
-        name: '维保成本',
-        type: 'line',
-        data: [5000, 5500, 4800, 6000, 5200, 5800],
-        smooth: true,
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(103, 194, 58, 0.3)' },
-            { offset: 1, color: 'rgba(103, 194, 58, 0.1)' }
-          ])
-        }
-      }
-    ]
-  })
-  charts.push(costChart)
-}
-
-const handleSearch = () => {
-  fetchData()
-}
-
-const handleExport = () => {
-  ElMessage.info('导出功能开发中')
+  charts.push(serviceChart)
 }
 
 const handleResize = () => {
@@ -298,7 +194,6 @@ const handleResize = () => {
 
 onMounted(() => {
   fetchData()
-  initCharts()
   window.addEventListener('resize', handleResize)
 })
 
@@ -310,10 +205,6 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .maintenance-report-container {
-  .search-form {
-    margin-bottom: 20px;
-  }
-
   .chart-container {
     padding: 20px;
     background: #fff;
@@ -333,6 +224,16 @@ onUnmounted(() => {
       margin: 0 0 15px 0;
       font-size: 16px;
       color: #303133;
+    }
+
+    .amount-text {
+      color: #409EFF;
+      font-weight: 500;
+    }
+
+    :deep(.el-pagination) {
+      margin-top: 20px;
+      justify-content: flex-end;
     }
   }
 }

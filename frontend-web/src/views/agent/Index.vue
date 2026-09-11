@@ -87,6 +87,7 @@ import { nextTick, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
 import { sendAgentMessage } from '@/api/agent'
+import { getMiniAdminOrders } from '@/api/miniAdmin'
 
 const STORAGE_KEY = 'agent-chat-messages'
 const inputMessage = ref('')
@@ -107,15 +108,36 @@ const toolTags = [
   '供应商'
 ]
 
-const promptSuggestions = [
-  '查看当前维修订单列表。',
-  '查看订单 25 当前的状态、进度和负责人。',
-  '查看当前维修人员列表。',
-  '查看当前低库存配件。',
-  '查看库存金额最高的供应商排行。',
-  '查看系统侧边栏中的维修业务模块包含哪些内容。',
-  '查看知识库里和维修流程相关的资料。'
-]
+// 最新订单号（用于示例提问，加载失败时退回占位符）
+const latestOrderId = ref('')
+
+const buildPromptSuggestions = () => {
+  const orderRef = latestOrderId.value || '最新一笔'
+  return [
+    '查看当前维修订单列表。',
+    `查看订单 ${orderRef} 当前的状态、进度和负责人。`,
+    '查看当前维修人员列表。',
+    '查看当前低库存配件。',
+    '查看库存金额最高的供应商排行。',
+    '查看系统侧边栏中的维修业务模块包含哪些内容。',
+    '查看知识库里和维修流程相关的资料。'
+  ]
+}
+
+const promptSuggestions = ref(buildPromptSuggestions())
+
+const fetchLatestOrder = async () => {
+  try {
+    const res = await getMiniAdminOrders({ page: 1, pageSize: 1 })
+    const first = res.data?.items?.[0]
+    if (first?.order_id) {
+      latestOrderId.value = first.order_id
+      promptSuggestions.value = buildPromptSuggestions()
+    }
+  } catch (error) {
+    console.warn('[Agent] 获取最新订单失败，提示词使用占位符:', error)
+  }
+}
 
 marked.setOptions({
   gfm: true,
@@ -232,6 +254,7 @@ watch(
 
 onMounted(async () => {
   loadMessages()
+  fetchLatestOrder()
   await scrollToBottom()
 })
 </script>

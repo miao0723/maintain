@@ -28,10 +28,12 @@
       <el-form-item label="设备类型">
         <el-select v-model="searchForm.device_type" placeholder="全部" clearable style="width: 120px">
           <el-option label="全部" value="" />
-          <el-option label="手机" :value="1" />
-          <el-option label="电脑" :value="2" />
-          <el-option label="平板" :value="3" />
-          <el-option label="手表" :value="4" />
+          <el-option
+            v-for="dt in deviceTypes"
+            :key="dt.id"
+            :label="`${dt.icon || '🔧'} ${dt.name}`"
+            :value="dt.id"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="服务方式">
@@ -318,6 +320,7 @@ import { Search, Refresh, Picture } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   getMiniAdminOrders,
+  getMiniAdminCommonProblemDeviceTypes,
   updateMiniAdminOrder
 } from '@/api/miniAdmin'
 import {
@@ -406,12 +409,24 @@ const priorityTypeMap = {
   high: 'danger'
 }
 
+// 设备类型字典（接口加载失败时的兜底显示）
 const deviceTypeMap = {
   1: '手机',
   2: '电脑',
   3: '平板',
   4: '手表',
   5: '其他'
+}
+
+const deviceTypes = ref([])
+
+const fetchDeviceTypes = async () => {
+  try {
+    const res = await getMiniAdminCommonProblemDeviceTypes()
+    deviceTypes.value = res.data || []
+  } catch (error) {
+    console.warn('[MiniprogramOrders] 加载设备类型失败，使用兜底字典:', error)
+  }
 }
 
 const processDialogTitle = computed(() => {
@@ -427,7 +442,12 @@ const getStatusType = (status) => statusTypeMap[status] || ''
 const getStatusText = (status) => statusMap[status] || status
 const getPriorityType = (priority) => priorityTypeMap[priority] || ''
 const getPriorityText = (priority) => priorityMap[priority] || '中'
-const getDeviceTypeText = (type) => deviceTypeMap[type] || '未知'
+const getDeviceTypeText = (type) => {
+  if (type === null || type === undefined || type === '') return '未知'
+  const found = deviceTypes.value.find((dt) => dt.id === Number(type))
+  if (found) return found.name
+  return deviceTypeMap[type] || '未知'
+}
 
 const formatMoney = (value) => {
   if (value === null || value === undefined || value === '') return '-'
@@ -685,6 +705,7 @@ const handleProcessSubmit = async () => {
 onMounted(() => {
   loadData()
   fetchUsers()
+  fetchDeviceTypes()
 })
 </script>
 

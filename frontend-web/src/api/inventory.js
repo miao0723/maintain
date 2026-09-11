@@ -86,6 +86,17 @@ export function partsOutbound(id, data) {
 }
 
 /**
+ * 配件盘点（以实际清点数量为准调整库存）
+ */
+export function partsStocktake(id, data) {
+  return request({
+    url: `/parts/${id}/stocktake`,
+    method: 'post',
+    data
+  })
+}
+
+/**
  * 获取出入库记录
  */
 export function getStockRecords(params) {

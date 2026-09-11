@@ -3,19 +3,13 @@
     <el-card shadow="never">
       <!-- 搜索表单 -->
       <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="单据编号">
-          <el-input v-model="searchForm.order_no" placeholder="请输入" clearable />
-        </el-form-item>
-        <el-form-item label="备件名称">
-          <el-input v-model="searchForm.part_name" placeholder="请输入" clearable />
-        </el-form-item>
-        <el-form-item label="供应商">
-          <el-select v-model="searchForm.supplier_id" placeholder="请选择" clearable>
+        <el-form-item label="备件">
+          <el-select v-model="searchForm.part_id" placeholder="全部" clearable filterable style="width: 220px">
             <el-option
-              v-for="sup in suppliers"
-              :key="sup.id"
-              :label="sup.name"
-              :value="sup.id"
+              v-for="part in parts"
+              :key="part.id"
+              :label="`${part.part_name} (${part.part_code})`"
+              :value="part.id"
             />
           </el-select>
         </el-form-item>
@@ -45,35 +39,32 @@
 
       <!-- 数据表格 -->
       <el-table :data="tableData" v-loading="loading" border stripe>
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="order_no" label="单据编号" width="150" />
-        <el-table-column prop="part_name" label="备件名称" min-width="150" />
-        <el-table-column prop="part_code" label="备件编号" width="130" />
-        <el-table-column prop="quantity" label="入库数量" width="100" />
-        <el-table-column prop="unit_price" label="单价" width="100">
+        <el-table-column prop="id" label="记录ID" width="80" />
+        <el-table-column label="备件名称" min-width="150">
+          <template #default="{ row }">{{ row.part?.part_name || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="备件编号" width="130">
+          <template #default="{ row }">{{ row.part?.part_code || '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="quantity" label="入库数量" width="100" align="right" />
+        <el-table-column label="单价" width="100" align="right">
           <template #default="{ row }">
-            ¥{{ row.unit_price }}
+            {{ formatMoney(row.part?.purchase_price) }}
           </template>
         </el-table-column>
-        <el-table-column prop="total_price" label="总价" width="120">
+        <el-table-column label="总价" width="120" align="right">
           <template #default="{ row }">
-            ¥{{ row.total_price }}
+            {{ formatMoney((Number(row.quantity) || 0) * (Number(row.part?.purchase_price) || 0)) }}
           </template>
         </el-table-column>
-        <el-table-column prop="supplier_name" label="供应商" width="150" />
-        <el-table-column prop="operator" label="操作人" width="100" />
-        <el-table-column prop="created_at" label="入库时间" width="160" />
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'warning'">
-              {{ row.status === 1 ? '已完成' : '待审核' }}
-            </el-tag>
-          </template>
+        <el-table-column label="库存变化" width="120" align="center">
+          <template #default="{ row }">{{ row.before_stock }} → {{ row.after_stock }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column prop="notes" label="备注" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="created_at" label="入库时间" width="170" />
+        <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleView(row)">查看</el-button>
-            <el-button link type="danger" @click="handleDelete(row)" v-if="row.status !== 1">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -94,72 +85,49 @@
     <el-dialog
       v-model="dialogVisible"
       title="新增入库"
-      width="700px"
+      width="600px"
     >
       <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
         <el-form-item label="备件" prop="part_id">
-          <el-select v-model="form.part_id" placeholder="请选择备件" @change="handlePartChange">
+          <el-select v-model="form.part_id" placeholder="请选择备件" filterable style="width: 100%" @change="handlePartChange">
             <el-option
               v-for="part in parts"
               :key="part.id"
-              :label="`${part.name} (${part.code})`"
+              :label="`${part.part_name} (${part.part_code})`"
               :value="part.id"
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="供应商" prop="supplier_id">
-          <el-select v-model="form.supplier_id" placeholder="请选择供应商">
-            <el-option
-              v-for="sup in suppliers"
-              :key="sup.id"
-              :label="sup.name"
-              :value="sup.id"
-            />
-          </el-select>
+        <el-form-item label="当前库存">
+          <el-text type="info">{{ selectedPart ? selectedPart.stock_quantity : '-' }}</el-text>
         </el-form-item>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="入库数量" prop="quantity">
-              <el-input-number v-model="form.quantity" :min="1" @change="handleQuantityChange" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="单价" prop="unit_price">
-              <el-input-number v-model="form.unit_price" :min="0" :precision="2" @change="handleQuantityChange" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="总价">
-          <el-input v-model="totalPrice" disabled />
+        <el-form-item label="入库数量" prop="quantity">
+          <el-input-number v-model="form.quantity" :min="1" />
+        </el-form-item>
+        <el-form-item label="参考单价">
+          <el-text>{{ selectedPart ? formatMoney(selectedPart.purchase_price) : '-' }}</el-text>
         </el-form-item>
         <el-form-item label="备注" prop="notes">
-          <el-input v-model="form.notes" type="textarea" :rows="3" />
+          <el-input v-model="form.notes" type="textarea" :rows="3" placeholder="可填写供应商、批次等信息" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
 
     <!-- 入库详情对话框 -->
     <el-dialog v-model="detailDialogVisible" title="入库详情" width="700px">
       <el-descriptions :column="2" border v-if="currentRecord">
-        <el-descriptions-item label="单据编号">{{ currentRecord.order_no }}</el-descriptions-item>
+        <el-descriptions-item label="记录ID">{{ currentRecord.id }}</el-descriptions-item>
         <el-descriptions-item label="入库时间">{{ currentRecord.created_at }}</el-descriptions-item>
-        <el-descriptions-item label="备件名称">{{ currentRecord.part_name }}</el-descriptions-item>
-        <el-descriptions-item label="备件编号">{{ currentRecord.part_code }}</el-descriptions-item>
+        <el-descriptions-item label="备件名称">{{ currentRecord.part?.part_name || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="备件编号">{{ currentRecord.part?.part_code || '-' }}</el-descriptions-item>
         <el-descriptions-item label="入库数量">{{ currentRecord.quantity }}</el-descriptions-item>
-        <el-descriptions-item label="单价">¥{{ currentRecord.unit_price }}</el-descriptions-item>
-        <el-descriptions-item label="总价">¥{{ currentRecord.total_price }}</el-descriptions-item>
-        <el-descriptions-item label="供应商">{{ currentRecord.supplier_name }}</el-descriptions-item>
-        <el-descriptions-item label="操作人">{{ currentRecord.operator }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="currentRecord.status === 1 ? 'success' : 'warning'">
-            {{ currentRecord.status === 1 ? '已完成' : '待审核' }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ currentRecord.notes }}</el-descriptions-item>
+        <el-descriptions-item label="单价">{{ formatMoney(currentRecord.part?.purchase_price) }}</el-descriptions-item>
+        <el-descriptions-item label="库存变化">{{ currentRecord.before_stock }} → {{ currentRecord.after_stock }}</el-descriptions-item>
+        <el-descriptions-item label="备注" :span="2">{{ currentRecord.notes || '无' }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
   </div>
@@ -167,13 +135,12 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import { getPartsList, getStockRecords, partsInbound } from '@/api/inventory'
 
 const searchForm = reactive({
-  order_no: '',
-  part_name: '',
-  supplier_id: '',
+  part_id: '',
   date_range: []
 })
 
@@ -189,53 +156,47 @@ const dialogVisible = ref(false)
 const detailDialogVisible = ref(false)
 const formRef = ref(null)
 const currentRecord = ref(null)
+const submitLoading = ref(false)
 
 const form = reactive({
   part_id: '',
-  supplier_id: '',
   quantity: 1,
-  unit_price: 0,
   notes: ''
 })
 
 const rules = {
   part_id: [{ required: true, message: '请选择备件', trigger: 'change' }],
-  supplier_id: [{ required: true, message: '请选择供应商', trigger: 'change' }],
-  quantity: [{ required: true, message: '请输入入库数量', trigger: 'blur' }],
-  unit_price: [{ required: true, message: '请输入单价', trigger: 'blur' }]
+  quantity: [{ required: true, message: '请输入入库数量', trigger: 'blur' }]
 }
 
 const parts = ref([])
-const suppliers = ref([])
 
-const totalPrice = computed(() => {
-  return `¥${(form.quantity * form.unit_price).toFixed(2)}`
-})
+const selectedPart = computed(() => parts.value.find((p) => p.id === form.part_id) || null)
+
+const formatMoney = (value) => {
+  const num = Number(value)
+  if (value === null || value === undefined || value === '' || Number.isNaN(num)) return '-'
+  return `¥${num.toFixed(2)}`
+}
 
 const fetchData = async () => {
   loading.value = true
   try {
-    // TODO: 调用API获取入库记录列表
-    tableData.value = [
-      {
-        id: 1,
-        order_no: 'IN20240324001',
-        part_name: '空气滤芯',
-        part_code: 'PART001',
-        quantity: 100,
-        unit_price: 25.00,
-        total_price: 2500.00,
-        supplier_name: '上海汽配有限公司',
-        operator: '张三',
-        created_at: '2024-03-24 10:30:00',
-        status: 1,
-        notes: ''
-      }
-    ]
-    pagination.total = 1
+    const params = {
+      page: pagination.page,
+      limit: pagination.pageSize,
+      type: 1
+    }
+    if (searchForm.part_id) params.part_id = searchForm.part_id
+    if (searchForm.date_range?.length === 2) {
+      params.start_date = searchForm.date_range[0]
+      params.end_date = searchForm.date_range[1]
+    }
+    const res = await getStockRecords(params)
+    tableData.value = res.data?.list || []
+    pagination.total = res.data?.total || 0
   } catch (error) {
     console.error('获取入库记录失败:', error)
-    ElMessage.error('获取入库记录失败')
   } finally {
     loading.value = false
   }
@@ -243,37 +204,15 @@ const fetchData = async () => {
 
 const fetchParts = async () => {
   try {
-    // TODO: 调用API获取备件列表
-    parts.value = [
-      { id: 1, name: '空气滤芯', code: 'PART001', purchase_price: 25.00 },
-      { id: 2, name: '机油滤芯', code: 'PART002', purchase_price: 30.00 }
-    ]
+    const res = await getPartsList({ page: 1, limit: 200, status: 1 })
+    parts.value = res.data?.list || []
   } catch (error) {
     console.error('获取备件列表失败:', error)
   }
 }
 
-const fetchSuppliers = async () => {
-  try {
-    // TODO: 调用API获取供应商列表
-    suppliers.value = [
-      { id: 1, name: '上海汽配有限公司' },
-      { id: 2, name: '北京机电设备有限公司' }
-    ]
-  } catch (error) {
-    console.error('获取供应商列表失败:', error)
-  }
-}
-
-const handlePartChange = (partId) => {
-  const part = parts.value.find(p => p.id === partId)
-  if (part) {
-    form.unit_price = part.purchase_price
-  }
-}
-
-const handleQuantityChange = () => {
-  // 总价会自动计算
+const handlePartChange = () => {
+  // 选中备件后展示参考信息
 }
 
 const handleSearch = () => {
@@ -283,23 +222,19 @@ const handleSearch = () => {
 
 const handleReset = () => {
   Object.assign(searchForm, {
-    order_no: '',
-    part_name: '',
-    supplier_id: '',
+    part_id: '',
     date_range: []
   })
   handleSearch()
 }
 
 const handleAdd = () => {
-  dialogVisible.value = true
   Object.assign(form, {
     part_id: '',
-    supplier_id: '',
     quantity: 1,
-    unit_price: 0,
     notes: ''
   })
+  dialogVisible.value = true
 }
 
 const handleView = (row) => {
@@ -307,38 +242,30 @@ const handleView = (row) => {
   detailDialogVisible.value = true
 }
 
-const handleDelete = (row) => {
-  ElMessageBox.confirm(`确定要删除入库单"${row.order_no}"吗？`, '提示', {
-    type: 'warning'
-  }).then(async () => {
-    try {
-      // TODO: 调用API删除入库记录
-      ElMessage.success('删除成功')
-      fetchData()
-    } catch (error) {
-      console.error('删除失败:', error)
-    }
-  })
-}
-
 const handleSubmit = async () => {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
 
+  submitLoading.value = true
   try {
-    // TODO: 调用API创建入库记录
-    ElMessage.success('创建成功')
+    await partsInbound(form.part_id, {
+      quantity: form.quantity,
+      remark: form.notes || null
+    })
+    ElMessage.success('入库成功')
     dialogVisible.value = false
     fetchData()
+    fetchParts()
   } catch (error) {
-    console.error('操作失败:', error)
+    console.error('入库失败:', error)
+  } finally {
+    submitLoading.value = false
   }
 }
 
 onMounted(() => {
   fetchData()
   fetchParts()
-  fetchSuppliers()
 })
 </script>
 

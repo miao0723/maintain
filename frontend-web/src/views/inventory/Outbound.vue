@@ -3,14 +3,15 @@
     <el-card shadow="never">
       <!-- 搜索表单 -->
       <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="单据编号">
-          <el-input v-model="searchForm.order_no" placeholder="请输入" clearable />
-        </el-form-item>
-        <el-form-item label="备件名称">
-          <el-input v-model="searchForm.part_name" placeholder="请输入" clearable />
-        </el-form-item>
-        <el-form-item label="领用人">
-          <el-input v-model="searchForm.receiver" placeholder="请输入" clearable />
+        <el-form-item label="备件">
+          <el-select v-model="searchForm.part_id" placeholder="全部" clearable filterable style="width: 220px">
+            <el-option
+              v-for="part in parts"
+              :key="part.id"
+              :label="`${part.part_name} (${part.part_code})`"
+              :value="part.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="日期范围">
           <el-date-picker
@@ -38,26 +39,22 @@
 
       <!-- 数据表格 -->
       <el-table :data="tableData" v-loading="loading" border stripe>
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="order_no" label="单据编号" width="150" />
-        <el-table-column prop="part_name" label="备件名称" min-width="150" />
-        <el-table-column prop="part_code" label="备件编号" width="130" />
-        <el-table-column prop="quantity" label="出库数量" width="100" />
-        <el-table-column prop="receiver" label="领用人" width="120" />
-        <el-table-column prop="department" label="部门" width="120" />
-        <el-table-column prop="operator" label="操作人" width="100" />
-        <el-table-column prop="created_at" label="出库时间" width="160" />
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'warning'">
-              {{ row.status === 1 ? '已出库' : '待审核' }}
-            </el-tag>
-          </template>
+        <el-table-column prop="id" label="记录ID" width="80" />
+        <el-table-column label="备件名称" min-width="150">
+          <template #default="{ row }">{{ row.part?.part_name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="备件编号" width="130">
+          <template #default="{ row }">{{ row.part?.part_code || '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="quantity" label="出库数量" width="100" align="right" />
+        <el-table-column label="库存变化" width="120" align="center">
+          <template #default="{ row }">{{ row.before_stock }} → {{ row.after_stock }}</template>
+        </el-table-column>
+        <el-table-column prop="notes" label="备注（领用人/用途）" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="created_at" label="出库时间" width="170" />
+        <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleView(row)">查看</el-button>
-            <el-button link type="danger" @click="handleDelete(row)" v-if="row.status !== 1">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -78,15 +75,15 @@
     <el-dialog
       v-model="dialogVisible"
       title="新增出库"
-      width="700px"
+      width="600px"
     >
       <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
         <el-form-item label="备件" prop="part_id">
-          <el-select v-model="form.part_id" placeholder="请选择备件" @change="handlePartChange">
+          <el-select v-model="form.part_id" placeholder="请选择备件" filterable style="width: 100%" @change="handlePartChange">
             <el-option
               v-for="part in parts"
               :key="part.id"
-              :label="`${part.name} (${part.code}) - 库存:${part.quantity}`"
+              :label="`${part.part_name} (${part.part_code}) - 库存:${part.stock_quantity}`"
               :value="part.id"
             />
           </el-select>
@@ -104,11 +101,13 @@
           </el-col>
         </el-row>
         <el-form-item label="部门" prop="department">
-          <el-select v-model="form.department" placeholder="请选择部门">
-            <el-option label="技术部" value="技术部" />
-            <el-option label="工程部" value="工程部" />
-            <el-option label="维修部" value="维修部" />
-            <el-option label="运营部" value="运营部" />
+          <el-select v-model="form.department" placeholder="请选择部门" style="width: 100%">
+            <el-option
+              v-for="dept in departments"
+              :key="dept.id"
+              :label="dept.name"
+              :value="dept.name"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="用途" prop="purpose">
@@ -120,42 +119,34 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
 
     <!-- 出库详情对话框 -->
     <el-dialog v-model="detailDialogVisible" title="出库详情" width="700px">
       <el-descriptions :column="2" border v-if="currentRecord">
-        <el-descriptions-item label="单据编号">{{ currentRecord.order_no }}</el-descriptions-item>
+        <el-descriptions-item label="记录ID">{{ currentRecord.id }}</el-descriptions-item>
         <el-descriptions-item label="出库时间">{{ currentRecord.created_at }}</el-descriptions-item>
-        <el-descriptions-item label="备件名称">{{ currentRecord.part_name }}</el-descriptions-item>
-        <el-descriptions-item label="备件编号">{{ currentRecord.part_code }}</el-descriptions-item>
+        <el-descriptions-item label="备件名称">{{ currentRecord.part?.part_name || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="备件编号">{{ currentRecord.part?.part_code || '-' }}</el-descriptions-item>
         <el-descriptions-item label="出库数量">{{ currentRecord.quantity }}</el-descriptions-item>
-        <el-descriptions-item label="领用人">{{ currentRecord.receiver }}</el-descriptions-item>
-        <el-descriptions-item label="部门">{{ currentRecord.department }}</el-descriptions-item>
-        <el-descriptions-item label="操作人">{{ currentRecord.operator }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="currentRecord.status === 1 ? 'success' : 'warning'">
-            {{ currentRecord.status === 1 ? '已出库' : '待审核' }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="用途">{{ currentRecord.purpose }}</el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ currentRecord.notes }}</el-descriptions-item>
+        <el-descriptions-item label="库存变化">{{ currentRecord.before_stock }} → {{ currentRecord.after_stock }}</el-descriptions-item>
+        <el-descriptions-item label="备注" :span="2">{{ currentRecord.notes || '无' }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, reactive, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import { getPartsList, getStockRecords, partsOutbound } from '@/api/inventory'
+import { getDepartmentList } from '@/api/departments'
 
 const searchForm = reactive({
-  order_no: '',
-  part_name: '',
-  receiver: '',
+  part_id: '',
   date_range: []
 })
 
@@ -171,6 +162,7 @@ const dialogVisible = ref(false)
 const detailDialogVisible = ref(false)
 const formRef = ref(null)
 const currentRecord = ref(null)
+const submitLoading = ref(false)
 
 const form = reactive({
   part_id: '',
@@ -189,32 +181,37 @@ const rules = {
 }
 
 const parts = ref([])
+const departments = ref([])
 const maxQuantity = ref(999)
+
+// 将领用人/部门/用途合并写入备注（stock_records 无独立字段）
+const buildRemark = () => {
+  const segments = []
+  if (form.receiver) segments.push(`领用人:${form.receiver}`)
+  if (form.department) segments.push(`部门:${form.department}`)
+  if (form.purpose) segments.push(`用途:${form.purpose}`)
+  if (form.notes) segments.push(form.notes)
+  return segments.join('；') || null
+}
 
 const fetchData = async () => {
   loading.value = true
   try {
-    // TODO: 调用API获取出库记录列表
-    tableData.value = [
-      {
-        id: 1,
-        order_no: 'OUT20240324001',
-        part_name: '空气滤芯',
-        part_code: 'PART001',
-        quantity: 5,
-        receiver: '李四',
-        department: '维修部',
-        operator: '张三',
-        created_at: '2024-03-24 14:30:00',
-        status: 1,
-        purpose: '维修使用',
-        notes: ''
-      }
-    ]
-    pagination.total = 1
+    const params = {
+      page: pagination.page,
+      limit: pagination.pageSize,
+      type: 2
+    }
+    if (searchForm.part_id) params.part_id = searchForm.part_id
+    if (searchForm.date_range?.length === 2) {
+      params.start_date = searchForm.date_range[0]
+      params.end_date = searchForm.date_range[1]
+    }
+    const res = await getStockRecords(params)
+    tableData.value = res.data?.list || []
+    pagination.total = res.data?.total || 0
   } catch (error) {
     console.error('获取出库记录失败:', error)
-    ElMessage.error('获取出库记录失败')
   } finally {
     loading.value = false
   }
@@ -222,22 +219,26 @@ const fetchData = async () => {
 
 const fetchParts = async () => {
   try {
-    // TODO: 调用API获取备件列表
-    parts.value = [
-      { id: 1, name: '空气滤芯', code: 'PART001', quantity: 50 },
-      { id: 2, name: '机油滤芯', code: 'PART002', quantity: 30 }
-    ]
+    const res = await getPartsList({ page: 1, limit: 200, status: 1 })
+    parts.value = res.data?.list || []
   } catch (error) {
     console.error('获取备件列表失败:', error)
   }
 }
 
-const handlePartChange = (partId) => {
-  const part = parts.value.find(p => p.id === partId)
-  if (part) {
-    maxQuantity.value = part.quantity
-    form.quantity = Math.min(form.quantity, part.quantity)
+const fetchDepartments = async () => {
+  try {
+    const res = await getDepartmentList({ page: 1, limit: 100 })
+    departments.value = res.data?.list || res.data || []
+  } catch (error) {
+    console.error('获取部门列表失败:', error)
   }
+}
+
+const handlePartChange = (partId) => {
+  const part = parts.value.find((p) => p.id === partId)
+  maxQuantity.value = part ? Number(part.stock_quantity) || 0 : 999
+  if (form.quantity > maxQuantity.value) form.quantity = maxQuantity.value
 }
 
 const handleSearch = () => {
@@ -247,16 +248,13 @@ const handleSearch = () => {
 
 const handleReset = () => {
   Object.assign(searchForm, {
-    order_no: '',
-    part_name: '',
-    receiver: '',
+    part_id: '',
     date_range: []
   })
   handleSearch()
 }
 
 const handleAdd = () => {
-  dialogVisible.value = true
   Object.assign(form, {
     part_id: '',
     quantity: 1,
@@ -266,6 +264,7 @@ const handleAdd = () => {
     notes: ''
   })
   maxQuantity.value = 999
+  dialogVisible.value = true
 }
 
 const handleView = (row) => {
@@ -273,37 +272,31 @@ const handleView = (row) => {
   detailDialogVisible.value = true
 }
 
-const handleDelete = (row) => {
-  ElMessageBox.confirm(`确定要删除出库单"${row.order_no}"吗？`, '提示', {
-    type: 'warning'
-  }).then(async () => {
-    try {
-      // TODO: 调用API删除出库记录
-      ElMessage.success('删除成功')
-      fetchData()
-    } catch (error) {
-      console.error('删除失败:', error)
-    }
-  })
-}
-
 const handleSubmit = async () => {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
 
+  submitLoading.value = true
   try {
-    // TODO: 调用API创建出库记录
-    ElMessage.success('创建成功')
+    await partsOutbound(form.part_id, {
+      quantity: form.quantity,
+      remark: buildRemark()
+    })
+    ElMessage.success('出库成功')
     dialogVisible.value = false
     fetchData()
+    fetchParts()
   } catch (error) {
-    console.error('操作失败:', error)
+    console.error('出库失败:', error)
+  } finally {
+    submitLoading.value = false
   }
 }
 
 onMounted(() => {
   fetchData()
   fetchParts()
+  fetchDepartments()
 })
 </script>
 

@@ -146,4 +146,43 @@ class SparePart extends Model
             throw $e;
         }
     }
+
+    /**
+     * 盘点（repair 数据库 stock_records 表）
+     * 以实际清点数量为准调整库存，quantity 记录差额（正=盘盈，负=盘亏）
+     */
+    public function stocktake($actualQuantity, $operatorId = null, $remark = null)
+    {
+        if ($actualQuantity === null || $actualQuantity < 0 || !is_numeric($actualQuantity)) {
+            throw new \Exception('盘点数量无效');
+        }
+
+        Db::connect('repair')->startTrans();
+        try {
+            $beforeQuantity = $this->stock_quantity;
+            $afterQuantity = (int)$actualQuantity;
+            $diff = $afterQuantity - $beforeQuantity;
+
+            // 创建盘点流水（账面 vs 实际）
+            $record = new StockRecord();
+            $record->spare_part_id = $this->id;
+            $record->record_type = StockRecord::TYPE_CHECK;
+            $record->quantity = $diff;
+            $record->before_stock = $beforeQuantity;
+            $record->after_stock = $afterQuantity;
+            $record->operator_id = $operatorId;
+            $record->notes = $remark ?: ('盘点调整：账面 ' . $beforeQuantity . '，实际 ' . $afterQuantity);
+            $record->save();
+
+            // 更新库存为实际数量
+            $this->stock_quantity = $afterQuantity;
+            $this->save();
+
+            Db::connect('repair')->commit();
+            return $record;
+        } catch (\Exception $e) {
+            Db::connect('repair')->rollback();
+            throw $e;
+        }
+    }
 }

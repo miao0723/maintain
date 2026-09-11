@@ -35,6 +35,38 @@ export function getDashboardStatistics() {
   return request({ url: '/statistics/dashboard', method: 'get' })
 }
 
+// ===== 小程序业务统计（repair 库真实数据） =====
+
+/** 综合分析 */
+export function getRepairAnalysis() {
+  return request({ url: '/statistics/repair/analysis', method: 'get' })
+}
+
+/** 工单报表 */
+export function getRepairOrderReport(params) {
+  return request({ url: '/statistics/repair/orders', method: 'get', params })
+}
+
+/** 财务报表 */
+export function getRepairFinanceReport(params) {
+  return request({ url: '/statistics/repair/finance', method: 'get', params })
+}
+
+/** 人员报表 */
+export function getRepairPersonnelReport() {
+  return request({ url: '/statistics/repair/personnel', method: 'get' })
+}
+
+/** 维保报表 */
+export function getRepairMaintenanceReport(params) {
+  return request({ url: '/statistics/repair/maintenance', method: 'get', params })
+}
+
+/** 设备报表 */
+export function getRepairDeviceReport() {
+  return request({ url: '/statistics/repair/devices', method: 'get' })
+}
+
 export function getIncomeStatistics(params) {
   return request({ url: '/statistics/income', method: 'get', params })
 }

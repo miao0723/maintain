@@ -1,12 +1,12 @@
 <template>
   <div class="analysis-container">
-    <el-row :gutter="20">
+    <el-row :gutter="20" class="stats-flex">
       <!-- 统计卡片 -->
-      <el-col :span="6" v-for="stat in statistics" :key="stat.title">
+      <el-col class="stats-flex-item" v-for="stat in statCards" :key="stat.title">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-content">
             <div class="stat-icon" :style="{ background: stat.color }">
-              <el-icon :size="30">
+              <el-icon :size="30" color="#fff">
                 <component :is="stat.icon" />
               </el-icon>
             </div>
@@ -32,9 +32,9 @@
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>
-            <span>设备状态分布</span>
+            <span>订单状态分布</span>
           </template>
-          <div id="device-chart" style="height: 300px"></div>
+          <div id="status-chart" style="height: 300px"></div>
         </el-card>
       </el-col>
     </el-row>
@@ -43,7 +43,7 @@
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>
-            <span>维修类型统计</span>
+            <span>订单类型统计</span>
           </template>
           <div id="type-chart" style="height: 300px"></div>
         </el-card>
@@ -57,97 +57,76 @@
         </el-card>
       </el-col>
     </el-row>
-
-    <!-- 数据表格 -->
-    <el-card shadow="never" style="margin-top: 20px">
-      <template #header>
-        <span>备件消耗排行</span>
-      </template>
-      <el-table :data="topParts" border stripe>
-        <el-table-column type="index" label="排名" width="80" />
-        <el-table-column prop="name" label="备件名称" />
-        <el-table-column prop="code" label="备件编号" />
-        <el-table-column prop="consumption" label="消耗数量" />
-        <el-table-column prop="amount" label="消耗金额">
-          <template #default="{ row }">
-            ¥{{ row.amount.toFixed(2) }}
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
+import { Monitor, Tickets, CircleCheck, Clock, Star } from '@element-plus/icons-vue'
+import { getRepairAnalysis } from '@/api/statistics'
 
-const statistics = ref([
-  { title: '设备总数', value: '156', icon: 'Monitor', color: '#409EFF' },
-  { title: '本月工单', value: '42', icon: 'Tickets', color: '#67C23A' },
-  { title: '完成工单', value: '38', icon: 'CircleCheck', color: '#E6A23C' },
-  { title: '待处理', value: '4', icon: 'Clock', color: '#F56C6C' }
-])
+const loading = ref(false)
+const cards = ref({ device_total: 0, month_orders: 0, month_completed: 0, month_pending: 0, avg_rating: 0 })
+const trend = ref([])
+const statusPie = ref([])
+const typeBar = ref([])
+const engineers = ref([])
 
-const topParts = ref([
-  { name: '空气滤芯', code: 'PART001', consumption: 120, amount: 3000.00 },
-  { name: '机油滤芯', code: 'PART002', consumption: 85, amount: 2550.00 },
-  { name: '刹车片', code: 'PART003', consumption: 45, amount: 4500.00 },
-  { name: '火花塞', code: 'PART004', consumption: 60, amount: 1800.00 },
-  { name: '皮带', code: 'PART005', consumption: 30, amount: 900.00 }
+const statCards = computed(() => [
+  { title: '设备总数', value: cards.value.device_total, icon: Monitor, color: '#409EFF' },
+  { title: '本月工单', value: cards.value.month_orders, icon: Tickets, color: '#67C23A' },
+  { title: '本月完成', value: cards.value.month_completed, icon: CircleCheck, color: '#E6A23C' },
+  { title: '本月待处理', value: cards.value.month_pending, icon: Clock, color: '#F56C6C' },
+  { title: '平均评分', value: `${Number(cards.value.avg_rating || 0).toFixed(1)} 分`, icon: Star, color: '#9B59B6' }
 ])
 
 let charts = []
 
 const initCharts = () => {
-  // 工单趋势图
+  charts.forEach(c => c.dispose())
+  charts = []
+
+  // 工单趋势折线图
   const trendChart = echarts.init(document.getElementById('trend-chart'))
   trendChart.setOption({
     tooltip: { trigger: 'axis' },
-    legend: { data: ['新建', '完成', '进行中'] },
-    xAxis: {
-      type: 'category',
-      data: ['1月', '2月', '3月', '4月', '5月', '6月']
-    },
-    yAxis: { type: 'value' },
+    legend: { data: ['订单总数', '已完成'] },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'category', data: trend.value.map(i => i.month) },
+    yAxis: { type: 'value', name: '订单数' },
     series: [
       {
-        name: '新建',
+        name: '订单总数',
         type: 'line',
-        data: [35, 42, 38, 45, 40, 42],
-        smooth: true
+        data: trend.value.map(i => i.total),
+        smooth: true,
+        itemStyle: { color: '#409EFF' },
+        areaStyle: { color: 'rgba(64, 158, 255, 0.15)' }
       },
       {
-        name: '完成',
+        name: '已完成',
         type: 'line',
-        data: [30, 38, 35, 42, 38, 38],
-        smooth: true
-      },
-      {
-        name: '进行中',
-        type: 'line',
-        data: [5, 4, 3, 3, 2, 4],
-        smooth: true
+        data: trend.value.map(i => i.completed),
+        smooth: true,
+        itemStyle: { color: '#67C23A' },
+        areaStyle: { color: 'rgba(103, 194, 58, 0.15)' }
       }
     ]
   })
   charts.push(trendChart)
 
-  // 设备状态饼图
-  const deviceChart = echarts.init(document.getElementById('device-chart'))
-  deviceChart.setOption({
-    tooltip: { trigger: 'item' },
+  // 订单状态饼图
+  const statusChart = echarts.init(document.getElementById('status-chart'))
+  statusChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: { orient: 'vertical', left: 'left' },
     series: [
       {
-        name: '设备状态',
+        name: '订单状态',
         type: 'pie',
-        radius: '50%',
-        data: [
-          { value: 120, name: '正常' },
-          { value: 25, name: '维修中' },
-          { value: 11, name: '报废' }
-        ],
+        radius: '55%',
+        data: statusPie.value,
         emphasis: {
           itemStyle: {
             shadowBlur: 10,
@@ -158,22 +137,21 @@ const initCharts = () => {
       }
     ]
   })
-  charts.push(deviceChart)
+  charts.push(statusChart)
 
-  // 维修类型柱状图
+  // 订单类型柱状图
   const typeChart = echarts.init(document.getElementById('type-chart'))
   typeChart.setOption({
     tooltip: { trigger: 'axis' },
-    xAxis: {
-      type: 'category',
-      data: ['预防性维护', '故障维修', '定期巡检', '紧急维修', '升级改造']
-    },
-    yAxis: { type: 'value' },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'category', data: typeBar.value.map(i => i.name) },
+    yAxis: { type: 'value', name: '订单数' },
     series: [
       {
-        name: '工单数',
+        name: '订单数',
         type: 'bar',
-        data: [15, 18, 8, 12, 5],
+        barWidth: '40%',
+        data: typeBar.value.map(i => i.value),
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#83bff6' },
@@ -190,16 +168,15 @@ const initCharts = () => {
   const performanceChart = echarts.init(document.getElementById('performance-chart'))
   performanceChart.setOption({
     tooltip: { trigger: 'axis' },
-    xAxis: {
-      type: 'category',
-      data: ['张三', '李四', '王五', '赵六', '孙七']
-    },
-    yAxis: { type: 'value' },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'category', data: engineers.value.map(i => i.name), axisLabel: { interval: 0, rotate: engineers.value.length > 6 ? 30 : 0 } },
+    yAxis: { type: 'value', name: '完成工单' },
     series: [
       {
         name: '完成工单',
         type: 'bar',
-        data: [25, 22, 20, 18, 15],
+        barWidth: '40%',
+        data: engineers.value.map(i => i.completed_count),
         itemStyle: { color: '#67C23A' }
       }
     ]
@@ -207,12 +184,30 @@ const initCharts = () => {
   charts.push(performanceChart)
 }
 
+const fetchData = async () => {
+  loading.value = true
+  try {
+    const res = await getRepairAnalysis()
+    const data = res.data || {}
+    cards.value = data.cards || cards.value
+    trend.value = data.trend || []
+    statusPie.value = data.status_pie || []
+    typeBar.value = data.type_bar || []
+    engineers.value = data.engineers || []
+    nextTick(initCharts)
+  } catch (error) {
+    console.error('获取综合分析数据失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
 const handleResize = () => {
   charts.forEach(chart => chart.resize())
 }
 
 onMounted(() => {
-  initCharts()
+  fetchData()
   window.addEventListener('resize', handleResize)
 })
 
@@ -224,6 +219,16 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .analysis-container {
+  .stats-flex {
+    display: flex;
+    flex-wrap: wrap;
+
+    .stats-flex-item {
+      flex: 1 1 0;
+      min-width: 200px;
+    }
+  }
+
   .stat-card {
     .stat-content {
       display: flex;
@@ -238,6 +243,7 @@ onUnmounted(() => {
         justify-content: center;
         color: white;
         margin-right: 15px;
+        flex-shrink: 0;
       }
 
       .stat-info {

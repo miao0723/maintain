@@ -3,30 +3,16 @@
     <el-card shadow="never">
       <!-- 搜索表单 -->
       <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="退款编号">
-          <el-input v-model="searchForm.refund_no" placeholder="请输入" clearable />
-        </el-form-item>
-        <el-form-item label="交易编号">
-          <el-input v-model="searchForm.transaction_no" placeholder="请输入" clearable />
+        <el-form-item label="关键词">
+          <el-input v-model="searchForm.keyword" placeholder="订单号/退款单号" clearable style="width: 200px" />
         </el-form-item>
         <el-form-item label="退款状态">
-          <el-select v-model="searchForm.status" placeholder="请选择" clearable>
+          <el-select v-model="searchForm.refund_status" placeholder="请选择" clearable style="width: 140px">
             <el-option label="全部" value="" />
-            <el-option label="待处理" value="pending" />
-            <el-option label="退款中" value="processing" />
-            <el-option label="已完成" value="completed" />
-            <el-option label="已拒绝" value="rejected" />
+            <el-option label="退款中" value="refunding" />
+            <el-option label="已退款" value="refunded" />
+            <el-option label="退款失败/已拒绝" value="failed" />
           </el-select>
-        </el-form-item>
-        <el-form-item label="日期范围">
-          <el-date-picker
-            v-model="searchForm.date_range"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-          />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">搜索</el-button>
@@ -36,24 +22,35 @@
 
       <!-- 数据表格 -->
       <el-table :data="tableData" v-loading="loading" border stripe>
-        <el-table-column prop="refund_no" label="退款编号" width="180" />
-        <el-table-column prop="transaction_no" label="交易编号" width="180" />
-        <el-table-column prop="amount" label="退款金额" width="120">
+        <el-table-column prop="order_id" label="订单号" width="160" fixed />
+        <el-table-column prop="refund_no" label="退款单号" width="180" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.refund_no || '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="refund_amount" label="退款金额" width="120" align="right">
           <template #default="{ row }">
-            <span style="color: #F56C6C; font-weight: bold">¥{{ row.amount.toFixed(2) }}</span>
+            <span style="color: #F56C6C; font-weight: bold">¥{{ formatAmount(row.refund_amount) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="reason" label="退款原因" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="actual_price" label="订单实付" width="110" align="right">
+          <template #default="{ row }">¥{{ formatAmount(row.actual_price) }}</template>
+        </el-table-column>
+        <el-table-column prop="refund_reason" label="退款原因" min-width="180" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.refund_reason || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="110" align="center">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">
-              {{ getStatusText(row.status) }}
+            <el-tag :type="getStatusType(row.refund_status)">
+              {{ getStatusText(row.refund_status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="applicant" label="申请人" width="100" />
-        <el-table-column prop="created_at" label="申请时间" width="160" />
-        <el-table-column prop="processed_at" label="处理时间" width="160" />
+        <el-table-column prop="user_name" label="申请用户" width="120" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.user_name || '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="updated_at" label="更新时间" width="170" />
+        <el-table-column prop="refunded_at" label="退款到账时间" width="170">
+          <template #default="{ row }">{{ row.refunded_at || '-' }}</template>
+        </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleView(row)">查看</el-button>
@@ -61,7 +58,7 @@
               link
               type="success"
               @click="handleApprove(row)"
-              v-if="row.status === 'pending'"
+              v-if="row.refund_status === 'failed' || row.refund_status === 'none'"
             >
               同意
             </el-button>
@@ -69,7 +66,7 @@
               link
               type="danger"
               @click="handleReject(row)"
-              v-if="row.status === 'pending'"
+              v-if="row.refund_status === 'refunding'"
             >
               拒绝
             </el-button>
@@ -92,20 +89,21 @@
     <!-- 退款详情对话框 -->
     <el-dialog v-model="detailDialogVisible" title="退款详情" width="700px">
       <el-descriptions :column="2" border v-if="currentRefund">
-        <el-descriptions-item label="退款编号">{{ currentRefund.refund_no }}</el-descriptions-item>
-        <el-descriptions-item label="交易编号">{{ currentRefund.transaction_no }}</el-descriptions-item>
-        <el-descriptions-item label="退款金额">¥{{ currentRefund.amount.toFixed(2) }}</el-descriptions-item>
+        <el-descriptions-item label="订单号">{{ currentRefund.order_id }}</el-descriptions-item>
+        <el-descriptions-item label="订单实付">¥{{ formatAmount(currentRefund.actual_price) }}</el-descriptions-item>
+        <el-descriptions-item label="退款单号">{{ currentRefund.refund_no || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="微信退款单号">{{ currentRefund.wechat_refund_id || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="退款金额">¥{{ formatAmount(currentRefund.refund_amount) }}</el-descriptions-item>
         <el-descriptions-item label="状态">
-          <el-tag :type="getStatusType(currentRefund.status)">
-            {{ getStatusText(currentRefund.status) }}
+          <el-tag :type="getStatusType(currentRefund.refund_status)">
+            {{ getStatusText(currentRefund.refund_status) }}
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="申请人">{{ currentRefund.applicant }}</el-descriptions-item>
-        <el-descriptions-item label="申请时间">{{ currentRefund.created_at }}</el-descriptions-item>
-        <el-descriptions-item label="处理时间">{{ currentRefund.processed_at || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="处理人">{{ currentRefund.processor || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="退款原因" :span="2">{{ currentRefund.reason }}</el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ currentRefund.notes || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="申请用户">{{ currentRefund.user_name || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="联系电话">{{ currentRefund.user_phone || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="设备型号">{{ currentRefund.device_model || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="支付状态">{{ currentRefund.payment_status || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="退款原因" :span="2">{{ currentRefund.refund_reason || '-' }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
   </div>
@@ -114,12 +112,11 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { getRefundList, reviewRefund } from '@/api/paymentRecords'
 
 const searchForm = reactive({
-  refund_no: '',
-  transaction_no: '',
-  status: '',
-  date_range: []
+  keyword: '',
+  refund_status: ''
 })
 
 const pagination = reactive({
@@ -133,49 +130,46 @@ const loading = ref(false)
 const detailDialogVisible = ref(false)
 const currentRefund = ref(null)
 
+const formatAmount = (value) => {
+  const num = Number(value)
+  if (value === null || value === undefined || Number.isNaN(num)) return '0.00'
+  return num.toFixed(2)
+}
+
 const getStatusType = (status) => {
   const map = {
-    pending: 'info',
-    processing: 'warning',
-    completed: 'success',
-    rejected: 'danger'
+    refunding: 'warning',
+    refunded: 'success',
+    failed: 'danger',
+    none: 'info'
   }
   return map[status] || 'info'
 }
 
 const getStatusText = (status) => {
   const map = {
-    pending: '待处理',
-    processing: '退款中',
-    completed: '已完成',
-    rejected: '已拒绝'
+    refunding: '退款中',
+    refunded: '已退款',
+    failed: '退款失败/已拒绝',
+    none: '待审核'
   }
-  return map[status] || status
+  return map[status] || status || '-'
 }
 
 const fetchData = async () => {
   loading.value = true
   try {
-    // TODO: 调用API获取退款记录列表
-    tableData.value = [
-      {
-        id: 1,
-        refund_no: 'REF20240324001',
-        transaction_no: 'TXN20240324001',
-        amount: 500.00,
-        reason: '服务不满意',
-        status: 'completed',
-        applicant: '张三',
-        created_at: '2024-03-24 14:30:00',
-        processed_at: '2024-03-24 15:00:00',
-        processor: '管理员',
-        notes: '已全额退款'
-      }
-    ]
-    pagination.total = 1
+    const params = {
+      page: pagination.page,
+      limit: pagination.pageSize
+    }
+    if (searchForm.keyword) params.keyword = searchForm.keyword
+    if (searchForm.refund_status) params.refund_status = searchForm.refund_status
+    const res = await getRefundList(params)
+    tableData.value = res.data?.list || []
+    pagination.total = res.data?.total || 0
   } catch (error) {
     console.error('获取退款记录失败:', error)
-    ElMessage.error('获取退款记录失败')
   } finally {
     loading.value = false
   }
@@ -188,10 +182,8 @@ const handleSearch = () => {
 
 const handleReset = () => {
   Object.assign(searchForm, {
-    refund_no: '',
-    transaction_no: '',
-    status: '',
-    date_range: []
+    keyword: '',
+    refund_status: ''
   })
   handleSearch()
 }
@@ -202,12 +194,14 @@ const handleView = (row) => {
 }
 
 const handleApprove = (row) => {
-  ElMessageBox.confirm(`确定同意退款 ¥${row.amount.toFixed(2)} 吗？`, '提示', {
-    type: 'warning'
-  }).then(async () => {
+  ElMessageBox.confirm(
+    `确定同意订单 ${row.order_id} 退款 ¥${formatAmount(row.refund_amount || row.actual_price)} 吗？同意后将进入「退款中」，等待微信退款到账。`,
+    '提示',
+    { type: 'warning' }
+  ).then(async () => {
     try {
-      // TODO: 调用API同意退款
-      ElMessage.success('退款已批准')
+      await reviewRefund(row.id, { action: 'approve' })
+      ElMessage.success('已同意退款，等待微信退款到账')
       fetchData()
     } catch (error) {
       console.error('操作失败:', error)
@@ -223,7 +217,7 @@ const handleReject = (row) => {
     inputErrorMessage: '请输入拒绝原因'
   }).then(async ({ value }) => {
     try {
-      // TODO: 调用API拒绝退款
+      await reviewRefund(row.id, { action: 'reject', admin_remark: value })
       ElMessage.success('已拒绝退款')
       fetchData()
     } catch (error) {

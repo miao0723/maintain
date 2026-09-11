@@ -1,91 +1,60 @@
 <template>
   <div class="device-report-container">
-    <el-card shadow="never">
-      <!-- 查询条件 -->
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="日期范围">
-          <el-date-picker
-            v-model="searchForm.date_range"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-          />
-        </el-form-item>
-        <el-form-item label="设备分类">
-          <el-select v-model="searchForm.category_id" placeholder="请选择" clearable>
-            <el-option label="全部" value="" />
-            <el-option
-              v-for="cat in categories"
-              :key="cat.id"
-              :label="cat.name"
-              :value="cat.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleExport">导出报表</el-button>
-        </el-form-item>
-      </el-form>
+    <el-card shadow="never" v-loading="loading">
+      <!-- 统计卡片 -->
+      <el-row :gutter="20" style="margin-bottom: 20px">
+        <el-col :span="12">
+          <el-statistic title="用户设备总数" :value="cards.device_total" />
+        </el-col>
+        <el-col :span="12">
+          <el-statistic title="设备类型数" :value="cards.device_type_count" />
+        </el-col>
+      </el-row>
 
       <!-- 统计图表 -->
       <el-row :gutter="20">
         <el-col :span="12">
           <div class="chart-container">
-            <h4>设备故障率趋势</h4>
-            <div id="failure-chart" style="height: 300px"></div>
+            <h4>各类型订单量</h4>
+            <div id="order-chart" style="height: 300px"></div>
           </div>
         </el-col>
         <el-col :span="12">
           <div class="chart-container">
-            <h4>设备维修成本</h4>
-            <div id="cost-chart" style="height: 300px"></div>
-          </div>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="20" style="margin-top: 20px">
-        <el-col :span="12">
-          <div class="chart-container">
-            <h4>设备利用率</h4>
-            <div id="utilization-chart" style="height: 300px"></div>
-          </div>
-        </el-col>
-        <el-col :span="12">
-          <div class="chart-container">
-            <h4>设备维修时长</h4>
-            <div id="duration-chart" style="height: 300px"></div>
+            <h4>各类型收入</h4>
+            <div id="income-chart" style="height: 300px"></div>
           </div>
         </el-col>
       </el-row>
 
       <!-- 详细数据表格 -->
       <div class="table-container">
-        <h4>设备详细报表</h4>
+        <h4>设备类型明细</h4>
         <el-table :data="tableData" border stripe>
-          <el-table-column prop="device_name" label="设备名称" />
-          <el-table-column prop="device_code" label="设备编号" />
-          <el-table-column prop="category" label="分类" />
-          <el-table-column prop="total_orders" label="总工单数" />
-          <el-table-column prop="failure_count" label="故障次数" />
-          <el-table-column prop="failure_rate" label="故障率">
+          <el-table-column prop="device_name" label="设备类型" min-width="140" show-overflow-tooltip />
+          <el-table-column prop="order_count" label="订单数" width="100" />
+          <el-table-column prop="completed_count" label="完成数" width="100" />
+          <el-table-column prop="fault_rate" label="故障率" width="110">
             <template #default="{ row }">
-              {{ (row.failure_rate * 100).toFixed(2) }}%
+              <span v-if="row.fault_rate != null">{{ Number(row.fault_rate).toFixed(2) }}%</span>
+              <span v-else>-</span>
             </template>
           </el-table-column>
-          <el-table-column prop="avg_duration" label="平均维修时长(小时)" />
-          <el-table-column prop="total_cost" label="总成本">
+          <el-table-column prop="income" label="收入" width="130" align="right">
             <template #default="{ row }">
-              ¥{{ row.total_cost.toFixed(2) }}
+              <span v-if="row.income != null" class="amount-text">¥{{ Number(row.income).toFixed(2) }}</span>
+              <span v-else>-</span>
             </template>
           </el-table-column>
-          <el-table-column prop="utilization" label="利用率">
+          <el-table-column prop="avg_rating" label="平均评分" width="110">
             <template #default="{ row }">
-              {{ (row.utilization * 100).toFixed(2) }}%
+              <span v-if="row.avg_rating != null && row.avg_rating !== ''">{{ Number(row.avg_rating).toFixed(1) }} 分</span>
+              <span v-else>-</span>
             </template>
           </el-table-column>
+          <template #empty>
+            <el-empty description="暂无设备数据" />
+          </template>
         </el-table>
       </div>
     </el-card>
@@ -93,150 +62,90 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
+import { getRepairDeviceReport } from '@/api/statistics'
 
-const searchForm = reactive({
-  date_range: [],
-  category_id: ''
-})
-
-const categories = ref([])
+const loading = ref(false)
+const cards = ref({ device_total: 0, device_type_count: 0 })
+const orderBar = ref([])
+const incomeBar = ref([])
 const tableData = ref([])
 
 let charts = []
 
 const fetchData = async () => {
+  loading.value = true
   try {
-    // TODO: 调用API获取设备报表数据
-    tableData.value = [
-      {
-        device_name: '中央空调A',
-        device_code: 'DEV001',
-        category: '暖通设备',
-        total_orders: 12,
-        failure_count: 3,
-        failure_rate: 0.25,
-        avg_duration: 4.5,
-        total_cost: 3500.00,
-        utilization: 0.85
-      },
-      {
-        device_name: '电梯B',
-        device_code: 'DEV002',
-        category: '电梯设备',
-        total_orders: 8,
-        failure_count: 2,
-        failure_rate: 0.25,
-        avg_duration: 6.0,
-        total_cost: 5000.00,
-        utilization: 0.92
-      }
-    ]
+    const res = await getRepairDeviceReport()
+    const data = res.data || {}
+    cards.value = data.cards || cards.value
+    orderBar.value = data.order_bar || []
+    incomeBar.value = data.income_bar || []
+    tableData.value = data.list || []
+    nextTick(initCharts)
   } catch (error) {
-    console.error('获取报表数据失败:', error)
+    console.error('获取设备报表数据失败:', error)
+  } finally {
+    loading.value = false
   }
 }
 
 const initCharts = () => {
-  // 故障率趋势图
-  const failureChart = echarts.init(document.getElementById('failure-chart'))
-  failureChart.setOption({
-    tooltip: { trigger: 'axis' },
-    xAxis: {
-      type: 'category',
-      data: ['1月', '2月', '3月', '4月', '5月', '6月']
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { formatter: '{value}%' }
-    },
-    series: [
-      {
-        name: '故障率',
-        type: 'line',
-        data: [5, 4, 6, 3, 4, 5],
-        smooth: true,
-        itemStyle: { color: '#F56C6C' }
-      }
-    ]
-  })
-  charts.push(failureChart)
+  charts.forEach(c => c.dispose())
+  charts = []
 
-  // 维修成本图
-  const costChart = echarts.init(document.getElementById('cost-chart'))
-  costChart.setOption({
+  // 各类型订单量柱状图
+  const orderChart = echarts.init(document.getElementById('order-chart'))
+  orderChart.setOption({
     tooltip: { trigger: 'axis' },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: ['1月', '2月', '3月', '4月', '5月', '6月']
+      data: orderBar.value.map(i => i.name),
+      axisLabel: { interval: 0, rotate: orderBar.value.length > 6 ? 30 : 0 }
     },
-    yAxis: {
-      type: 'value',
-      axisLabel: { formatter: '¥{value}' }
-    },
+    yAxis: { type: 'value', name: '订单数' },
     series: [
       {
-        name: '维修成本',
+        name: '订单数',
         type: 'bar',
-        data: [5000, 4500, 6000, 5500, 4800, 5200],
+        barWidth: '40%',
+        data: orderBar.value.map(i => i.value),
         itemStyle: { color: '#409EFF' }
       }
     ]
   })
-  charts.push(costChart)
+  charts.push(orderChart)
 
-  // 设备利用率饼图
-  const utilizationChart = echarts.init(document.getElementById('utilization-chart'))
-  utilizationChart.setOption({
-    tooltip: { trigger: 'item' },
-    series: [
-      {
-        name: '设备状态',
-        type: 'pie',
-        radius: '60%',
-        data: [
-          { value: 120, name: '运行中' },
-          { value: 15, name: '维护中' },
-          { value: 10, name: '停机' },
-          { value: 11, name: '报废' }
-        ]
-      }
-    ]
-  })
-  charts.push(utilizationChart)
-
-  // 维修时长图
-  const durationChart = echarts.init(document.getElementById('duration-chart'))
-  durationChart.setOption({
-    tooltip: { trigger: 'axis' },
+  // 各类型收入柱状图
+  const incomeChart = echarts.init(document.getElementById('income-chart'))
+  incomeChart.setOption({
+    tooltip: { trigger: 'axis', valueFormatter: (v) => `¥${Number(v || 0).toFixed(2)}` },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: ['中央空调', '电梯', '水泵', '发电机', '空压机']
+      data: incomeBar.value.map(i => i.name),
+      axisLabel: { interval: 0, rotate: incomeBar.value.length > 6 ? 30 : 0 }
     },
-    yAxis: {
-      type: 'value',
-      axisLabel: { formatter: '{value}小时' }
-    },
+    yAxis: { type: 'value', name: '收入(元)', axisLabel: { formatter: '¥{value}' } },
     series: [
       {
-        name: '平均维修时长',
+        name: '收入',
         type: 'bar',
-        data: [4.5, 6.0, 3.5, 5.0, 4.0],
-        itemStyle: { color: '#67C23A' }
+        barWidth: '40%',
+        data: incomeBar.value.map(i => i.value),
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#83bff6' },
+            { offset: 0.5, color: '#188df0' },
+            { offset: 1, color: '#188df0' }
+          ])
+        }
       }
     ]
   })
-  charts.push(durationChart)
-}
-
-const handleSearch = () => {
-  fetchData()
-}
-
-const handleExport = () => {
-  ElMessage.info('导出功能开发中')
+  charts.push(incomeChart)
 }
 
 const handleResize = () => {
@@ -245,7 +154,6 @@ const handleResize = () => {
 
 onMounted(() => {
   fetchData()
-  initCharts()
   window.addEventListener('resize', handleResize)
 })
 
@@ -257,10 +165,6 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .device-report-container {
-  .search-form {
-    margin-bottom: 20px;
-  }
-
   .chart-container {
     padding: 20px;
     background: #fff;
@@ -280,6 +184,11 @@ onUnmounted(() => {
       margin: 0 0 15px 0;
       font-size: 16px;
       color: #303133;
+    }
+
+    .amount-text {
+      color: #409EFF;
+      font-weight: 500;
     }
   }
 }

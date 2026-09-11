@@ -3,15 +3,14 @@
     <el-card shadow="never">
       <!-- 搜索表单 -->
       <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="盘点单号">
-          <el-input v-model="searchForm.order_no" placeholder="请输入" clearable />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择" clearable>
-            <el-option label="全部" value="" />
-            <el-option label="盘点中" value="pending" />
-            <el-option label="已完成" value="completed" />
-            <el-option label="已作废" value="cancelled" />
+        <el-form-item label="备件">
+          <el-select v-model="searchForm.part_id" placeholder="全部" clearable filterable style="width: 220px">
+            <el-option
+              v-for="part in parts"
+              :key="part.id"
+              :label="`${part.part_name} (${part.part_code})`"
+              :value="part.id"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="日期范围">
@@ -40,36 +39,27 @@
 
       <!-- 数据表格 -->
       <el-table :data="tableData" v-loading="loading" border stripe>
-        <el-table-column prop="order_no" label="盘点单号" width="150" />
-        <el-table-column prop="type" label="盘点类型" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.type === 'full' ? 'success' : 'primary'">
-              {{ row.type === 'full' ? '全盘' : '抽盘' }}
-            </el-tag>
-          </template>
+        <el-table-column prop="id" label="记录ID" width="80" />
+        <el-table-column label="备件名称" min-width="150">
+          <template #default="{ row }">{{ row.part?.part_name || '-' }}</template>
         </el-table-column>
-        <el-table-column prop="item_count" label="盘点品种" width="100" />
-        <el-table-column prop="diff_count" label="差异数" width="100">
+        <el-table-column label="备件编号" width="130">
+          <template #default="{ row }">{{ row.part?.part_code || '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="before_stock" label="账面数量" width="100" align="right" />
+        <el-table-column prop="after_stock" label="实际数量" width="100" align="right" />
+        <el-table-column label="差异" width="100" align="center">
           <template #default="{ row }">
-            <span :style="{ color: row.diff_count > 0 ? '#F56C6C' : row.diff_count < 0 ? '#67C23A' : '' }">
-              {{ row.diff_count > 0 ? `+${row.diff_count}` : row.diff_count }}
+            <span :style="{ color: row.quantity > 0 ? '#67C23A' : row.quantity < 0 ? '#F56C6C' : '' }">
+              {{ diffText(row.quantity) }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="operator" label="盘点人" width="100" />
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">
-              {{ getStatusText(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="160" />
-        <el-table-column prop="completed_at" label="完成时间" width="160" />
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column prop="notes" label="备注" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="created_at" label="盘点时间" width="170" />
+        <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleView(row)">查看</el-button>
-            <el-button link type="success" @click="handleComplete(row)" v-if="row.status === 'pending'">完成</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -86,55 +76,68 @@
       />
     </el-card>
 
-    <!-- 盘点详情对话框 -->
-    <el-dialog v-model="detailDialogVisible" title="盘点详情" width="900px">
-      <div v-if="currentStocktaking">
-        <el-descriptions :column="2" border class="mb-4">
-          <el-descriptions-item label="盘点单号">{{ currentStocktaking.order_no }}</el-descriptions-item>
-          <el-descriptions-item label="盘点类型">
-            <el-tag :type="currentStocktaking.type === 'full' ? 'success' : 'primary'">
-              {{ currentStocktaking.type === 'full' ? '全盘' : '抽盘' }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="盘点人">{{ currentStocktaking.operator }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="getStatusType(currentStocktaking.status)">
-              {{ getStatusText(currentStocktaking.status) }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="创建时间">{{ currentStocktaking.created_at }}</el-descriptions-item>
-          <el-descriptions-item label="完成时间">{{ currentStocktaking.completed_at || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="备注" :span="2">{{ currentStocktaking.notes }}</el-descriptions-item>
-        </el-descriptions>
+    <!-- 新增盘点对话框 -->
+    <el-dialog
+      v-model="dialogVisible"
+      title="新增盘点"
+      width="600px"
+    >
+      <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
+        <el-form-item label="备件" prop="part_id">
+          <el-select v-model="form.part_id" placeholder="请选择备件" filterable style="width: 100%">
+            <el-option
+              v-for="part in parts"
+              :key="part.id"
+              :label="`${part.part_name} (${part.part_code}) - 账面:${part.stock_quantity}`"
+              :value="part.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="账面数量">
+          <el-text type="info">{{ selectedPart?.stock_quantity ?? '-' }}</el-text>
+        </el-form-item>
+        <el-form-item label="实际数量" prop="actual_quantity">
+          <el-input-number v-model="form.actual_quantity" :min="0" />
+        </el-form-item>
+        <el-form-item label="预计差异">
+          <el-text :type="previewDiff > 0 ? 'success' : previewDiff < 0 ? 'danger' : 'info'">
+            {{ diffText(previewDiff) }}
+          </el-text>
+        </el-form-item>
+        <el-form-item label="备注" prop="notes">
+          <el-input v-model="form.notes" type="textarea" :rows="3" placeholder="如：季度盘点、损耗原因等" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">确定</el-button>
+      </template>
+    </el-dialog>
 
-        <h4>盘点明细</h4>
-        <el-table :data="currentStocktaking.items" border>
-          <el-table-column prop="part_name" label="备件名称" />
-          <el-table-column prop="part_code" label="备件编号" />
-          <el-table-column prop="book_quantity" label="账面数量" />
-          <el-table-column prop="actual_quantity" label="实际数量" />
-          <el-table-column prop="diff_quantity" label="差异数">
-            <template #default="{ row }">
-              <span :style="{ color: row.diff_quantity > 0 ? '#F56C6C' : row.diff_quantity < 0 ? '#67C23A' : '' }">
-                {{ row.diff_quantity > 0 ? `+${row.diff_quantity}` : row.diff_quantity }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="notes" label="备注" />
-        </el-table>
-      </div>
+    <!-- 盘点详情对话框 -->
+    <el-dialog v-model="detailDialogVisible" title="盘点详情" width="700px">
+      <el-descriptions :column="2" border v-if="currentRecord">
+        <el-descriptions-item label="记录ID">{{ currentRecord.id }}</el-descriptions-item>
+        <el-descriptions-item label="盘点时间">{{ currentRecord.created_at }}</el-descriptions-item>
+        <el-descriptions-item label="备件名称">{{ currentRecord.part?.part_name || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="备件编号">{{ currentRecord.part?.part_code || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="账面数量">{{ currentRecord.before_stock }}</el-descriptions-item>
+        <el-descriptions-item label="实际数量">{{ currentRecord.after_stock }}</el-descriptions-item>
+        <el-descriptions-item label="差异">{{ diffText(currentRecord.quantity) }}</el-descriptions-item>
+        <el-descriptions-item label="备注" :span="2">{{ currentRecord.notes || '无' }}</el-descriptions-item>
+      </el-descriptions>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import { getPartsList, getStockRecords, partsStocktake } from '@/api/inventory'
 
 const searchForm = reactive({
-  order_no: '',
-  status: '',
+  part_id: '',
   date_range: []
 })
 
@@ -146,55 +149,68 @@ const pagination = reactive({
 
 const tableData = ref([])
 const loading = ref(false)
+const dialogVisible = ref(false)
 const detailDialogVisible = ref(false)
-const currentStocktaking = ref(null)
+const formRef = ref(null)
+const currentRecord = ref(null)
+const submitLoading = ref(false)
 
-const getStatusType = (status) => {
-  const map = {
-    pending: 'warning',
-    completed: 'success',
-    cancelled: 'info'
-  }
-  return map[status] || 'info'
+const form = reactive({
+  part_id: '',
+  actual_quantity: 0,
+  notes: ''
+})
+
+const rules = {
+  part_id: [{ required: true, message: '请选择备件', trigger: 'change' }],
+  actual_quantity: [{ required: true, message: '请输入实际数量', trigger: 'blur' }]
 }
 
-const getStatusText = (status) => {
-  const map = {
-    pending: '盘点中',
-    completed: '已完成',
-    cancelled: '已作废'
-  }
-  return map[status] || status
+const parts = ref([])
+
+const selectedPart = computed(() => parts.value.find((p) => p.id === form.part_id) || null)
+
+const previewDiff = computed(() => {
+  if (!selectedPart.value || form.actual_quantity === null || form.actual_quantity === undefined) return 0
+  return Number(form.actual_quantity) - Number(selectedPart.value.stock_quantity || 0)
+})
+
+const diffText = (diff) => {
+  const num = Number(diff) || 0
+  if (num > 0) return `+${num}（盘盈）`
+  if (num < 0) return `${num}（盘亏）`
+  return '0（一致）'
 }
 
 const fetchData = async () => {
   loading.value = true
   try {
-    // TODO: 调用API获取盘点单列表
-    tableData.value = [
-      {
-        id: 1,
-        order_no: 'ST20240324001',
-        type: 'full',
-        item_count: 50,
-        diff_count: -3,
-        operator: '张三',
-        status: 'completed',
-        created_at: '2024-03-24 09:00:00',
-        completed_at: '2024-03-24 12:00:00',
-        notes: '季度盘点',
-        items: [
-          { part_name: '空气滤芯', part_code: 'PART001', book_quantity: 50, actual_quantity: 48, diff_quantity: -2, notes: '损耗' },
-          { part_name: '机油滤芯', part_code: 'PART002', book_quantity: 30, actual_quantity: 29, diff_quantity: -1, notes: '' }
-        ]
-      }
-    ]
-    pagination.total = 1
+    const params = {
+      page: pagination.page,
+      limit: pagination.pageSize,
+      type: 3
+    }
+    if (searchForm.part_id) params.part_id = searchForm.part_id
+    if (searchForm.date_range?.length === 2) {
+      params.start_date = searchForm.date_range[0]
+      params.end_date = searchForm.date_range[1]
+    }
+    const res = await getStockRecords(params)
+    tableData.value = res.data?.list || []
+    pagination.total = res.data?.total || 0
   } catch (error) {
-    console.error('获取盘点单列表失败:', error)
-    ElMessage.error('获取盘点单列表失败')
+    console.error('获取盘点记录失败:', error)
   } finally {
     loading.value = false
+  }
+}
+
+const fetchParts = async () => {
+  try {
+    const res = await getPartsList({ page: 1, limit: 200 })
+    parts.value = res.data?.list || []
+  } catch (error) {
+    console.error('获取备件列表失败:', error)
   }
 }
 
@@ -205,28 +221,50 @@ const handleSearch = () => {
 
 const handleReset = () => {
   Object.assign(searchForm, {
-    order_no: '',
-    status: '',
+    part_id: '',
     date_range: []
   })
   handleSearch()
 }
 
 const handleAdd = () => {
-  ElMessage.info('新增盘点功能开发中')
+  Object.assign(form, {
+    part_id: '',
+    actual_quantity: 0,
+    notes: ''
+  })
+  dialogVisible.value = true
 }
 
 const handleView = (row) => {
-  currentStocktaking.value = row
+  currentRecord.value = row
   detailDialogVisible.value = true
 }
 
-const handleComplete = (row) => {
-  ElMessage.info('完成盘点功能开发中')
+const handleSubmit = async () => {
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  submitLoading.value = true
+  try {
+    await partsStocktake(form.part_id, {
+      actual_quantity: form.actual_quantity,
+      remark: form.notes || null
+    })
+    ElMessage.success('盘点成功')
+    dialogVisible.value = false
+    fetchData()
+    fetchParts()
+  } catch (error) {
+    console.error('盘点失败:', error)
+  } finally {
+    submitLoading.value = false
+  }
 }
 
 onMounted(() => {
   fetchData()
+  fetchParts()
 })
 </script>
 
@@ -243,16 +281,6 @@ onMounted(() => {
   .el-pagination {
     margin-top: 20px;
     justify-content: flex-end;
-  }
-
-  .mb-4 {
-    margin-bottom: 16px;
-  }
-
-  h4 {
-    margin: 16px 0;
-    font-size: 16px;
-    font-weight: bold;
   }
 }
 </style>
