@@ -194,6 +194,18 @@ class PublisherService
             ];
         }
 
+        // HTTP 层报错（如 FastAPI 422 参数校验 / 500 内部错误）必须判失败，
+        // 否则 {"detail":...} 这种没有 code 字段的响应会被误判为成功且 data 为 null。
+        if ($httpCode >= 400) {
+            return [
+                'ok'      => false,
+                'code'    => $httpCode,
+                'message' => '自动发布服务返回 HTTP ' . $httpCode . '：'
+                    . mb_substr((string)$raw, 0, 300),
+                'data'    => null,
+            ];
+        }
+
         $code = isset($decoded['code']) ? (int)$decoded['code'] : 0;
 
         return [
