@@ -138,3 +138,6 @@ nohup.out
 coverage/
 .nyc_output/
 *.lcov
+
+# publisher-service 运行时数据（SQLite、浏览器登录态、截图、日志），容器实时写入不进 git
+publisher-service/data/

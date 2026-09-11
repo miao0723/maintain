@@ -41,6 +41,8 @@ services:
         condition: service_started
       agent-service:
         condition: service_started
+      publisher-service:
+        condition: service_started
     restart: unless-stopped
     networks:
       - cmms-network
@@ -108,6 +110,46 @@ services:
     networks:
       - cmms-network
       - sqfe2-net
+
+  # ==================== 自动发布服务 (Python + FastAPI + Playwright) ====================
+  # 原方案跑在 Windows 宿主机上（有头浏览器），容器化后改为容器内
+  # headless Chromium，扫码登录二维码通过 /api/screenshot 返回给管理后台。
+  publisher-service:
+    build:
+      context: ../publisher-service
+      dockerfile: Dockerfile
+    env_file:
+      - .env.docker
+    environment:
+      PUBLISHER_HOST: 0.0.0.0
+      PUBLISHER_PORT: 8899
+      PUBLISHER_DATA_DIR: /app/data
+      # 容器内没有显示器，必须无头模式；内核用镜像自带的 Chromium
+      PUBLISHER_HEADLESS: "true"
+      PUBLISHER_BROWSER_CHANNEL: chromium
+    extra_hosts:
+      # 发布结果回调后端走 https://zych.net.cn，解析到宿主机再进 nginx(443)
+      - "zych.net.cn:host-gateway"
+    volumes:
+      # SQLite、浏览器登录态(Cookie)、截图、日志 —— 落在宿主机方便排查
+      - ../publisher-service/data:/app/data
+      # 与 php 容器挂同一目录到相同路径，视频文件两边路径一致，
+      # 后端传来的 video_path 无需再做宿主机路径映射
+      - ./rpa_files:/var/www/html/rpa_files
+    ports:
+      # 仅本机调试用；PHP 后台走容器网络 publisher-service:8899
+      - "127.0.0.1:8899:8899"
+    # Chromium 需要 /dev/shm 空间，默认 64M 会崩
+    shm_size: 1gb
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8899/health', timeout=5)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - cmms-network
 
   # ==================== 向量检索相关 ====================
   # Milvus 依赖 - etcd

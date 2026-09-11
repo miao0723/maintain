@@ -288,8 +288,9 @@ class PublishDispatcher
     /**
      * 确保视频在共享目录里，并返回宿主机可访问的绝对路径。
      *
-     * publisher-service 跑在 Windows 宿主机上，读不到容器内部路径，
-     * 所以必须把容器路径映射成 D:\... 这样的宿主机路径。
+     * 视频必须落到 publisher-service 也挂载了的共享目录。Docker 部署时两个容器
+     * 把同一目录挂到相同路径，映射退化为恒等；Windows 宿主机部署才需要
+     * 映射成 D:\... 这样的宿主机路径。
      */
     private function ensureLocalVideo(int $id, array $content): array
     {
@@ -335,8 +336,11 @@ class PublishDispatcher
             $mapped = $normLocal;
         }
 
-        // Windows 宿主机用反斜杠
-        return str_replace('/', '\\', $mapped);
+        // Windows 宿主机路径（盘符开头）才转反斜杠；Linux 容器两边路径一致，保持原样
+        if (preg_match('/^[A-Za-z]:/', $mapped)) {
+            return str_replace('/', '\\', $mapped);
+        }
+        return $mapped;
     }
 
     private function downloadToSharedDir(int $id, array $content, string $sharedVideoDir): array

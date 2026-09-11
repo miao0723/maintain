@@ -5,8 +5,8 @@ namespace app\service;
 /**
  * 自动发布服务（publisher-service）的 HTTP 客户端。
  *
- * publisher-service 是跑在 Windows 宿主机上的 Python + Playwright 服务，
- * 取代原来的影刀 RPA 文件触发方案。PHP 容器通过 host.docker.internal 访问它。
+ * publisher-service 是 docker compose 里的 Python + Playwright 容器（headless Chromium），
+ * 取代原来的影刀 RPA 文件触发方案。PHP 容器通过容器网络 publisher-service:8899 访问它。
  */
 class PublisherService
 {
@@ -170,7 +170,7 @@ class PublisherService
                 'ok'      => false,
                 'code'    => 502,
                 'message' => '无法连接自动发布服务（' . $this->baseUrl . '）：' . $curlErr
-                    . '。请确认宿主机上的 publisher-service 已启动（双击 publisher-service\\start.bat）。',
+                    . '。请确认 publisher-service 容器已启动（docker compose up -d publisher-service）。',
                 'data'    => null,
             ];
         }
