@@ -16,7 +16,23 @@ def env(name: str, default: str = "") -> str:
     return os.getenv(name, default)
 
 
+def sanitize_host(host: str) -> str:
+    """容错常见的主机名写法：mysql://user@host、user@host、user:pass@host、[host]"""
+    value = (host or "").strip()
+    if "://" in value:
+        value = value.split("://", 1)[1]
+    if "@" in value:
+        value = value.split("@", 1)[1]
+    value = value.strip("[]")
+    # 误把端口写进主机名（host:3306）的情况
+    if value.count(":") == 1 and value.split(":")[1].isdigit():
+        value = value.split(":")[0]
+    return value.strip()
+
+
 def can_resolve(host: str) -> bool:
+    if host in {"", "localhost", "127.0.0.1", "::1"} or _is_ip(host):
+        return True
     try:
         socket.gethostbyname(host)
         return True
@@ -24,10 +40,24 @@ def can_resolve(host: str) -> bool:
         return False
 
 
+def _is_ip(host: str) -> bool:
+    import ipaddress
+
+    try:
+        ipaddress.ip_address(host)
+        return True
+    except ValueError:
+        return False
+
+
 def resolve_db_host(host: str) -> str:
-    if host in {"mysql", "mariadb"} and not can_resolve(host):
-        return env("AGENT_DB_HOST_FALLBACK", "127.0.0.1")
-    return host
+    sanitized = sanitize_host(host)
+    # agent-service 通常跑在宿主机上，Docker 服务名/容器名（如 mysql、sqfe2-mysql-1）
+    # 在宿主机上解析不了，统一回退到 AGENT_DB_HOST_FALLBACK（默认 127.0.0.1）
+    if not can_resolve(sanitized):
+        fallback = env("AGENT_DB_HOST_FALLBACK", "127.0.0.1")
+        return fallback
+    return sanitized
 
 
 def mysql_url(prefix: str) -> str:
