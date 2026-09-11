@@ -13,7 +13,7 @@
   <view class="card profile-card">
     <view class="card-title">当前账号</view>
     <view class="profile-row">
-      <image class="profile-avatar" src="{{profile.avatarUrl}}" mode="aspectFill"></image>
+      <image lazy-load class="profile-avatar" src="{{profile.avatarUrl}}" mode="aspectFill"></image>
       <view class="profile-main">
         <text class="profile-name">{{profile.nickName}}</text>
         <view class="role-tag role-{{profile.roleTheme}}">

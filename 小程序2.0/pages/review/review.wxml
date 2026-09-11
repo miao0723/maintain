@@ -132,7 +132,7 @@
             wx:key="index"
             class="image-item"
           >
-            <image src="{{item}}" mode="aspectFill" class="preview-image"></image>
+            <image lazy-load src="{{item}}" mode="aspectFill" class="preview-image"></image>
             <view class="image-remove" bindtap="removeImage" data-index="{{index}}">
               <text class="remove-icon">×</text>
             </view>

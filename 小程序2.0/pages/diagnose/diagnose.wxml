@@ -27,7 +27,7 @@
     </view>
     <view class="option-grid">
       <view class="option-card {{deviceType === item.name ? 'selected' : ''}}" wx:for="{{deviceTypes}}" wx:key="name" bindtap="selectDeviceType" data-type="{{item.name}}">
-        <image wx:if="{{item.imageUrl}}" class="option-icon" src="{{item.imageUrl}}" mode="aspectFit" binderror="onOptionImgError" data-index="{{index}}"></image>
+        <image lazy-load wx:if="{{item.imageUrl}}" class="option-icon" src="{{item.imageUrl}}" mode="aspectFit" binderror="onOptionImgError" data-index="{{index}}"></image>
         <view wx:else class="option-icon-emoji">{{item.icon}}</view>
         <text class="option-name">{{item.name}}</text>
       </view>

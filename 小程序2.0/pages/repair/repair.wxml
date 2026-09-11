@@ -74,12 +74,12 @@
         <view class="section">
           <view class="device-grid">
             <view class="device-item {{selectedDevice && selectedDevice.id === item.id ? 'active' : ''}}" wx:for="{{deviceTypes}}" wx:key="id" bindtap="selectDevice" data-id="{{item.id}}">
-              <image wx:if="{{item.imageUrl}}" class="device-icon" src="{{item.imageUrl}}" mode="aspectFit" binderror="onDeviceImgError" data-index="{{index}}"></image>
+              <image lazy-load wx:if="{{item.imageUrl}}" class="device-icon" src="{{item.imageUrl}}" mode="aspectFit" binderror="onDeviceImgError" data-index="{{index}}"></image>
               <view wx:else class="device-icon-text">{{item.icon}}</view>
               <text class="device-name">{{item.name}}</text>
             </view>
             <view class="device-item {{isCustomDevice ? 'active custom' : 'custom'}}" bindtap="selectCustomDevice">
-              <image wx:if="{{customIconUrl}}" class="device-icon" src="{{customIconUrl}}" mode="aspectFit" binderror="onCustomImgError"></image>
+              <image lazy-load wx:if="{{customIconUrl}}" class="device-icon" src="{{customIconUrl}}" mode="aspectFit" binderror="onCustomImgError"></image>
               <view wx:else class="device-icon-text">✏️</view>
               <text class="device-name">自定义</text>
             </view>
@@ -263,7 +263,7 @@
               <text class="upload-text">添加照片</text>
             </view>
             <view class="image-preview" wx:for="{{imageList}}" wx:key="index" bindtap="previewImage" data-index="{{index}}">
-              <image class="preview-img" src="{{item}}" mode="aspectFill"></image>
+              <image lazy-load class="preview-img" src="{{item}}" mode="aspectFill"></image>
               <view class="remove-btn" catchtap="deleteImage" data-index="{{index}}">×</view>
             </view>
           </view>
@@ -764,7 +764,7 @@
           <text class="upload-text">添加照片</text>
         </view>
         <view class="image-preview" wx:for="{{recycleImageList}}" wx:key="index" bindtap="previewRecycleImage" data-index="{{index}}">
-          <image class="preview-img" src="{{item}}" mode="aspectFill"></image>
+          <image lazy-load class="preview-img" src="{{item}}" mode="aspectFill"></image>
           <view class="remove-btn" catchtap="deleteRecycleImage" data-index="{{index}}">×</view>
         </view>
       </view>

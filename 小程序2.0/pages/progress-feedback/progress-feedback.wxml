@@ -64,7 +64,7 @@
       <view class="photos-grid">
         <!-- 待上传的本地图片 -->
         <view class="photo-item" wx:for="{{localImages}}" wx:key="*this">
-          <image class="photo-image" src="{{item}}" mode="aspectFill" bindtap="previewLocalImage" data-url="{{item}}"></image>
+          <image lazy-load class="photo-image" src="{{item}}" mode="aspectFill" bindtap="previewLocalImage" data-url="{{item}}"></image>
           <view class="photo-badge">待上传</view>
           <view class="photo-delete" catchtap="deleteLocalImage" data-index="{{index}}">
             <text class="photo-delete-icon">✕</text>
@@ -72,7 +72,7 @@
         </view>
         <!-- 已上传的图片 -->
         <view class="photo-item" wx:for="{{uploadedImages}}" wx:key="*this">
-          <image class="photo-image" src="{{item}}" mode="aspectFill" bindtap="previewUploadedImage" data-url="{{item}}"></image>
+          <image lazy-load class="photo-image" src="{{item}}" mode="aspectFill" bindtap="previewUploadedImage" data-url="{{item}}"></image>
           <view class="photo-delete" catchtap="deleteUploadedImage" data-index="{{index}}">
             <text class="photo-delete-icon">✕</text>
           </view>
@@ -111,7 +111,7 @@
 
       <!-- 已上传的视频 -->
       <view wx:elif="{{uploadedVideo}}" class="video-card">
-        <image class="video-cover" src="{{uploadedVideo}}" mode="aspectFill"></image>
+        <image lazy-load class="video-cover" src="{{uploadedVideo}}" mode="aspectFill"></image>
         <view class="video-play-btn" bindtap="playHistoryVideo" data-url="{{uploadedVideo}}">
           <text class="video-play-icon">▶</text>
         </view>
@@ -168,7 +168,7 @@
                 wx:if="{{idx < 4}}"
                 class="preview-photo-item"
               >
-                <image class="preview-photo-img" src="{{img}}" mode="aspectFill"></image>
+                <image lazy-load class="preview-photo-img" src="{{img}}" mode="aspectFill"></image>
               </view>
               <view wx:if="{{item.photos.length > 4}}" class="preview-photo-more">
                 +{{item.photos.length - 4}}
@@ -177,7 +177,7 @@
 
             <!-- 视频缩略图 -->
             <view class="preview-video" wx:if="{{item.video}}">
-              <image wx:if="{{item.video.cover_url}}" class="preview-video-cover" src="{{item.video.cover_url}}" mode="aspectFill"></image>
+              <image lazy-load wx:if="{{item.video.cover_url}}" class="preview-video-cover" src="{{item.video.cover_url}}" mode="aspectFill"></image>
               <view wx:else class="preview-video-placeholder">
                 <text class="placeholder-icon">🎬</text>
               </view>

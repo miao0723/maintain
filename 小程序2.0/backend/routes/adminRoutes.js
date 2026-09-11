@@ -607,11 +607,14 @@ router.put('/orders/:orderId/complete', authenticateToken, requireAdmin, async (
       });
     }
 
-    // 更新订单状态
+    // 更新订单状态：先进入「待评价(review)」，由用户评价后再转为 completed；
+    // 超过 3 天未评价的订单由 reviewExpire 自动转为 completed。
+    // （注意：incomeService 仅在 status='completed' 时入账，因此完成这步不会重复记账，
+    //   收入会在 review→completed 的评价提交或过期时记入。）
     await ensureUnreadColumns().catch(() => {});
     await db.query(
       `UPDATE orders
-       SET status = 'completed',
+       SET status = 'review',
            user_unread = 1,
            progress = 100,
            completed_at = NOW(),
@@ -620,7 +623,9 @@ router.put('/orders/:orderId/complete', authenticateToken, requireAdmin, async (
       [orderId]
     );
 
-    // 记录交易收入（已支付且未全额退款的订单）
+    // 记录交易收入（idempotent）：当前状态为 review，incomeService 仅在
+    // status='completed' 时入账，故此步为 no-op；收入将在 review→completed
+    // （用户评价或待评价过期）时记入，避免重复入账。保留调用以兼容状态回退。
     await recordOrderIncome(orderId).catch((e) => console.error('记录收入失败:', e));
 
     res.json({

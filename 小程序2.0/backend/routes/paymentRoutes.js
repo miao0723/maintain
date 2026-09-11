@@ -27,6 +27,59 @@ function makeRefundNo(orderId) {
   return `WXRF${orderId}${Date.now()}`;
 }
 
+function truncateUtf8(text, maxBytes) {
+  let result = String(text || '');
+  while (Buffer.byteLength(result, 'utf8') > maxBytes) {
+    result = result.slice(0, result.length - 1);
+  }
+  return result;
+}
+
+function buildPayDescription(order) {
+  const serviceName = order.order_type === 'recycle' ? '回收' : '维修';
+  const device = order.device_model ? ` - ${order.device_model}` : '';
+  return truncateUtf8(`${serviceName}订单 ${order.order_id || order.id}${device}`, 120);
+}
+
+async function isTransactionNotFound(error) {
+  return error?.status === 404 || error?.wechatPayResponse?.code === 'RESOURCE_NOT_EXISTS';
+}
+
+async function queryExistingTransaction(outTradeNo) {
+  try {
+    return await queryTransactionByOutTradeNo(outTradeNo);
+  } catch (error) {
+    if (isTransactionNotFound(error)) return null;
+    throw error;
+  }
+}
+
+async function markOrderPaid(order, transaction) {
+  const transactionTotalFen = Number(transaction.amount?.total || 0);
+  const orderTotalFen = formatAmountToFen(order.pay_amount);
+  if (orderTotalFen > 0 && transactionTotalFen > 0 && transactionTotalFen !== orderTotalFen) {
+    throw new Error(`微信支付金额不一致: 订单 ${orderTotalFen} 分，微信 ${transactionTotalFen} 分`);
+  }
+
+  if (transaction.appid && transaction.appid !== String(process.env.WECHAT_APP_ID || '').trim()) {
+    throw new Error('微信支付回调 appid 与配置不一致');
+  }
+  if (transaction.mchid && transaction.mchid !== String(process.env.WECHAT_MCH_ID || '').trim()) {
+    throw new Error('微信支付回调商户号与配置不一致');
+  }
+
+  await safeQuery(
+    `UPDATE orders
+     SET payment_status = 'paid',
+         payment_channel = 'wechat_miniapp',
+         wechat_transaction_id = ?,
+         paid_at = COALESCE(paid_at, NOW()),
+         updated_at = NOW()
+     WHERE id = ?`,
+    [transaction.transaction_id || '', order.id]
+  );
+}
+
 async function safeQuery(sql, params) {
   try {
     return await db.query(sql, params);
@@ -45,6 +98,7 @@ router.post('/create', authenticateToken, async (req, res) => {
 
     const userId = req.user.id;
     const { orderId } = req.body;
+    let paymentClaimed = false;
 
     if (!orderId) {
       return res.status(400).json({ success: false, error: '缺少订单ID' });
@@ -55,7 +109,7 @@ router.post('/create', authenticateToken, async (req, res) => {
          o.id, o.order_id, o.user_id, o.order_type, o.device_model, o.status,
          o.quote_status, o.actual_price, o.quote_price, o.estimated_price,
          o.payment_status, o.out_trade_no, o.pay_amount,
-         u.openid, u.nickname
+         o.is_internal, u.openid, u.nickname
        FROM orders o
        LEFT JOIN users u ON o.user_id = u.id
        WHERE o.id = ?`,
@@ -104,19 +158,52 @@ router.post('/create', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, error: '当前订单支付金额无效' });
     }
 
-    const outTradeNo = order.out_trade_no || makeOutTradeNo(order.id);
-    const amountFen = formatAmountToFen(amountYuan);
-    const description = `${order.order_type === 'recycle' ? '回收' : '维修'}订单 ${order.order_id || order.id}${order.device_model ? ` - ${order.device_model}` : ''}`;
+    let outTradeNo = order.out_trade_no || makeOutTradeNo(order.id);
 
-    await safeQuery(
+    // 支付回调可能晚于用户返回小程序。发起支付前先主动查一次微信侧终态，
+    // 避免用户已付款但本地仍停留在 paying 时重复拉起收银台。
+    if (order.out_trade_no) {
+      const existingTransaction = await queryExistingTransaction(order.out_trade_no);
+      if (existingTransaction?.trade_state === 'SUCCESS') {
+        await markOrderPaid(order, existingTransaction);
+        return res.json({
+          success: true,
+          message: '订单已支付',
+          data: {
+            alreadyPaid: true,
+            paymentStatus: 'paid',
+            transactionId: existingTransaction.transaction_id || ''
+          }
+        });
+      }
+
+      if (
+        order.payment_status === 'failed' ||
+        ['CLOSED', 'PAYERROR', 'REVOKED'].includes(existingTransaction?.trade_state || '')
+      ) {
+        outTradeNo = makeOutTradeNo(order.id);
+      }
+    }
+
+    const amountFen = formatAmountToFen(amountYuan);
+    const description = buildPayDescription(order);
+
+    const claimResult = await safeQuery(
       `UPDATE orders
        SET out_trade_no = ?,
            pay_amount = ?,
            payment_status = 'paying',
            updated_at = NOW()
-       WHERE id = ?`,
-      [outTradeNo, amountYuan.toFixed(2), order.id]
+       WHERE id = ? AND (
+         payment_status IS NULL OR payment_status IN ('unpaid', 'failed')
+         OR (payment_status = 'paying' AND out_trade_no = ?)
+       )`,
+      [outTradeNo, amountYuan.toFixed(2), order.id, outTradeNo]
     );
+    if (!claimResult?.affectedRows) {
+      return res.status(409).json({ success: false, error: '支付单正在创建，请稍后刷新再试' });
+    }
+    paymentClaimed = true;
 
     const payResult = await createJsapiTransaction({
       description,
@@ -137,7 +224,15 @@ router.post('/create', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('创建支付订单失败:', error?.response?.data || error);
+    console.error('创建支付订单失败:', error?.wechatPayResponse || error?.response?.data || error);
+    if (paymentClaimed && typeof orderId !== 'undefined') {
+      await safeQuery(
+        `UPDATE orders
+         SET payment_status = 'unpaid', updated_at = NOW()
+         WHERE id = ? AND payment_status = 'paying'`,
+        [orderId]
+      ).catch(() => {});
+    }
     res.status(500).json({
       success: false,
       error: '创建支付订单失败',
@@ -181,21 +276,26 @@ router.get('/query/:orderId', authenticateToken, async (req, res) => {
       });
     }
 
+    if (order.payment_status === 'paid') {
+      return res.json({
+        success: true,
+        data: {
+          paymentStatus: 'paid',
+          tradeState: 'SUCCESS',
+          paidAt: order.paid_at || null,
+          amount: order.pay_amount || '0.00',
+          transactionId: order.wechat_transaction_id || ''
+        }
+      });
+    }
+
     const wxOrder = await queryTransactionByOutTradeNo(order.out_trade_no);
     const tradeState = wxOrder.trade_state || '';
     let nextStatus = order.payment_status || 'unpaid';
 
     if (tradeState === 'SUCCESS') {
       nextStatus = 'paid';
-      await safeQuery(
-        `UPDATE orders
-         SET payment_status = 'paid',
-             wechat_transaction_id = ?,
-             paid_at = COALESCE(paid_at, NOW()),
-             updated_at = NOW()
-         WHERE id = ?`,
-        [wxOrder.transaction_id || '', order.id]
-      );
+      await markOrderPaid(order, wxOrder);
     } else if (tradeState === 'NOTPAY') {
       nextStatus = 'unpaid';
       await safeQuery(
@@ -229,7 +329,7 @@ router.get('/query/:orderId', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('查询支付状态失败:', error?.response?.data || error);
+    console.error('查询支付状态失败:', error?.wechatPayResponse || error?.response?.data || error);
     res.status(500).json({
       success: false,
       error: '查询支付状态失败',
@@ -275,6 +375,10 @@ router.post('/refund/apply', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, error: '退款申请处理中，请稍后查看' });
     }
 
+    if (order.refund_status === 'refunded') {
+      return res.status(400).json({ success: false, error: '该订单退款已完成，请勿重复申请' });
+    }
+
     const totalAmount = formatAmountToFen(order.pay_amount);
     const actualRefundFen = refundAmount
       ? formatAmountToFen(refundAmount)
@@ -285,10 +389,11 @@ router.post('/refund/apply', authenticateToken, async (req, res) => {
     }
 
     const refundNo = makeRefundNo(order.id);
+    const refundReason = truncateUtf8(reason || '订单退款', 80);
     const refundResult = await createRefund({
       outTradeNo: order.out_trade_no,
       refundNo,
-      reason: reason || '订单退款',
+      reason: refundReason,
       refundAmount: actualRefundFen,
       totalAmount
     });
@@ -301,7 +406,7 @@ router.post('/refund/apply', authenticateToken, async (req, res) => {
            refund_reason = ?,
            updated_at = NOW()
        WHERE id = ?`,
-      [refundNo, formatFenToAmount(actualRefundFen), reason || '订单退款', order.id]
+      [refundNo, formatFenToAmount(actualRefundFen), refundReason, order.id]
     );
 
     res.json({
@@ -314,7 +419,7 @@ router.post('/refund/apply', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('申请退款失败:', error?.response?.data || error);
+    console.error('申请退款失败:', error?.wechatPayResponse || error?.response?.data || error);
     res.status(500).json({
       success: false,
       error: '申请退款失败',
@@ -328,24 +433,40 @@ router.post('/refund/apply', authenticateToken, async (req, res) => {
 router.post('/notify', async (req, res) => {
   try {
     await ensureOrderPaymentColumns();
-    const parsed = parseNotify(req.headers, req.body || '');
+    const parsed = await parseNotify(req.headers, req.body || '');
     const resource = parsed.resource || {};
     const outTradeNo = resource.out_trade_no;
-    const transactionId = resource.transaction_id || '';
 
     if (!outTradeNo) {
       return res.status(400).json({ code: 'FAIL', message: '缺少商户单号' });
     }
 
+    if (resource.trade_state !== 'SUCCESS') {
+      if (['CLOSED', 'PAYERROR', 'REVOKED'].includes(resource.trade_state)) {
+        await safeQuery(
+          `UPDATE orders
+           SET payment_status = 'failed', updated_at = NOW()
+           WHERE out_trade_no = ? AND payment_status <> 'paid'`,
+          [outTradeNo]
+        );
+      }
+      return res.json({ code: 'SUCCESS', message: '成功' });
+    }
+
+    const rows = await safeQuery(
+      `SELECT id, pay_amount, payment_status FROM orders WHERE out_trade_no = ?`,
+      [outTradeNo]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ code: 'FAIL', message: '订单不存在' });
+    }
+
+    await markOrderPaid(rows[0], resource);
     await safeQuery(
       `UPDATE orders
-       SET payment_status = 'paid',
-           wechat_transaction_id = ?,
-           payment_notify_raw = ?,
-           paid_at = COALESCE(paid_at, NOW()),
-           updated_at = NOW()
-       WHERE out_trade_no = ?`,
-      [transactionId, JSON.stringify(parsed.envelope), outTradeNo]
+       SET payment_notify_raw = ?, updated_at = NOW()
+       WHERE id = ?`,
+      [JSON.stringify(parsed.envelope), rows[0].id]
     );
 
     res.json({ code: 'SUCCESS', message: '成功' });
@@ -358,7 +479,7 @@ router.post('/notify', async (req, res) => {
 router.post('/refund/notify', async (req, res) => {
   try {
     await ensureOrderPaymentColumns();
-    const parsed = parseNotify(req.headers, req.body || '');
+    const parsed = await parseNotify(req.headers, req.body || '');
     const resource = parsed.resource || {};
     const refundNo = resource.out_refund_no;
 
@@ -366,25 +487,55 @@ router.post('/refund/notify', async (req, res) => {
       return res.status(400).json({ code: 'FAIL', message: '缺少退款单号' });
     }
 
-    const refundStatus = resource.refund_status === 'SUCCESS' ? 'refunded' : 'failed';
+    const orderRows = await safeQuery(
+      `SELECT id, pay_amount, refund_amount, status, payment_status FROM orders WHERE refund_no = ?`,
+      [refundNo]
+    );
+    if (!orderRows.length) {
+      return res.status(404).json({ code: 'FAIL', message: '退款订单不存在' });
+    }
+
+    const order = orderRows[0];
+    const refundFen = Number(resource.amount?.refund || formatAmountToFen(order.refund_amount));
+    const totalFen = Number(resource.amount?.total || formatAmountToFen(order.pay_amount));
+    const isFullRefund = refundFen > 0 && totalFen > 0 && refundFen >= totalFen;
+    const refundState = resource.refund_status;
+    const refundStatus = refundState === 'SUCCESS'
+      ? 'refunded'
+      : ['CLOSED', 'ABNORMAL'].includes(refundState) ? 'failed' : 'refunding';
+
     await safeQuery(
       `UPDATE orders
-       SET refund_status = ?,
-           wechat_refund_id = ?,
-           refunded_at = CASE WHEN ? = 'refunded' THEN COALESCE(refunded_at, NOW()) ELSE refunded_at END,
-           payment_status = CASE WHEN ? = 'refunded' THEN 'refunded' ELSE payment_status END,
-           status = CASE WHEN ? = 'refunded' AND status <> 'completed' THEN 'cancelled' ELSE status END,
-           updated_at = NOW()
+         SET refund_status = ?,
+          refund_amount = ?,
+          refund_notify_raw = ?,
+             wechat_refund_id = ?,
+             refunded_at = CASE WHEN ? = 'refunded' THEN COALESCE(refunded_at, NOW()) ELSE refunded_at END,
+             payment_status = CASE WHEN ? = 'refunded' AND ? = 1 THEN 'refunded' ELSE 'paid' END,
+             status = CASE
+                        WHEN ? = 'refunded' AND ? = 1 AND status IN ('confirmed', 'processing')
+                        THEN 'cancelled'
+                        ELSE status
+                      END,
+             updated_at = NOW()
        WHERE refund_no = ?`,
-      [refundStatus, resource.refund_id || '', refundStatus, refundStatus, refundStatus, refundNo]
+      [
+        refundStatus,
+        formatFenToAmount(refundFen),
+        JSON.stringify(parsed.envelope),
+        resource.refund_id || '',
+        refundStatus,
+        refundStatus,
+        isFullRefund ? 1 : 0,
+        refundStatus,
+        isFullRefund ? 1 : 0,
+        refundNo
+      ]
     );
 
     // 同步收入表：全额退款移除记录，部分退款扣减金额
     if (refundStatus === 'refunded') {
-      const orderRows = await safeQuery('SELECT id FROM orders WHERE refund_no = ?', [refundNo]);
-      if (orderRows.length) {
-        await syncOrderIncomeOnRefund(orderRows[0].id).catch((e) => console.error('同步收入失败:', e));
-      }
+      await syncOrderIncomeOnRefund(order.id).catch((e) => console.error('同步收入失败:', e));
     }
 
     res.json({ code: 'SUCCESS', message: '成功' });

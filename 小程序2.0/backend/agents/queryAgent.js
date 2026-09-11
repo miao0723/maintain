@@ -236,16 +236,111 @@ class QueryAgent {
 
   // ===================== 实体 / 意图辅助 =====================
   extractOrderId(message) {
-    const patterns = [
-      /(?:订单|单号)[：:]\s*(\w+)/i,
-      /(\b[A-Za-z0-9]{6,}\b)/,
-      /订单\s*(\w+)/i
-    ];
-    for (const p of patterns) {
-      const m = message.match(p);
-      if (m && m[1]) return m[1];
-    }
+    // 优先匹配显式「订单号/单号：XXX」，其次「订单 XXX」，再次订单号格式（ORD... 或长串字母数字）
+    let m = message.match(/(?:订单号|单号|订单编号)[：:\s]*([A-Za-z0-9\-]+)/i);
+    if (m && m[1]) return m[1];
+    m = message.match(/(?:订单|单号)\s*([A-Za-z0-9\-]{4,})/i);
+    if (m && m[1]) return m[1];
+    m = message.match(/\b(ORD[\-]?\d+|[A-Za-z0-9]{8,})\b/i);
+    if (m && m[1]) return m[1];
     return null;
+  }
+
+  // 订单状态 → 中文文案 + 样式类（用于前端渲染徽标）
+  mapOrderStatus(s) {
+    const map = {
+      pending: { text: '待检测', cls: 'st-pending' },
+      quoted: { text: '报价中', cls: 'st-quoted' },
+      quoting: { text: '报价中', cls: 'st-quoted' },
+      processing: { text: '维修中', cls: 'st-processing' },
+      repairing: { text: '维修中', cls: 'st-processing' },
+      review: { text: '待评价', cls: 'st-review' },
+      completed: { text: '已完成', cls: 'st-completed' },
+      cancelled: { text: '已取消', cls: 'st-cancelled' },
+      waiting_pickup: { text: '待取机', cls: 'st-pending' },
+      shipped: { text: '已发货', cls: 'st-shipped' }
+    };
+    const key = String(s || '').toLowerCase();
+    return map[key] || { text: String(s || '未知'), cls: 'st-unknown' };
+  }
+
+  // 将一行订单整理成前端可直接渲染的结构
+  normalizeOrderCard(o) {
+    const st = this.mapOrderStatus(o.status);
+    const progress = (o.progress === null || o.progress === undefined) ? null : Number(o.progress);
+    return {
+      id: o.id,
+      order_id: o.order_id || o.order_no || '',
+      order_type: o.order_type || '',
+      device_model: o.device_model || o.device_type_name || '设备',
+      problem_description: o.problem_description || '',
+      status: o.status,
+      statusText: st.text,
+      statusClass: st.cls,
+      progress,
+      is_warranty: !!o.is_warranty,
+      updated_at: o.updated_at ? String(o.updated_at) : ''
+    };
+  }
+
+  // 在保状态 → 中文文案 + 样式类（用于前端渲染徽标）
+  mapWarrantyStatus(s) {
+    const map = {
+      in: { text: '质保中', cls: 'w-in' },
+      out: { text: '已过保', cls: 'w-out' },
+      none: { text: '未绑定质保', cls: 'w-none' }
+    };
+    return map[String(s || 'none')] || map.none;
+  }
+
+  // 将一行设备整理成前端可直接渲染的结构（含在保徽标）
+  normalizeDeviceCard(d) {
+    const ws = this.mapWarrantyStatus(d.warranty_status);
+    const name = d.device_nickname || d.device_model || d.type_name || d.device_type_name || '设备';
+    return {
+      id: d.id,
+      name,
+      nickname: d.device_nickname || '',
+      brand: d.device_brand || '',
+      model: d.device_model || '',
+      type_name: d.type_name || d.device_type_name || '',
+      purchase_date: d.purchase_date ? String(d.purchase_date).slice(0, 10) : '',
+      warranty_status: d.warranty_status || 'none',
+      warranty_text: ws.text,
+      warranty_class: ws.cls,
+      remaining_days: d.warranty_remaining_days || 0,
+      warranty_end_date: d.warranty_end_date ? String(d.warranty_end_date).slice(0, 10) : ''
+    };
+  }
+
+  // 将一条在保记录整理成前端可直接渲染的结构
+  normalizeWarrantyCard(war, deviceName) {
+    const ws = this.mapWarrantyStatus(war.status);
+    return {
+      device_name: deviceName || '设备',
+      order_id: war.order_id || '',
+      status: war.status,
+      status_text: ws.text,
+      status_class: ws.cls,
+      remaining_days: war.remaining_days || 0,
+      warranty_end_date: war.warranty_end_date ? String(war.warranty_end_date).slice(0, 10) : '',
+      warranty_type: war.warranty_type || ''
+    };
+  }
+
+  // 将一条（按订单聚合的）维修履历整理成前端可直接渲染的结构
+  normalizeHistoryCard(order, records) {
+    const st = this.mapOrderStatus(order.status);
+    return {
+      order_id: order.order_id,
+      order_pk: order.order_pk,
+      device_model: order.device_model || '',
+      status: order.status,
+      status_text: st.text,
+      status_class: st.cls,
+      problem: order.problem || '',
+      records: records || []
+    };
   }
 
   matchDevice(message, devices) {
@@ -268,23 +363,33 @@ class QueryAgent {
       const lower = message.toLowerCase();
       const orderId = this.extractOrderId(message);
 
-      // --- 场景 A：订单进度 ---
-      if (orderId && /(进度|状态|好了吗|完成|到哪|怎么样|修完|物流|快递|发货|签收|订单)/.test(lower)) {
+      // 进度 / 状态类问法的通用信号（无具体单号时，若已登录则回退到订单列表）
+      const asksProgress = /(进度|状态|到哪|修完|好了吗|完成没|什么时候好|多久能好|现在什么情况|处理到哪|修得怎样|修好没)/.test(lower);
+      const asksList = /(我的订单|订单列表|所有订单|历史订单|订单记录|查一下订单|查订单|帮我看订单|看我的订单|订单查询|查我的订单)/.test(lower);
+
+      // --- 场景 A：指定了订单号 → 查这一单的进度 ---
+      if (orderId) {
         const { rows, schema } = await this.queryOrderProgress(orderId, userId);
         if (rows.length > 0) {
           const r = this.formatOrderProgressReply(rows[0], schema);
-          return this._wrap(r.reply, r.suggestedActions, 'progress');
+          return this._wrap(
+            r.reply,
+            r.suggestedActions,
+            'progress',
+            { type: 'order_list', orders: [this.normalizeOrderCard(rows[0])] }
+          );
         }
+        // 没查到该订单号
         if (!userId) {
           return this._wrap('请提供订单号，或先在小程序登录后到「我的订单」查看进度~',
             [{ type: 'button', text: '查看我的订单', action: 'query_order' }], 'progress');
         }
-        return this._wrap('没有查到该订单，请确认订单号是否正确，或到「我的订单」核对。',
+        return this._wrap('没有查到该订单号对应的记录，请确认订单号是否正确。您也可以直接说「我的订单」查看全部订单~',
           [{ type: 'button', text: '查看我的订单', action: 'query_order' }], 'progress');
       }
 
-      // --- 场景 B：订单列表 ---
-      if (/(我的订单|订单列表|所有订单|历史订单|订单记录)/.test(lower)) {
+      // --- 场景 B：订单列表 / 进度查询（无具体单号） ---
+      if (asksList || (asksProgress && userId)) {
         if (!userId) {
           return this._wrap('请先在小程序登录，即可查看您的全部订单~',
             [{ type: 'button', text: '查看我的订单', action: 'query_order' }], 'order_list');
@@ -295,12 +400,19 @@ class QueryAgent {
             [{ type: 'button', text: '去报修', action: 'book_repair' },
              { type: 'button', text: '去回收', action: 'submit_recycle' }], 'order_list');
         }
-        const lines = orders.slice(0, 6).map((o, i) =>
-          `${i + 1}. ${o.order_id} · ${o.device_model || o.device_type_name || '设备'} · 状态「${o.status}」${o.is_warranty ? '（质保单）' : ''}`
+        const cards = orders.slice(0, 6).map(o => this.normalizeOrderCard(o));
+        const lines = cards.map((c, i) =>
+          `${i + 1}. ${c.order_id} · ${c.device_model} · ${c.statusText}${c.is_warranty ? '（质保单）' : ''}`
         );
+        const intro = asksProgress
+          ? `已为您查到当前订单的进度（共 ${orders.length} 条），点卡片可看详情：`
+          : `已为您查到最近的订单（共 ${orders.length} 条），点卡片可看详情与进度：`;
         return this._wrap(
-          `您最近的订单（共 ${orders.length} 条）：\n${lines.join('\n')}\n可在「我的订单」查看详情与进度。`,
-          [{ type: 'button', text: '查看我的订单', action: 'query_order' }], 'order_list');
+          `${intro}\n${lines.join('\n')}`,
+          [{ type: 'button', text: '查看我的订单', action: 'query_order' }],
+          'order_list',
+          { type: 'order_list', orders: cards }
+        );
       }
 
       // --- 场景 C：设备相关（在保 / 维修履历 / 设备列表） ---
@@ -330,22 +442,29 @@ class QueryAgent {
           for (const h of history) {
             if (!byOrder[h.order_id]) {
               byOrder[h.order_id] = {
-                order_id: h.order_id, device: h.device_model, status: h.order_status,
-                problem: h.problem_description, records: []
+                order_id: h.order_id, order_pk: h.order_pk, device: h.device_model,
+                status: h.order_status, problem: h.problem_description, records: []
               };
             }
             if (h.title) {
-              byOrder[h.order_id].records.push(`- ${h.stage || ''} ${h.title}（${String(h.record_at).slice(0, 10)}）`);
+              byOrder[h.order_id].records.push({
+                stage: h.stage || '',
+                title: h.title,
+                description: h.description || '',
+                date: String(h.record_at).slice(0, 10)
+              });
             }
           }
-          const lines = Object.values(byOrder).slice(0, 5).map(b => {
-            const rec = b.records.length ? `\n    ${b.records.join('\n    ')}` : '';
-            return `订单 ${b.order_id} · ${b.device || ''} · ${b.problem || ''} · 状态「${b.status}」${rec}`;
+          const cards = Object.values(byOrder).slice(0, 5).map(b => this.normalizeHistoryCard(b, b.records));
+          const lines = cards.map(c => {
+            const rec = c.records.length ? `\n    ${c.records.map(r => `- ${r.stage} ${r.title}（${r.date}）`).join('\n    ')}` : '';
+            return `订单 ${c.order_id} · ${c.device_model || ''} · ${c.problem || ''} · 状态「${c.status_text}」${rec}`;
           });
           const target = matched ? `「${matched.device_nickname || matched.device_model}」的` : '';
           return this._wrap(
-            `这是您${target}维修履历：\n${lines.join('\n')}\n完整记录可在设备详情中查看。`,
-            [{ type: 'button', text: '我的设备', action: 'show_my_devices' }], 'repair_history');
+            `这是您${target}维修履历：\n${lines.join('\n')}\n点卡片可查看对应订单详情。`,
+            [{ type: 'button', text: '我的设备', action: 'show_my_devices' }], 'repair_history',
+            { type: 'repair_history', orders: cards });
         }
 
         if (wantsWarranty) {
@@ -360,10 +479,12 @@ class QueryAgent {
           }
           const tag = war.status === 'in' ? `质保中（剩余 ${war.remaining_days} 天）` : '已过保';
           const target = matched ? `「${matched.device_nickname || matched.device_model}」` : '您最近完成维修的设备';
+          const card = this.normalizeWarrantyCard(war, target.replace(/[「」]/g, ''));
           return this._wrap(
             `${target}当前【${tag}】，${war.status === 'in' ? `到期日 ${war.warranty_end_date}。` : `已于 ${war.warranty_end_date} 到期。`}质保期内同故障可免费返修。`,
             [{ type: 'button', text: '我的设备', action: 'show_my_devices' },
-             { type: 'quick_reply', text: '申请质保维修' }], 'warranty');
+             { type: 'quick_reply', text: '申请质保维修' }], 'warranty',
+            { type: 'warranty', warranties: [card] });
         }
 
         // 默认：设备列表
@@ -371,16 +492,14 @@ class QueryAgent {
           return this._wrap('您还没有绑定任何设备。绑定设备后可以统一管理维修履历与保修状态哦~',
             [{ type: 'button', text: '去绑定设备', action: 'show_my_devices' }], 'device_list');
         }
-        const lines = devices.map((d, i) => {
-          let w = '';
-          if (d.warranty_status === 'in') w = ` · 质保中(剩${d.warranty_remaining_days}天)`;
-          else if (d.warranty_status === 'out') w = ' · 已过保';
-          const name = d.device_nickname || d.device_model || d.type_name || '设备';
-          return `${i + 1}. ${name}${w}`;
-        });
+        const cards = devices.map(d => this.normalizeDeviceCard(d));
+        const lines = cards.map((c, i) =>
+          `${i + 1}. ${c.name}${c.warranty_text !== '未绑定质保' ? ` · ${c.warranty_text}` : ''}`
+        );
         return this._wrap(
-          `您当前共绑定 ${devices.length} 台设备：\n${lines.join('\n')}\n点击「我的设备」可查看每台设备的维修履历与保修详情。`,
-          [{ type: 'button', text: '我的设备', action: 'show_my_devices' }], 'device_list');
+          `您当前共绑定 ${devices.length} 台设备：\n${lines.join('\n')}\n点卡片可查看设备详情、在保与维修履历。`,
+          [{ type: 'button', text: '我的设备', action: 'show_my_devices' }], 'device_list',
+          { type: 'device_list', devices: cards });
       }
 
       // --- 兜底：不属于查询类，交给 supervisor 路由到 Agent 1 ---
@@ -393,7 +512,7 @@ class QueryAgent {
     }
   }
 
-  _wrap(reply, suggestedActions, intent) {
+  _wrap(reply, suggestedActions, intent, data = null) {
     return {
       reply,
       suggestedActions,
@@ -401,7 +520,8 @@ class QueryAgent {
       entities: {},
       confidence: 0.9,
       requiresHuman: false,
-      agent: 'query'
+      agent: 'query',
+      data
     };
   }
 }

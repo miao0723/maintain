@@ -139,7 +139,7 @@
 
 .bottom-action {
   position: fixed;
-  bottom: 30rpx;
+  bottom: calc(30rpx + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   width: 90%;

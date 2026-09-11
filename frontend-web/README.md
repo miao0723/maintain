@@ -137,11 +137,79 @@ npm run dev
 npm run build
 ```
 
+构建产物在 `dist/` 目录，可直接上传到服务器使用（见下方「部署到服务器」）。
+
 ### 预览生产版本
 
 ```bash
 npm run preview
 ```
+
+## 部署到服务器（直接上传可用）
+
+### 1. 构建
+
+```bash
+npm install
+npm run build
+```
+
+### 2. 上传 dist 目录
+
+将 `dist/` 目录的全部内容上传到服务器站点根目录，例如：
+
+```bash
+scp -r dist/* root@your-server:/var/www/cmms-web/
+```
+
+### 3. 修改后端接口地址（无需重新构建）
+
+`dist/config.js` 是运行时配置，上传后直接编辑即可切换后端地址：
+
+```javascript
+window.__APP_CONFIG__ = {
+  apiBase: '/api'   // 同源部署保持 /api；跨域部署改为 'https://api.example.com/api'
+}
+```
+
+- **同源部署（推荐）**：前端与后端 API 在同一域名下，由 Nginx 网关统一转发 `/api`，保持 `/api` 即可（本项目 `docker/nginx/default.conf` 已配置好）。
+- **跨域部署**：填写后端完整地址（以 `/api` 结尾、不带末尾斜杠），且后端需要开启 CORS。
+
+### 4. Nginx 站点配置要点
+
+SPA 使用 History 路由，服务器必须做回退配置，否则刷新子页面会 404：
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+    root /var/www/cmms-web;
+    index index.html;
+
+    # 静态资源长缓存（文件名带 hash，可放心缓存）
+    location /assets/ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # 接口转发到后端（同源部署）
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # index.html 不缓存，保证发版立即生效
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache";
+    }
+}
+```
+
+> 完整网关配置（含 HTTPS、小程序后端、上传目录）参见项目根目录 `docker/nginx/default.conf`。
 
 ## 默认账号
 
@@ -159,7 +227,7 @@ import request from './request'
 
 export function getData() {
   return request({
-    url: '/api/endpoint',
+    url: '/endpoint',   // 注意：baseURL 已包含 /api 前缀，这里不要再写 /api
     method: 'get'
   })
 }

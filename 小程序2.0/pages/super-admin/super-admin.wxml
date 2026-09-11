@@ -6,7 +6,7 @@
   <!-- 顶部导航 -->
   <view class="header">
     <view class="admin-card">
-      <image class="admin-avatar" src="{{adminInfo.avatar_url || adminInfo.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill" binderror="onAvatarError"></image>
+      <image lazy-load class="admin-avatar" src="{{adminInfo.avatar_url || adminInfo.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill" binderror="onAvatarError"></image>
       <view class="admin-meta">
         <text class="admin-name">{{adminInfo.nickname || adminInfo.real_name || '管理员'}}</text>
         <view class="admin-role-row">
@@ -221,7 +221,7 @@
         <view class="section-title">最近用户</view>
         <view class="recent-users">
           <view class="recent-user-item" wx:for="{{dashboardData.recentUsers}}" wx:key="id">
-            <image class="ru-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill" binderror="onRecentUserAvatarError" data-index="{{index}}"></image>
+            <image lazy-load class="ru-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill" binderror="onRecentUserAvatarError" data-index="{{index}}"></image>
             <view class="ru-info">
               <text class="ru-name">{{item.nickname || item.real_name || '用户'}}</text>
               <text class="ru-time">{{utils.formatDate(item.created_at)}}</text>
@@ -614,7 +614,7 @@
       <!-- 维修人员列表 -->
       <view class="technician-list" wx:if="{{technicians.length > 0}}">
         <view class="technician-item" wx:for="{{technicians}}" wx:key="id">
-          <image class="tech-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill" binderror="onTechnicianAvatarError" data-index="{{index}}"></image>
+          <image lazy-load class="tech-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill" binderror="onTechnicianAvatarError" data-index="{{index}}"></image>
           <view class="tech-info">
             <view class="tech-name-row">
               <text class="tech-name">{{item.real_name || item.nickname || '维修人员'}}</text>
@@ -890,7 +890,7 @@
 
           <!-- 图片凭证 -->
           <view wx:if="{{item.images.length > 0}}" class="as-images">
-            <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="as-image" src="{{img}}" mode="aspectFill" bindtap="previewImage" data-url="{{img}}" data-urls="{{item.images}}"></image>
+            <image lazy-load wx:for="{{item.images}}" wx:key="*this" wx:for-item="img" class="as-image" src="{{img}}" mode="aspectFill" bindtap="previewImage" data-url="{{img}}" data-urls="{{item.images}}"></image>
           </view>
 
           <!-- 待处理/处理中 显示操作 -->
@@ -1196,7 +1196,7 @@
     <scroll-view class="popup-scroll" scroll-y>
       <view class="user-card" wx:for="{{users}}" wx:key="id">
         <view class="user-card-top">
-          <image class="user-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill" binderror="onUserAvatarError" data-index="{{index}}"></image>
+          <image lazy-load class="user-avatar" src="{{item.avatar_url || item.avatarUrl || '/images/avatar-repair.png'}}" mode="aspectFill" binderror="onUserAvatarError" data-index="{{index}}"></image>
           <view class="user-info">
             <view class="user-name-row">
               <text class="user-name">{{item.nickname || item.real_name || '用户'}}</text>
@@ -1417,7 +1417,7 @@
         <view class="detail-section-title">📷 产品照片（{{orderDetail.images.length}}）</view>
         <view class="detail-images-grid">
           <view wx:for="{{orderDetail.images}}" wx:key="index" class="detail-image-wrapper">
-            <image class="detail-image" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-url="{{item}}" data-urls="{{orderDetail.images}}"></image>
+            <image lazy-load class="detail-image" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-url="{{item}}" data-urls="{{orderDetail.images}}"></image>
           </view>
         </view>
         <view class="detail-image-tip" bindtap="previewImage" data-url="{{orderDetail.images[0]}}" data-urls="{{orderDetail.images}}">
@@ -1503,7 +1503,7 @@
       <view class="quote-detail-block" wx:if="{{quoteOrderData.images && quoteOrderData.images.length > 0}}">
         <view class="quote-section-title">图片附件（{{quoteOrderData.images.length}}）</view>
         <view class="quote-images-grid">
-          <image wx:for="{{quoteOrderData.images}}" wx:key="index" class="quote-attach-img" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-url="{{item}}" data-urls="{{quoteOrderData.images}}"></image>
+          <image lazy-load wx:for="{{quoteOrderData.images}}" wx:key="index" class="quote-attach-img" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-url="{{item}}" data-urls="{{quoteOrderData.images}}"></image>
         </view>
       </view>
 

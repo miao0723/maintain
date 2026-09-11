@@ -6,7 +6,7 @@
 
   <!-- 账户 -->
   <view class="card account">
-    <image class="avatar" src="{{account.avatar}}" mode="aspectFill" />
+    <image lazy-load class="avatar" src="{{account.avatar}}" mode="aspectFill" />
     <view class="account-info">
       <text class="account-name">{{account.nickname}}</text>
       <text class="account-role">{{account.role === 'super_admin' ? '超级管理员' : (account.role === 'admin' ? '管理员' : '用户')}}</text>

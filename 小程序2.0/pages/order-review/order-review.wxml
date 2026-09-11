@@ -100,7 +100,7 @@
         wx:key="index"
         bindtap="previewImage"
         data-index="{{index}}">
-        <image class="image-preview" src="{{item}}" mode="aspectFill"></image>
+        <image lazy-load class="image-preview" src="{{item}}" mode="aspectFill"></image>
         <view class="delete-btn" catchtap="deleteImage" data-index="{{index}}">
           <text class="delete-icon">×</text>
         </view>

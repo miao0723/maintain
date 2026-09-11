@@ -55,11 +55,11 @@
       <!-- 消息列表 -->
       <view class="message-item {{item.type === 'user' ? 'user' : 'service'}}" wx:for="{{messages}}" wx:key="id" id="msg-{{item.id}}">
         <view class="avatar-wrapper user-avatar" wx:if="{{item.type === 'user'}}">
-          <image class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
+          <image lazy-load class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
         </view>
         <view class="avatar-wrapper service-avatar" wx:else>
           <view class="avatar-glow"></view>
-          <image class="avatar" src="/images/service-avatar-pro.webp" mode="aspectFill"></image>
+          <image lazy-load class="avatar" src="/images/service-avatar-pro.webp" mode="aspectFill"></image>
           <view class="online-dot"></view>
         </view>
         <view class="message-content">
@@ -74,8 +74,91 @@
               <text class="product-price">{{item.data.price}}</text>
             </view>
           </view>
+          <!-- 订单列表卡片消息（用户问「我的订单」等时渲染） -->
+          <view class="order-card-list" wx:elif="{{item.type === 'order_card'}}">
+            <view class="order-card {{sub.statusClass}}"
+                  wx:for="{{item.data.orders}}" wx:for-item="sub" wx:key="id"
+                  bindtap="goToOrderDetail" data-id="{{sub.id}}">
+              <view class="order-card-head">
+                <text class="order-card-no">订单号 {{sub.order_id}}</text>
+                <text class="order-card-status {{sub.statusClass}}">{{sub.statusText}}</text>
+              </view>
+              <view class="order-card-body">
+                <text class="order-card-device">{{sub.device_model}}</text>
+                <text class="order-card-problem" wx:if="{{sub.problem_description}}">故障：{{sub.problem_description}}</text>
+              </view>
+              <view class="order-card-progress" wx:if="{{sub.progress !== null && sub.progress !== undefined && sub.progress !== ''}}">
+                <view class="order-card-progress-bar">
+                  <view class="order-card-progress-fill" style="width:{{sub.progress}}%"></view>
+                </view>
+                <text class="order-card-progress-text">{{sub.progress}}%</text>
+              </view>
+              <text class="order-card-warranty" wx:if="{{sub.is_warranty}}">质保单</text>
+              <view class="order-card-foot">
+                <text class="order-card-go">查看详情 ›</text>
+              </view>
+            </view>
+          </view>
+          <!-- 设备列表卡片消息（用户问「我的设备」时渲染） -->
+          <view class="device-card-list" wx:elif="{{item.type === 'device_card'}}">
+            <view class="device-card"
+                  wx:for="{{item.data.devices}}" wx:for-item="d" wx:key="id"
+                  bindtap="goToDeviceDetail" data-id="{{d.id}}">
+              <view class="device-card-head">
+                <text class="device-card-name">{{d.name}}</text>
+                <text class="warranty-badge {{d.warranty_class}}">{{d.warranty_text}}</text>
+              </view>
+              <view class="device-card-body">
+                <text class="device-card-meta" wx:if="{{d.brand || d.model}}">{{d.brand}}{{d.brand && d.model ? ' ' : ''}}{{d.model}}</text>
+                <text class="device-card-type" wx:if="{{d.type_name}}">{{d.type_name}}</text>
+                <text class="device-card-extra" wx:if="{{d.warranty_status === 'in'}}">剩余 {{d.remaining_days}} 天（至 {{d.warranty_end_date}}）</text>
+                <text class="device-card-extra" wx:elif="{{d.warranty_status === 'out'}}">已于 {{d.warranty_end_date}} 到期</text>
+                <text class="device-card-extra" wx:if="{{d.purchase_date}}">购买于 {{d.purchase_date}}</text>
+              </view>
+            </view>
+          </view>
+          <!-- 在保状态卡片消息（用户问「在保吗」时渲染） -->
+          <view class="warranty-card-list" wx:elif="{{item.type === 'warranty_card'}}">
+            <view class="warranty-card"
+                  wx:for="{{item.data.warranties}}" wx:for-item="w" wx:key="order_id"
+                  bindtap="goToMyDevices">
+              <view class="warranty-card-head">
+                <text class="warranty-card-device">{{w.device_name}}</text>
+                <text class="warranty-badge {{w.status_class}}">{{w.status_text}}</text>
+              </view>
+              <view class="warranty-card-body">
+                <text class="warranty-card-line" wx:if="{{w.status === 'in'}}">剩余 {{w.remaining_days}} 天</text>
+                <text class="warranty-card-line" wx:if="{{w.warranty_end_date}}">到期日 {{w.warranty_end_date}}</text>
+                <text class="warranty-card-line" wx:if="{{w.warranty_type}}">质保类型：{{w.warranty_type}}</text>
+              </view>
+            </view>
+          </view>
+          <!-- 维修履历卡片消息（用户问「维修过几次」时渲染） -->
+          <view class="history-card-list" wx:elif="{{item.type === 'history_card'}}">
+            <view class="history-card"
+                  wx:for="{{item.data.orders}}" wx:for-item="h" wx:key="order_id"
+                  bindtap="goToHistoryOrder" data-id="{{h.order_pk}}">
+              <view class="history-card-head">
+                <text class="history-card-no">订单 {{h.order_id}}</text>
+                <text class="order-card-status {{h.status_class}}">{{h.status_text}}</text>
+              </view>
+              <view class="history-card-device" wx:if="{{h.device_model}}">{{h.device_model}}</view>
+              <view class="history-card-problem" wx:if="{{h.problem}}">故障：{{h.problem}}</view>
+              <view class="history-records" wx:if="{{h.records.length > 0}}">
+                <view class="history-record"
+                      wx:for="{{h.records}}" wx:for-item="r" wx:key="date">
+                  <text class="history-record-stage">{{r.stage}}</text>
+                  <text class="history-record-title">{{r.title}}</text>
+                  <text class="history-record-date">{{r.date}}</text>
+                </view>
+              </view>
+              <view class="history-card-foot">
+                <text class="order-card-go">查看订单详情 ›</text>
+              </view>
+            </view>
+          </view>
           <!-- 普通文本消息 -->
-          <view class="message-bubble {{item.type === 'user' ? 'user-bubble' : 'service-bubble'}}" wx:else>
+          <view class="message-bubble {{item.type === 'user' ? 'user-bubble' : 'service-bubble'}}" wx:elif="{{item.type === 'user' || item.type === 'service'}}">
             <text class="message-text">{{item.content}}</text>
             <!-- 路由跳转链接 -->
             <view class="jump-link" wx:if="{{item.jumpLink}}" catchtap="onJumpLink" data-path="{{item.jumpLink.path}}">
@@ -91,7 +174,7 @@
       <view class="message-item service" wx:if="{{serviceTyping}}" id="typing-indicator">
         <view class="avatar-wrapper service-avatar">
           <view class="avatar-glow"></view>
-          <image class="avatar" src="/images/service-avatar-pro.webp" mode="aspectFill"></image>
+          <image lazy-load class="avatar" src="/images/service-avatar-pro.webp" mode="aspectFill"></image>
           <view class="online-dot"></view>
         </view>
         <view class="message-content">
@@ -108,7 +191,7 @@
       <!-- 产品选择提示 -->
       <view class="product-tip" wx:if="{{messages.length === 0}}">
         <view class="tip-avatar">
-          <image class="tip-avatar-img" src="/images/service-avatar-pro.webp" mode="aspectFill"></image>
+          <image lazy-load class="tip-avatar-img" src="/images/service-avatar-pro.webp" mode="aspectFill"></image>
           <view class="tip-online-dot"></view>
         </view>
         <view class="tip-content">
@@ -268,7 +351,7 @@
   <view class="product-panel {{showProductPanel ? 'show' : ''}}">
     <view class="panel-header">
       <view class="panel-header-left">
-        <image class="panel-avatar" src="/images/service-avatar-pro.webp" mode="aspectFill"></image>
+        <image lazy-load class="panel-avatar" src="/images/service-avatar-pro.webp" mode="aspectFill"></image>
         <view class="panel-title-group">
           <text class="panel-title">选择产品</text>
           <text class="panel-subtitle">选择您需要维修的设备</text>

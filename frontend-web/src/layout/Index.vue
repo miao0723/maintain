@@ -69,6 +69,7 @@
             popper-class="notice-popper"
             :offset="8"
             :show-arrow="false"
+            :popper-options="{ strategy: 'fixed' }"
             @show="onNoticeShow"
           >
             <template #reference>
@@ -79,7 +80,7 @@
               </el-badge>
             </template>
 
-            <div class="notice-panel">
+            <div v-loading="noticeLoading" class="notice-panel">
               <div class="notice-panel-header">
                 <div class="notice-title">
                   <span>消息通知</span>
@@ -256,6 +257,7 @@ const passwordFormRef = ref(null)
 const noticeVisible = ref(false)
 const noticeTab = ref('unread')
 const recentNotifications = ref([])
+const noticeLoading = ref(false)
 let unreadTimer = null
 
 const unreadList = computed(() => recentNotifications.value.filter(n => !n.is_read))
@@ -296,9 +298,20 @@ const fetchRecent = async () => {
   }
 }
 
-const onNoticeShow = () => {
-  fetchRecent()
-  fetchUnreadCount()
+// 打开消息面板时锁定页面滚动（body + 主内容区），
+// 保证滚轮只在面板内部生效，不会把页面滚走、露出页面外的留白
+const NOTICE_OPEN_CLASS = 'notice-panel-open'
+watch(noticeVisible, (visible) => {
+  document.documentElement.classList.toggle(NOTICE_OPEN_CLASS, visible)
+})
+
+const onNoticeShow = async () => {
+  noticeLoading.value = true
+  try {
+    await Promise.all([fetchRecent(), fetchUnreadCount()])
+  } finally {
+    noticeLoading.value = false
+  }
 }
 
 const handleNoticeClick = async (item) => {
@@ -343,6 +356,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (unreadTimer) clearInterval(unreadTimer)
+  document.documentElement.classList.remove(NOTICE_OPEN_CLASS)
 })
 
 // 路由切换后刷新未读角标（如从通知详情页返回）
@@ -483,6 +497,8 @@ const handlePasswordSubmit = async () => {
 .layout-container {
   width: 100%;
   height: 100vh;
+  // 移动端浏览器动态视口适配
+  height: 100dvh;
 }
 
 .sidebar {
@@ -608,6 +624,8 @@ const handlePasswordSubmit = async () => {
   background: #f0f2f5;
   padding: 20px;
   overflow-y: auto;
+  // 锁定滚动时防止滚动条消失导致的页面抖动
+  scrollbar-gutter: stable;
 }
 
 // 暗色模式
@@ -679,15 +697,26 @@ const handlePasswordSubmit = async () => {
   overflow: hidden;
 }
 
+// 消息面板打开期间锁定整页滚动：
+// 1. body 锁定 —— 防止某些页面内容超出时滚轮把文档滚出可视区、露出底部留白
+// 2. 主内容区锁定 —— 防止滚轮在面板头部/底部等非列表区域滚动时穿透到背后的页面
+html.notice-panel-open {
+  body,
+  .main-content {
+    overflow: hidden !important;
+  }
+}
+
 .notice-popper {
   .notice-panel {
     display: flex;
     flex-direction: column;
-    // 面板总高度上限：不超过视口，避免消息过多时撑出屏幕
-    // （第一行为老浏览器兜底，不支持 min() 时忽略第二行）
-    max-height: 520px;
-    max-height: min(520px, calc(100vh - 90px));
+    // 固定长度：无论消息多少面板高度恒定，消息在内部滚动；
+    // 小屏（笔记本/分屏）时按视口收缩，保证不超出屏幕
+    height: min(480px, calc(100vh - 120px));
+    height: min(480px, calc(100dvh - 120px));
     box-sizing: border-box;
+    overflow: hidden;
   }
 
   .notice-panel-header {

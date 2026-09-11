@@ -5,7 +5,7 @@
     <view class="avatar-wrapper">
       <button class="avatar-container" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" hover-class="none" style="padding:0;border:none;background:transparent;line-height:normal;">
         <view class="avatar-ring {{userInfo.avatarUrl ? 'has-img' : ''}}">
-          <image wx:if="{{userInfo.avatarUrl}}" class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
+          <image lazy-load wx:if="{{userInfo.avatarUrl}}" class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
           <view wx:else class="avatar-placeholder">
             <text class="avatar-camera-icon">📷</text>
             <text class="avatar-camera-text">点击上传头像</text>

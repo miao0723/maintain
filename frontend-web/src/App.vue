@@ -18,11 +18,11 @@ onMounted(() => {
   // 初始化主题
   themeStore.initTheme()
 
-  // 尝试从 localStorage 恢复登录状态
-  console.log('App 初始化，从 localStorage 加载认证信息')
+  // 尝试从 localStorage 恢复登录状态（生产环境不输出，避免泄露会话信息）
   authStore.loadAuthFromStorage()
-  console.log('加载后 token:', authStore.token)
-  console.log('加载后 userInfo:', authStore.userInfo)
+  if (import.meta.env.DEV) {
+    console.log('App 初始化完成，登录状态已从 localStorage 恢复')
+  }
 })
 </script>
 
@@ -30,5 +30,6 @@ onMounted(() => {
 #app {
   width: 100%;
   height: 100vh;
+  height: 100dvh;
 }
 </style>

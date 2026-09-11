@@ -1,6 +1,8 @@
-import { defineStore } from 'pinia'
+﻿import { defineStore } from 'pinia'
 import { login, logout, getProfile } from '@/api/auth'
 import { ElMessage } from 'element-plus'
+
+const isDev = import.meta.env.DEV
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -52,21 +54,21 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async login(username, password) {
       try {
-        console.log('正在登录...', username)
+        if (isDev) console.log('正在登录...', username)
         const res = await login({ username, password })
 
-        console.log('登录响应完整数据:', res)
-        console.log('res.data:', res.data)
-        console.log('res.token:', res.token)
-        console.log('res.access_token:', res.access_token)
+        if (isDev) console.log('登录响应完整数据:', res)
+        if (isDev) console.log('res.data:', res.data)
+        if (isDev) console.log('res.token:', res.token)
+        if (isDev) console.log('res.access_token:', res.access_token)
 
         // 由于 request.js 现在返回整个 res，需要检查 res.data
         const data = res.data || res
         const token = data.token || data.access_token || res.token || res.access_token
         const user = data.user || res.user
 
-        console.log('提取的 token:', token)
-        console.log('提取的 user:', user)
+        if (isDev) console.log('提取的 token:', token)
+        if (isDev) console.log('提取的 user:', user)
 
         this.token = token
         this.userInfo = user
@@ -80,7 +82,7 @@ export const useAuthStore = defineStore('auth', {
         }
         localStorage.setItem('permissions', JSON.stringify(this.permissions))
 
-        console.log('登录成功，token 已保存')
+        if (isDev) console.log('登录成功，token 已保存')
         return true
       } catch (error) {
         console.error('登录失败:', error)
@@ -107,7 +109,7 @@ export const useAuthStore = defineStore('auth', {
     async fetchUserInfo() {
       try {
         const res = await getProfile()
-        console.log('fetchUserInfo 响应:', res)
+        if (isDev) console.log('fetchUserInfo 响应:', res)
 
         // 后端 profile 返回的是 data 对象本身，包含 id, username, real_name 等字段
         const userData = res.data?.user || res.data || res
@@ -127,7 +129,7 @@ export const useAuthStore = defineStore('auth', {
         localStorage.setItem('userInfo', JSON.stringify(this.userInfo))
         localStorage.setItem('permissions', JSON.stringify(this.permissions))
 
-        console.log('用户信息已更新:', this.userInfo)
+        if (isDev) console.log('用户信息已更新:', this.userInfo)
       } catch (error) {
         console.error('获取用户信息失败', error)
       }
@@ -157,3 +159,4 @@ export const useAuthStore = defineStore('auth', {
     }
   }
 })
+

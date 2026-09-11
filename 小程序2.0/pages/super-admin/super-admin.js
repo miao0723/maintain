@@ -665,8 +665,7 @@ Page({
           } else if (res.statusCode === 401) {
             wx.showToast({ title: '登录已过期，请重新登录', icon: 'none' });
             setTimeout(() => {
-              wx.removeStorageSync('token');
-              wx.removeStorageSync('userInfo');
+              if (typeof getApp === 'function' && getApp().clearAllCaches) getApp().clearAllCaches();
               wx.reLaunch({ url: '/pages/home/home' });
             }, 1500);
             reject(res.data);
@@ -844,7 +843,8 @@ Page({
 
       let dpr = 2;
       try {
-        dpr = (wx.getWindowInfo && wx.getWindowInfo().pixelRatio) || (wx.getSystemInfoSync && wx.getSystemInfoSync().pixelRatio) || 2;
+        // wx.getWindowInfo() 为 getSystemInfoSync 的细分替代接口（后者已废弃）
+        dpr = (wx.getWindowInfo && wx.getWindowInfo().pixelRatio) || 2;
       } catch (e) { dpr = 2; }
       // 限制 dpr 上限，降低高分屏绘制开销，缓解页面滑动卡顿
       dpr = Math.min(dpr, 2);
@@ -3111,8 +3111,7 @@ Page({
   logout() {
     this.showConfirmDialog('退出登录', '确定要退出超级管理员账号吗？', () => {
       this.closeAdminSocket();
-      wx.removeStorageSync('token');
-      wx.removeStorageSync('userInfo');
+      if (typeof getApp === 'function' && getApp().clearAllCaches) getApp().clearAllCaches();
       wx.reLaunch({ url: '/pages/home/home' });
     });
   }

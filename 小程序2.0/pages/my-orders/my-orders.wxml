@@ -199,6 +199,7 @@
 
         <block wx:elif="{{item.status === 'completed'}}">
           <view class="action-btn info" catchtap="viewOrderDetail" data-id="{{item.id}}">查看详情</view>
+          <view class="action-btn" catchtap="goToReview" data-id="{{item.id}}">去评价</view>
           <view class="action-btn after-sales" catchtap="openAfterSalesModal" data-id="{{item.id}}">🛠 申请售后</view>
         </block>
 
@@ -207,7 +208,7 @@
         </block>
 
         <block wx:elif="{{item.status === 'review'}}">
-          <view class="action-btn info">待评价</view>
+          <view class="action-btn primary" catchtap="goToReview" data-id="{{item.id}}">去评价</view>
           <view class="action-btn after-sales" catchtap="openAfterSalesModal" data-id="{{item.id}}">🛠 申请售后</view>
         </block>
       </view>
@@ -656,7 +657,7 @@
         <text class="refund-section-title">图片凭证</text>
         <view class="after-sales-images">
           <view wx:for="{{afterSalesFormData.images}}" wx:key="index" class="after-sales-image-item">
-            <image class="after-sales-image" src="{{item.url || item}}" mode="aspectFill"></image>
+            <image lazy-load class="after-sales-image" src="{{item.url || item}}" mode="aspectFill"></image>
             <view class="after-sales-image-remove" catchtap="removeAfterSalesFile" data-index="{{index}}">×</view>
           </view>
           <view wx:if="{{afterSalesFormData.images.length < 9}}" class="after-sales-image-add" bindtap="chooseAfterSalesFiles">

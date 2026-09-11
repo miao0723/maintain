@@ -311,8 +311,8 @@ const renderStatus = () => {
       emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold' } },
       data: analytics.status_distribution.map(i => ({
         value: i.count,
-        name: i.label,
-        itemStyle: { color: statusColorMap[i.key] || '#909399' }
+        name: i.label ?? i.key ?? '未知',
+        itemStyle: { color: statusColorMap[i.key] || statusColorMap[i.label] || '#909399' }
       }))
     }]
   })
@@ -330,7 +330,7 @@ const renderDevice = () => {
       center: ['38%', '50%'],
       data: analytics.device_type_distribution.map((i, idx) => ({
         value: i.count,
-        name: i.label,
+        name: i.label ?? i.key ?? '未知',
         itemStyle: { color: pieColors[idx % pieColors.length] }
       }))
     }]
@@ -347,7 +347,7 @@ const renderService = () => {
       radius: ['35%', '65%'],
       data: analytics.service_type_distribution.map((i, idx) => ({
         value: i.count,
-        name: i.label,
+        name: i.label ?? i.key ?? '未知',
         itemStyle: { color: pieColors[idx % pieColors.length] }
       }))
     }]
@@ -361,7 +361,7 @@ const renderPriority = () => {
   priorityChart.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 40, right: 20, top: 20, bottom: 30 },
-    xAxis: { type: 'category', data: list.map(i => i.label) },
+    xAxis: { type: 'category', data: list.map(i => i.label ?? i.key ?? '未知') },
     yAxis: { type: 'value' },
     series: [{
       type: 'bar',
@@ -380,7 +380,7 @@ const renderBrand = () => {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 70, right: 20, top: 20, bottom: 30 },
     xAxis: { type: 'value' },
-    yAxis: { type: 'category', data: list.map(i => i.label) },
+    yAxis: { type: 'category', data: list.map(i => i.label ?? i.key ?? '未知') },
     series: [{
       type: 'bar',
       data: list.map(i => i.count),

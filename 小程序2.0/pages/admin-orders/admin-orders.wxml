@@ -423,7 +423,7 @@
         <text class="section-title">📷 产品照片（{{currentOrder.images.length}}）</text>
         <view class="detail-images-grid">
           <view wx:for="{{currentOrder.images}}" wx:key="index" class="detail-image-wrapper">
-            <image class="detail-image" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-url="{{item}}" data-urls="{{currentOrder.images}}"></image>
+            <image lazy-load class="detail-image" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-url="{{item}}" data-urls="{{currentOrder.images}}"></image>
           </view>
         </view>
         <view class="detail-image-tip" bindtap="previewImage" data-url="{{currentOrder.images[0]}}" data-urls="{{currentOrder.images}}">
@@ -880,7 +880,7 @@
             wx:key="index"
             class="quote-file-item-uploaded"
           >
-            <image wx:if="{{item.type === 'image'}}" class="file-icon-img" src="{{item.url}}" mode="aspectFill"></image>
+            <image lazy-load wx:if="{{item.type === 'image'}}" class="file-icon-img" src="{{item.url}}" mode="aspectFill"></image>
             <view wx:else class="file-icon-doc">📄</view>
             <text class="file-name">{{item.originalName}}</text>
             <view class="file-remove" bindtap="removeQuoteFile" data-index="{{index}}">✕</view>

@@ -323,12 +323,12 @@
   "window": {
     "navigationBarTextStyle": "white",
     "navigationBarTitleText": "电子维修",
-    "navigationBarBackgroundColor": "#5a6e8a"
+    "navigationBarBackgroundColor": "#4f6b84"
   },
   "tabBar": {
     "custom": true,
     "color": "#9ca3af",
-    "selectedColor": "#5a6e8a",
+    "selectedColor": "#4f6b84",
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [

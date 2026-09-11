@@ -2,16 +2,12 @@
 const USE_LOCAL_STORAGE = false; // 设置为 true 使用本地存储模式
 const { getApiBaseCandidates } = require('./runtimeConfig.js')
 const { getMpApiBaseUrl } = require('./mpApi.js')
+const { isDevtools } = require('./env.js')
 
 let activeBaseUrl = '';
 
 function isDevtoolsEnvironment() {
-  try {
-    const info = wx.getSystemInfoSync()
-    return info && info.platform === 'devtools'
-  } catch (e) {
-    return false
-  }
+  return isDevtools()
 }
 
 function buildConnectionErrorMessage(candidates, errMsg = '') {

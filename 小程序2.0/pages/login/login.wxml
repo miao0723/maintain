@@ -18,7 +18,7 @@
       bindchooseavatar="onChooseAvatar"
       disabled="{{loading}}"
     >
-      <image
+      <image lazy-load
         class="fill-avatar-img"
         src="{{fillAvatarUrl || defaultAvatarUrl}}"
         mode="aspectFill"

@@ -404,6 +404,7 @@ page {
   right: 0;
   background: #fff;
   padding: 20rpx 32rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
   box-shadow: 0 -4rpx 12rpx rgba(0, 0, 0, 0.08);
   z-index: 100;
 }

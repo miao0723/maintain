@@ -152,14 +152,15 @@ async function syncOrderIncomeOnRefund(orderId) {
   const payAmount = Number(o.pay_amount || 0);
   const refundAmount = Number(o.refund_amount || 0);
   const netAmount = Math.max(0, payAmount - refundAmount);
+  const isFullRefund = o.refund_status === 'refunded' && (payAmount <= 0 || refundAmount >= payAmount);
 
-  if (o.refund_status === 'refunded') {
+  if (isFullRefund) {
     // 全额退款：直接移除收入记录
     await db.query(`DELETE FROM ${INCOME_TABLE} WHERE order_id = ?`, [orderId]);
     return;
   }
 
-  if (refundAmount > 0) {
+  if (o.refund_status === 'refunded' && refundAmount > 0) {
     // 部分退款：更新金额与状态
     await db.query(
       `UPDATE ${INCOME_TABLE}

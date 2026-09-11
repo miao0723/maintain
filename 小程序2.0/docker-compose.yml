@@ -35,3 +35,5 @@ services:
       # 能实时生效，无需重新构建镜像。后端每次请求都从磁盘读取 .env，
       # 若不挂载，容器内跑的是镜像构建时 COPY 进来的旧 .env。
       - ./backend/.env:/app/.env:ro
+      # 挂载微信支付证书目录；也可以不用文件，直接把 PEM 文本填到 backend/.env。
+      - ./backend/cert:/app/cert:ro

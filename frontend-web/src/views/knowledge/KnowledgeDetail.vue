@@ -865,7 +865,7 @@ onMounted(() => {
             width: 100%;
             height: 100%;
             position: relative;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
 
             .cover-thumbnail {
               width: 100%;
@@ -921,6 +921,7 @@ onMounted(() => {
             }
           }
 
+          // 文件封面：统一设计语言（一致的版式、装饰、图标容器），配色采用协调的现代调色板
           .icon-cover {
             width: 100%;
             height: 100%;
@@ -929,42 +930,30 @@ onMounted(() => {
             justify-content: center;
             align-items: center;
             overflow: hidden;
+            background: linear-gradient(150deg, var(--cover-from) 0%, var(--cover-to) 100%);
 
-            &.cover-pdf {
-              background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            // 统一装饰：两枚半透明圆形，营造层次感（所有类型一致）
+            &::before {
+              content: '';
+              position: absolute;
+              width: 110px;
+              height: 110px;
+              border-radius: 50%;
+              background: rgba(255, 255, 255, 0.1);
+              bottom: -34px;
+              left: -34px;
             }
 
-            &.cover-doc {
-              background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            }
-
-            &.cover-excel {
-              background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            }
-
-            &.cover-ppt {
-              background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-            }
-
-            &.cover-text {
-              background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-            }
-
-            &.cover-video {
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            }
-
-            &.cover-audio {
-              background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            }
-
-            &.cover-archive {
-              background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-            }
-
-            &.cover-default {
-              background: linear-gradient(135deg, #dfe9f3 0%, #a8c0d6 100%);
-            }
+            // 各文件类型的协调配色（统一调色板，仅色相区分）
+            &.cover-pdf     { --cover-from: #e11d48; --cover-to: #fb7185; }
+            &.cover-doc     { --cover-from: #2563eb; --cover-to: #60a5fa; }
+            &.cover-excel   { --cover-from: #059669; --cover-to: #34d399; }
+            &.cover-ppt     { --cover-from: #d97706; --cover-to: #fbbf24; }
+            &.cover-text    { --cover-from: #475569; --cover-to: #94a3b8; }
+            &.cover-video   { --cover-from: #7c3aed; --cover-to: #a78bfa; }
+            &.cover-audio   { --cover-from: #db2777; --cover-to: #f472b6; }
+            &.cover-archive { --cover-from: #ea580c; --cover-to: #fb923c; }
+            &.cover-default { --cover-from: #4f46e5; --cover-to: #818cf8; }
 
             .icon-wrapper {
               position: relative;
@@ -972,56 +961,57 @@ onMounted(() => {
               display: flex;
               flex-direction: column;
               align-items: center;
-              gap: 16px;
+              gap: 14px;
             }
 
             .icon-inner {
-              width: 80px;
-              height: 80px;
+              width: 76px;
+              height: 76px;
               display: flex;
               justify-content: center;
               align-items: center;
-              background: rgba(255, 255, 255, 0.25);
-              backdrop-filter: blur(10px);
-              border-radius: 20px;
-              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-              border: 1px solid rgba(255, 255, 255, 0.3);
+              background: rgba(255, 255, 255, 0.22);
+              backdrop-filter: blur(12px);
+              border-radius: 18px;
+              box-shadow: 0 8px 22px rgba(15, 23, 42, 0.18);
+              border: 1px solid rgba(255, 255, 255, 0.35);
+              transition: transform 0.3s ease;
 
-              .el-icon {
-                font-size: 48px;
+              .file-emoji {
+                font-size: 40px;
+                line-height: 1;
               }
             }
 
             .file-type-badge {
-              padding: 4px 16px;
-              background: rgba(255, 255, 255, 0.9);
-              border-radius: 8px;
-              font-size: 14px;
+              padding: 4px 14px;
+              background: rgba(255, 255, 255, 0.96);
+              border-radius: 10px;
+              font-size: 13px;
               font-weight: 700;
-              color: #333;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-              text-transform: uppercase;
+              color: var(--cover-from);
+              box-shadow: 0 3px 10px rgba(15, 23, 42, 0.15);
+              letter-spacing: 0.04em;
             }
 
             .cover-accent {
               position: absolute;
-              width: 200px;
-              height: 200px;
+              width: 150px;
+              height: 150px;
               border-radius: 50%;
-              background: rgba(255, 255, 255, 0.1);
-              top: -50px;
-              right: -50px;
+              background: rgba(255, 255, 255, 0.14);
+              top: -46px;
+              right: -46px;
+              transition: transform 0.3s ease;
             }
 
             &:hover {
               .icon-inner {
-                transform: scale(1.1);
-                transition: transform 0.3s ease;
+                transform: scale(1.08);
               }
 
               .cover-accent {
-                transform: scale(1.2);
-                transition: transform 0.3s ease;
+                transform: scale(1.12);
               }
             }
           }
@@ -1279,41 +1269,15 @@ onMounted(() => {
           overflow: hidden;
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 
-          &.cover-pdf {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-          }
-
-          &.cover-doc {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-          }
-
-          &.cover-excel {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-          }
-
-          &.cover-ppt {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-          }
-
-          &.cover-text {
-            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-          }
-
-          &.cover-video {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          }
-
-          &.cover-audio {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-          }
-
-          &.cover-archive {
-            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-          }
-
-          &.cover-default {
-            background: linear-gradient(135deg, #dfe9f3 0%, #a8c0d6 100%);
-          }
+          &.cover-pdf     { background: linear-gradient(135deg, #e11d48 0%, #fb7185 100%); }
+          &.cover-doc     { background: linear-gradient(135deg, #2563eb 0%, #60a5fa 100%); }
+          &.cover-excel   { background: linear-gradient(135deg, #059669 0%, #34d399 100%); }
+          &.cover-ppt     { background: linear-gradient(135deg, #d97706 0%, #fbbf24 100%); }
+          &.cover-text    { background: linear-gradient(135deg, #475569 0%, #94a3b8 100%); }
+          &.cover-video   { background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); }
+          &.cover-audio   { background: linear-gradient(135deg, #db2777 0%, #f472b6 100%); }
+          &.cover-archive { background: linear-gradient(135deg, #ea580c 0%, #fb923c 100%); }
+          &.cover-default { background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%); }
 
           .preview-icon-inner {
             width: 60px;
@@ -1511,7 +1475,8 @@ onMounted(() => {
     }
   }
 
-  :deep(.el-button--primary) {
+  // 仅对实体主按钮应用紫色渐变，链接/文字按钮保持透明背景（仅字体颜色区分）
+  :deep(.el-button--primary:not(.is-link):not(.is-text)) {
     border: none;
     background: linear-gradient(135deg, #2563eb, #4f46e5);
     box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);

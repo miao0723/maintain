@@ -140,8 +140,12 @@ Page({
       { label: '问价格', phrase: '维修费用大概是多少？' },
       { label: '问时效', phrase: '一般维修需要多长时间？' },
       { label: '问服务方式', phrase: '支持上门取件吗？' },
-      { label: '问回收', phrase: '旧手机能回收多少钱？', strong: true },
-      { label: '查进度', phrase: '我的订单现在处理到哪一步了？' }
+      { label: '我的订单', phrase: '我的订单', strong: true },
+      { label: '我的设备', phrase: '我的设备', strong: true },
+      { label: '问回收', phrase: '旧手机能回收多少钱？' },
+      { label: '查进度', phrase: '我的订单现在处理到哪一步了？' },
+      { label: '查在保', phrase: '我的设备在保吗？' },
+      { label: '查履历', phrase: '我的设备维修过几次？' }
     ],
 
     quickPhrases: [
@@ -184,6 +188,11 @@ Page({
       '手表回收价格怎么判断？',
       // === 服务 / 支付 / 售后 ===
       '维修费用是先付吗？',
+      '我的订单怎么查？',
+      '我的订单现在到哪一步了？',
+      '我的设备有哪些？',
+      '我的设备在保吗？',
+      '我的设备维修过几次？',
       '数据会丢吗？',
       '原装配件和第三方有什么区别？',
       '怎么转人工客服？',
@@ -1266,6 +1275,21 @@ Page({
         this.addServiceMessage(resData.reply);
       }
 
+      // 结构化数据渲染为可点击卡片：订单 / 设备 / 在保 / 维修履历
+      const sd = resData.structuredData;
+      if (sd && Array.isArray(sd.orders) && sd.orders.length) {
+        if (sd.type === 'repair_history') {
+          this.addRepairHistoryMessage(sd.orders);
+        } else {
+          // order_list / 带订单号的进度查询
+          this.addOrderListMessage(sd.orders);
+        }
+      } else if (sd && sd.type === 'device_list' && Array.isArray(sd.devices) && sd.devices.length) {
+        this.addDeviceListMessage(sd.devices);
+      } else if (sd && sd.type === 'warranty' && Array.isArray(sd.warranties) && sd.warranties.length) {
+        this.addWarrantyMessage(sd.warranties);
+      }
+
       // 允许渲染的按钮类操作（含查询型智能体返回的入口）
       const allowedButtonActions = ['submit_order', 'submit_recycle', 'book_repair', 'query_order', 'show_my_devices'];
       this.setData({
@@ -1345,6 +1369,121 @@ Page({
     this.setData({ messages: messages, scrollToView: '' });
     wx.nextTick(() => {
       this.setData({ scrollToView: targetId });
+    });
+  },
+
+  /**
+   * 添加订单列表卡片消息（用户问「我的订单」等时，渲染可点击的订单卡片）
+   */
+  addOrderListMessage(orders) {
+    const message = {
+      id: Date.now(),
+      type: 'order_card',
+      data: { orders },
+      time: this.getCurrentTime()
+    };
+    const messages = this.data.messages.concat(message);
+    const targetId = `msg-${message.id}`;
+    this.setData({ messages, scrollToView: '' });
+    wx.nextTick(() => {
+      this.setData({ scrollToView: targetId });
+    });
+  },
+
+  /**
+   * 点击订单卡片 → 跳转订单详情
+   */
+  goToOrderDetail(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    wx.navigateTo({
+      url: `/pages/order-detail/order-detail?id=${id}`,
+      fail: () => {
+        wx.showToast({ title: '打开订单详情失败', icon: 'none' });
+      }
+    });
+  },
+
+  /**
+   * 添加设备列表卡片消息
+   */
+  addDeviceListMessage(devices) {
+    const message = {
+      id: Date.now(),
+      type: 'device_card',
+      data: { devices },
+      time: this.getCurrentTime()
+    };
+    const messages = this.data.messages.concat(message);
+    const targetId = `msg-${message.id}`;
+    this.setData({ messages, scrollToView: '' });
+    wx.nextTick(() => {
+      this.setData({ scrollToView: targetId });
+    });
+  },
+
+  /**
+   * 添加在保状态卡片消息
+   */
+  addWarrantyMessage(warranties) {
+    const message = {
+      id: Date.now(),
+      type: 'warranty_card',
+      data: { warranties },
+      time: this.getCurrentTime()
+    };
+    const messages = this.data.messages.concat(message);
+    const targetId = `msg-${message.id}`;
+    this.setData({ messages, scrollToView: '' });
+    wx.nextTick(() => {
+      this.setData({ scrollToView: targetId });
+    });
+  },
+
+  /**
+   * 添加维修履历卡片消息（每条按订单聚合，点卡片跳订单详情）
+   */
+  addRepairHistoryMessage(orders) {
+    const message = {
+      id: Date.now(),
+      type: 'history_card',
+      data: { orders },
+      time: this.getCurrentTime()
+    };
+    const messages = this.data.messages.concat(message);
+    const targetId = `msg-${message.id}`;
+    this.setData({ messages, scrollToView: '' });
+    wx.nextTick(() => {
+      this.setData({ scrollToView: targetId });
+    });
+  },
+
+  /**
+   * 点击设备卡片 → 跳转我的设备（可带设备 id 便于定位）
+   */
+  goToDeviceDetail(e) {
+    const id = e.currentTarget.dataset.id;
+    let url = '/pages/my-devices/my-devices';
+    if (id) url += `?deviceId=${id}`;
+    wx.navigateTo({
+      url,
+      fail: () => {
+        wx.switchTab({ url: '/pages/my-devices/my-devices' });
+      }
+    });
+  },
+
+  /**
+   * 点击维修履历卡片 → 跳转对应订单详情
+   */
+  goToHistoryOrder(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    wx.navigateTo({
+      url: `/pages/order-detail/order-detail?id=${id}`,
+      fail: () => {
+        wx.showToast({ title: '打开订单详情失败', icon: 'none' });
+      }
     });
   },
 

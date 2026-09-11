@@ -125,10 +125,11 @@
             <button class="action-btn" catchtap="goToProgressApply" data-order="{{item}}">📝 申请进度</button>
             <button class="action-btn" catchtap="contactService" data-id="{{item.id}}">联系客服</button>
           </block>
-          <!-- 已完成：查看详情 + 维修报告 + 申请售后 -->
+          <!-- 已完成：查看详情 + 维修报告 + 评价订单 + 申请售后 -->
           <block wx:if="{{item.status === 'completed'}}">
             <button class="action-btn" catchtap="viewDetail" data-order="{{item}}">查看详情</button>
             <button class="action-btn primary" wx:if="{{item.repairReportFiles && item.repairReportFiles.length > 0}}" catchtap="viewRepairReport" data-order="{{item}}">查看维修报告</button>
+            <button class="action-btn primary" catchtap="goToReview" data-order="{{item}}">评价订单</button>
             <button class="action-btn after-sales" catchtap="openAfterSales" data-order="{{item}}">🛠 申请售后</button>
           </block>
           <!-- 待评价：去评价 + 申请售后 -->
@@ -254,7 +255,7 @@
           <text class="as-section-title">图片凭证</text>
           <view class="as-images">
             <view wx:for="{{afterSalesForm.images}}" wx:key="index" class="as-image-item">
-              <image class="as-image" src="{{item.url || item}}" mode="aspectFill"></image>
+              <image lazy-load class="as-image" src="{{item.url || item}}" mode="aspectFill"></image>
               <view class="as-image-remove" catchtap="removeAfterSalesImage" data-index="{{index}}">×</view>
             </view>
             <view wx:if="{{afterSalesForm.images.length < 9}}" class="as-image-add" bindtap="chooseAfterSalesImage">

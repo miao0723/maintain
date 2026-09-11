@@ -1,5 +1,6 @@
 const { getDefaultBaseUrl, normalizeBaseUrl } = require('./utils/networkConfig.js')
 const { normalizeAvatarUrl } = require('./utils/avatar.js')
+const { isDevtools } = require('./utils/env.js')
 
 // =====================================================================
 // 全局美化「确定 / 拒绝」确认弹窗
@@ -95,12 +96,7 @@ App({
   },
 
   _isDevtools() {
-    try {
-      const info = wx.getSystemInfoSync()
-      return info && info.platform === 'devtools'
-    } catch (e) {
-      return false
-    }
+    return isDevtools()
   },
 
   /**
@@ -179,14 +175,40 @@ App({
   },
 
   /**
+   * 彻底清除所有本地缓存（含业务数据）。
+   * 仅保留开发期运行时配置 apiBaseUrl，避免退出后读到上一位用户的
+   * 地址/单位/订单等敏感数据（跨用户泄漏）以及陈旧业务缓存。
+   */
+  clearAllCaches() {
+    // 业务缓存 key 白名单：退出登录后必须失效，防止下一位用户读到脏数据
+    const businessKeys = [
+      'userInfo', 'userAvatarUrl', 'token',
+      'userProfile', 'pendingDiagnoseData', 'userRole',
+      'addresses', 'units', 'orders', 'recentOrdersCache',
+      'admin_token', 'admin_info', 'admin_userInfo'
+    ]
+    businessKeys.forEach((k) => {
+      try { wx.removeStorageSync(k) } catch (e) {}
+    })
+    // 一并清理带 TTL 的 mine 模块缓存
+    try {
+      const { CACHE_KEYS } = require('./utils/mineDataCache.js')
+      Object.values(CACHE_KEYS).forEach((k) => {
+        try { wx.removeStorageSync(k) } catch (e) {}
+      })
+    } catch (e) {}
+  },
+
+  /**
    * 退出登录
    */
   logout() {
-    wx.removeStorageSync('userInfo')
-    wx.removeStorageSync('userAvatarUrl')
-    wx.removeStorageSync('token') // 清除token
+    this.clearAllCaches()
     this.globalData.userInfo = null
     this.globalData.isLoggedIn = false
+    this.globalData.badgeTotal = 0
+    this.globalData.quotedCount = 0
+    this.globalData.progressUnreadCount = 0
 
     // 跳转到登录页
     wx.redirectTo({

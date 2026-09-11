@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>知识库文件封面 · 视觉预览</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    color: #0f172a;
+    padding: 40px 28px 60px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #64748b; font-size: 14px; margin-bottom: 28px; }
+  .section-title { font-size: 16px; font-weight: 700; margin: 32px 0 16px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 18px;
+  }
+
+  /* ---- 统一文件封面设计 ---- */
+  .file-card {
+    background: linear-gradient(180deg, #ffffff, #f8fafc);
+    border-radius: 18px;
+    border: 1px solid rgba(226,232,240,0.9);
+    box-shadow: 0 14px 28px rgba(15,23,42,0.06);
+    overflow: hidden;
+    transition: transform .25s ease, box-shadow .25s ease;
+  }
+  .file-card:hover { transform: translateY(-4px); box-shadow: 0 20px 38px rgba(37,99,235,0.14); }
+
+  .file-cover {
+    height: 160px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    background: linear-gradient(150deg, var(--cover-from) 0%, var(--cover-to) 100%);
+  }
+  .file-cover::before {
+    content: '';
+    position: absolute;
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    bottom: -34px; left: -34px;
+  }
+  .cover-accent {
+    position: absolute;
+    width: 150px; height: 150px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.14);
+    top: -46px; right: -46px;
+    transition: transform .3s ease;
+  }
+  .file-card:hover .cover-accent { transform: scale(1.12); }
+
+  .icon-inner {
+    position: relative; z-index: 2;
+    width: 76px; height: 76px;
+    display: flex; justify-content: center; align-items: center;
+    background: rgba(255,255,255,0.22);
+    backdrop-filter: blur(12px);
+    border-radius: 18px;
+    box-shadow: 0 8px 22px rgba(15,23,42,0.18);
+    border: 1px solid rgba(255,255,255,0.35);
+    font-size: 40px; line-height: 1;
+    transition: transform .3s ease;
+  }
+  .file-card:hover .icon-inner { transform: scale(1.08); }
+
+  .file-type-badge {
+    position: relative; z-index: 2;
+    padding: 4px 14px;
+    background: rgba(255,255,255,0.96);
+    border-radius: 10px;
+    font-size: 13px; font-weight: 700;
+    color: var(--cover-from);
+    box-shadow: 0 3px 10px rgba(15,23,42,0.15);
+    letter-spacing: 0.04em;
+    margin-top: 14px;
+  }
+
+  .file-meta { padding: 12px; }
+  .file-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-sub { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+  /* 配色（统一调色板，仅色相区分类型） */
+  .cover-pdf     { --cover-from:#e11d48; --cover-to:#fb7185; }
+  .cover-doc     { --cover-from:#2563eb; --cover-to:#60a5fa; }
+  .cover-excel   { --cover-from:#059669; --cover-to:#34d399; }
+  .cover-ppt     { --cover-from:#d97706; --cover-to:#fbbf24; }
+  .cover-text    { --cover-from:#475569; --cover-to:#94a3b8; }
+  .cover-video   { --cover-from:#7c3aed; --cover-to:#a78bfa; }
+  .cover-audio   { --cover-from:#db2777; --cover-to:#f472b6; }
+  .cover-archive { --cover-from:#ea580c; --cover-to:#fb923c; }
+  .cover-default { --cover-from:#4f46e5; --cover-to:#818cf8; }
+
+  /* ---- 操作按钮（透明背景，仅字体颜色） ---- */
+  .actions {
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 10px 12px; margin-top: 10px;
+    background: rgba(248,250,252,0.9);
+    border-top: 1px solid rgba(226,232,240,0.9);
+  }
+  .btn-link {
+    background: transparent; border: none; cursor: pointer;
+    font-size: 13px; font-weight: 600; padding: 4px 8px;
+  }
+  .btn-view    { color: #2563eb; }
+  .btn-download{ color: #047857; }
+  .btn-reproc  { color: #d97706; }
+  .btn-delete  { color: #dc2626; }
+  .btn-link:hover { opacity: .75; }
+
+  .note { margin-top: 8px; font-size: 12px; color: #94a3b8; }
+</style>
+</head>
+<body>
+  <h1>知识库文件封面 · 视觉预览</h1>
+  <div class="sub">统一设计语言 + 协调配色（Tailwind 现代调色板），不同文件类型仅以色相区分，配色与版式保持一致。</div>
+
+  <div class="section-title">1. 文件封面（区分文件类型 · 风格统一）</div>
+  <div class="grid">
+    <!-- 每个类型一张卡片 -->
+    <div class="file-card"><div class="file-cover cover-pdf"><div class="cover-accent"></div><div class="icon-inner">📄</div><div class="file-type-badge">PDF</div></div><div class="file-meta"><div class="file-name">维修手册.pdf</div><div class="file-sub">2.4 MB</div></div></div>
+    <div class="file-card"><div class="file-cover cover-doc"><div class="cover-accent"></div><div class="icon-inner">📝</div><div class="file-type-badge">DOC</div></div><div class="file-meta"><div class="file-name">服务条款.docx</div><div class="file-sub">128 KB</div></div></div>
+    <div class="file-card"><div class="file-cover cover-excel"><div class="cover-accent"></div><div class="icon-inner">📊</div><div class="file-type-badge">XLSX</div></div><div class="file-meta"><div class="file-name">备件库存表.xlsx</div><div class="file-sub">512 KB</div></div></div>
+    <div class="file-card"><div class="file-cover cover-ppt"><div class="cover-accent"></div><div class="icon-inner">📈</div><div class="file-type-badge">PPT</div></div><div class="file-meta"><div class="file-name">培训课件.pptx</div><div class="file-sub">3.1 MB</div></div></div>
+    <div class="file-card"><div class="file-cover cover-text"><div class="cover-accent"></div><div class="icon-inner">📃</div><div class="file-type-badge">TXT</div></div><div class="file-meta"><div class="file-name">工单记录.txt</div><div class="file-sub">46 KB</div></div></div>
+    <div class="file-card"><div class="file-cover cover-video"><div class="cover-accent"></div><div class="icon-inner">🎬</div><div class="file-type-badge">MP4</div></div><div class="file-meta"><div class="file-name">拆机演示.mp4</div><div class="file-sub">18 MB</div></div></div>
+    <div class="file-card"><div class="file-cover cover-audio"><div class="cover-accent"></div><div class="icon-inner">🎵</div><div class="file-type-badge">MP3</div></div><div class="file-meta"><div class="file-name">语音备忘.mp3</div><div class="file-sub">2 MB</div></div></div>
+    <div class="file-card"><div class="file-cover cover-archive"><div class="cover-accent"></div><div class="icon-inner">📦</div><div class="file-type-badge">ZIP</div></div><div class="file-meta"><div class="file-name">源码备份.zip</div><div class="file-sub">9 MB</div></div></div>
+    <div class="file-card"><div class="file-cover cover-default"><div class="cover-accent"></div><div class="icon-inner">📄</div><div class="file-type-badge">FILE</div></div><div class="file-meta"><div class="file-name">未知类型文件</div><div class="file-sub">—</div></div></div>
+  </div>
+
+  <div class="section-title">2. 操作按钮（"查看"改为透明背景，仅字体颜色，与其余按钮统一）</div>
+  <div class="grid">
+    <div class="file-card">
+      <div class="file-cover cover-doc"><div class="cover-accent"></div><div class="icon-inner">📝</div><div class="file-type-badge">DOC</div></div>
+      <div class="actions">
+        <button class="btn-link btn-view">查看</button>
+        <button class="btn-link btn-download">下载</button>
+        <button class="btn-link btn-reproc">重处理</button>
+        <button class="btn-link btn-delete">删除</button>
+      </div>
+      <div class="note">"查看"已无紫色填充，背景透明，与下载/重处理/删除风格一致。</div>
+    </div>
+  </div>
+</body>
+</html>

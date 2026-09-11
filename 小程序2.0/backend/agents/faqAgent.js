@@ -610,7 +610,9 @@ const FAQ_ENTRIES = [
     must: ['订单', '进度', '状态', '到哪', '好了', '完成', '维修到'],
     phrases: ['订单进度', '我的订单', '处理到哪', '维修到哪', '订单状态', '到哪一步', '修到哪', '订单现在', '查进度', '进度查询', '好了吗'],
     keywords: ['订单', '进度', '状态', '到哪'],
-    answer: '查订单进度很简单：把订单号发我，或到「我的订单」查看实时状态。维修通常经历 待检测→报价中→维修中→待取/已发货→已完成。您也可以直接说「查我的订单」，我帮您核对当前阶段~',
+    // 标记为数据查询类：不在 FAQ 层用静态话术短路，交由 QueryAgent 真实查询数据库，
+    // 返回当前用户自己的实时订单/进度数据（见 backend/agents/queryAgent.js）。
+    dataQuery: true,
     intent: 'progress',
     actions: [
       { type: 'quick_reply', text: '我想查询订单进度' },
@@ -1252,6 +1254,11 @@ class FaqAgent {
   buildReply(message) {
     const { matched, entry } = matchFAQ(message);
     if (!matched || !entry) return null;
+
+    // 数据查询类 FAQ（订单 / 进度 / 设备等）不在 FAQ 层短路，
+    // 返回 null 让 chatRoutes 继续走 customerServiceRouter → QueryAgent，
+    // 用真实数据库数据回答（确保是用户本人的实时订单，而非静态话术）。
+    if (entry.dataQuery) return null;
 
     return {
       reply: entry.answer,

@@ -604,6 +604,8 @@ const router = createRouter({
   routes
 })
 
+const isDev = import.meta.env.DEV
+
 // 路由守卫
 router.beforeEach((to, from, next) => {
   NProgress.start()
@@ -615,10 +617,10 @@ router.beforeEach((to, from, next) => {
     authStore.loadAuthFromStorage()
   }
 
-  console.log('路由守卫:', to.path)
-  console.log('isLoggedIn:', authStore.isLoggedIn)
-  console.log('token:', authStore.token)
-  console.log('userInfo:', authStore.userInfo)
+  if (isDev) {
+    console.log('路由守卫:', to.path)
+    console.log('isLoggedIn:', authStore.isLoggedIn)
+  }
 
   const requiresMiniAdminAuth = to.matched.some(record => record.meta.requiresMiniAdminAuth === true)
   if (requiresMiniAdminAuth) {

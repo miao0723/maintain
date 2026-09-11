@@ -42,7 +42,7 @@
   <view class="user-header" bindtap="editProfile">
     <view class="user-avatar-section">
       <view class="avatar-container">
-        <image class="user-avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
+        <image lazy-load class="user-avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
         <view class="avatar-shine"></view>
       </view>
       <view class="edit-badge">

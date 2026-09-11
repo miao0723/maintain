@@ -76,6 +76,7 @@ const afterSalesRoutes = require('./routes/afterSalesRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const { expireOldReviewOrders } = require('./utils/reviewExpire');
 const { ensureIncomeTable, backfillIncome } = require('./services/incomeService');
+const { isWechatPayConfigured } = require('./services/wechatPayService');
 
 app.use('/api/user', userRoutes);
 app.use('/api/user-devices', userDevicesRoutes);
@@ -150,6 +151,10 @@ function readEnvSnapshot() {
 server.listen(PORT, SERVER_HOST, () => {
   const envSnapshot = readEnvSnapshot();
   console.log(`Server is running on http://${SERVER_HOST}:${PORT}`);
+  console.log('[WechatPayConfig]', {
+    configured: isWechatPayConfigured(),
+    verifierMode: envSnapshot.WECHAT_PAY_PUBLIC_KEY_ID ? 'public_key' : 'platform_certificate_auto'
+  });
   console.log('[VoiceConfig]', {
     provider: envSnapshot.VOICE_PROVIDER || 'qwen',
     hasDashscopeKey: !!(envSnapshot.DASHSCOPE_API_KEY || envSnapshot.VOICE_API_KEY),

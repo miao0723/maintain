@@ -30,7 +30,7 @@
     </view>
     <view class="photos-grid">
       <view class="photo-item" wx:for="{{feedback.displayPhotos || feedback.photos}}" wx:key="*this" bindtap="previewPhoto" data-url="{{feedback.photos[index] || item}}">
-        <image class="photo-img" src="{{item}}" mode="aspectFill"></image>
+        <image lazy-load class="photo-img" src="{{item}}" mode="aspectFill"></image>
       </view>
     </view>
     <view class="photo-tip">
@@ -44,7 +44,7 @@
       <text class="section-label">维修视频</text>
     </view>
     <view class="video-card" bindtap="playVideo" data-url="{{feedback.video.video_url}}">
-      <image wx:if="{{feedback.video.cover_url}}" class="video-cover" src="{{feedback.video.cover_url}}" mode="aspectFill"></image>
+      <image lazy-load wx:if="{{feedback.video.cover_url}}" class="video-cover" src="{{feedback.video.cover_url}}" mode="aspectFill"></image>
       <view wx:else class="video-cover-placeholder">
         <text class="placeholder-icon">🎬</text>
       </view>

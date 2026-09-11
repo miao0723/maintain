@@ -666,6 +666,7 @@ CREATE TABLE `orders`  (
   `wechat_refund_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '微信退款单号',
   `refund_amount` decimal(10, 2) NULL DEFAULT 0.00 COMMENT '退款金额',
   `refund_reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '退款原因',
+  `refund_notify_raw` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '退款回调原始报文',
   `refunded_at` datetime NULL DEFAULT NULL COMMENT '退款成功时间',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `order_id`(`order_id` ASC) USING BTREE,

@@ -22,7 +22,7 @@
   <!-- 用户列表 -->
   <scroll-view class="user-list" scroll-y wx:if="{{users.length>0}}">
     <view class="user-item" wx:for="{{users}}" wx:key="id">
-      <image class="user-avatar" src="{{item.avatar}}" mode="aspectFill" binderror="onAvatarError" data-index="{{index}}" />
+      <image lazy-load class="user-avatar" src="{{item.avatar}}" mode="aspectFill" binderror="onAvatarError" data-index="{{index}}" />
       <view class="user-main">
         <view class="user-top">
           <text class="user-name">{{item.nickname || item.real_name || '微信用户'}}</text>

@@ -27,7 +27,7 @@
 
     <!-- 预览已选图片 -->
     <view class="preview-section" wx:if="{{selectedImage}}">
-      <image class="preview-image" src="{{selectedImage}}" mode="aspectFit"></image>
+      <image lazy-load class="preview-image" src="{{selectedImage}}" mode="aspectFit"></image>
       <view class="preview-actions">
         <button class="btn btn-outline" bindtap="reselect">重新选择</button>
         <button class="btn btn-primary" bindtap="startIdentify">开始识别</button>
@@ -47,7 +47,7 @@
   <!-- ========== Phase 2: 识别中 ========== -->
   <view class="phase-identifying" wx:if="{{phase === 'identifying'}}">
     <view class="identifying-card">
-      <image class="identifying-image" src="{{selectedImage}}" mode="aspectFit"></image>
+      <image lazy-load class="identifying-image" src="{{selectedImage}}" mode="aspectFit"></image>
       
       <view class="identifying-overlay">
         <!-- 扫描动画 -->
@@ -93,7 +93,7 @@
     <!-- 设备信息卡片 -->
     <view class="result-device-card">
       <view class="device-img-section" wx:if="{{resultImage}}">
-        <image class="device-img" src="{{resultImage}}" mode="aspectFit"></image>
+        <image lazy-load class="device-img" src="{{resultImage}}" mode="aspectFit"></image>
       </view>
       
       <view class="device-main-info">

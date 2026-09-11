@@ -959,7 +959,7 @@ page {
 /* 查看所有订单按钮 */
 .all-orders-btn {
   position: fixed;
-  bottom: 32rpx;
+  bottom: calc(32rpx + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   display: flex;

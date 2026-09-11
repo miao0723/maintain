@@ -511,6 +511,21 @@ Page({
   },
 
   /**
+   * 去评价（待评价 / 已完成订单均可评价）
+   */
+  goToReview(e) {
+    const orderId = e.currentTarget.dataset.id;
+    if (orderId && orderId !== null && orderId !== undefined && !isNaN(Number(orderId))) {
+      wx.navigateTo({
+        url: `/pages/review/review?orderId=${orderId}`
+      });
+    } else {
+      console.warn('[goToReview] orderId 无效:', orderId);
+      wx.showToast({ title: '订单信息异常', icon: 'none' });
+    }
+  },
+
+  /**
    * 关闭订单详情
    */
   closeOrderDetail() {

@@ -8,7 +8,7 @@
       <text class="recycle-header-sub">左侧选品类，右侧找具体机型，再进入状态评估</text>
     </view>
     <view class="header-stat-card" wx:if="{{currentCategory}}">
-      <image class="header-stat-icon" src="{{currentCategory.visual.imageUrl}}" mode="aspectFit"></image>
+      <image lazy-load class="header-stat-icon" src="{{currentCategory.visual.imageUrl}}" mode="aspectFit"></image>
       <view class="header-stat-info">
         <text class="header-stat-title">{{currentCategory.name}}</text>
         <text class="header-stat-desc">{{currentCategory.brands.length}} 个品牌 · {{currentCategory.visual.scene}}</text>
@@ -35,7 +35,7 @@
         bindtap="onCategoryTap"
         data-index="{{index}}">
         <view class="category-item-inner">
-          <image wx:if="{{item.visual.imageUrl}}" class="category-icon" src="{{item.visual.imageUrl}}" mode="aspectFit" binderror="onCategoryImgError" data-index="{{index}}"></image>
+          <image lazy-load wx:if="{{item.visual.imageUrl}}" class="category-icon" src="{{item.visual.imageUrl}}" mode="aspectFit" binderror="onCategoryImgError" data-index="{{index}}"></image>
           <view wx:else class="category-icon-emoji">{{item.visual.icon || item.icon}}</view>
           <text class="category-name">{{item.name}}</text>
         </view>
@@ -53,7 +53,7 @@
       scroll-with-animation>
       <view class="product-content" wx:if="{{currentCategory}}">
         <view class="category-spotlight">
-          <image class="spotlight-icon" src="{{currentCategory.visual.imageUrl}}" mode="aspectFit"></image>
+          <image lazy-load class="spotlight-icon" src="{{currentCategory.visual.imageUrl}}" mode="aspectFit"></image>
           <view class="spotlight-copy">
             <text class="spotlight-title">{{currentCategory.name}}</text>
             <text class="spotlight-desc">已整理 {{currentCategory.brands.length}} 个品牌，优先展示热门型号和估价基准</text>
@@ -97,7 +97,7 @@
                 data-brand="{{item}}">
                 <!-- 产品图片（写实设备图） -->
                 <view class="model-image-wrap">
-                  <image class="model-product-image" src="{{model.visualImageUrl}}" mode="aspectFit" binderror="onCategoryImgError" data-index="{{index}}"></image>
+                  <image lazy-load class="model-product-image" src="{{model.visualImageUrl}}" mode="aspectFit" binderror="onCategoryImgError" data-index="{{index}}"></image>
                   <text class="model-visual-badge" wx:if="{{model.visualBadge}}">{{model.visualBadge}}</text>
                 </view>
                 <view class="model-info">
@@ -195,7 +195,7 @@
               bindtap="onSearchResultTap"
               data-item="{{item}}">
               <view class="search-result-image">
-                <image class="search-result-product-image" src="{{item.modelVisualImageUrl}}" mode="aspectFit"></image>
+                <image lazy-load class="search-result-product-image" src="{{item.modelVisualImageUrl}}" mode="aspectFit"></image>
               </view>
               <view class="search-result-info">
                 <view class="search-result-name-row">

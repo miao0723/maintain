@@ -1,4 +1,5 @@
 const { getDefaultBaseUrl, normalizeBaseUrl } = require('./networkConfig.js')
+const { isDevtools } = require('./env.js')
 
 function getStoredBaseUrl() {
   try {
@@ -10,12 +11,7 @@ function getStoredBaseUrl() {
 }
 
 function isDevtoolsEnvironment() {
-  try {
-    const info = wx.getSystemInfoSync()
-    return info && info.platform === 'devtools'
-  } catch (e) {
-    return false
-  }
+  return isDevtools()
 }
 
 function getApiBaseCandidates() {

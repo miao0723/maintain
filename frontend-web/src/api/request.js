@@ -3,9 +3,16 @@ import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 
+// 接口前缀优先级：dist/config.js 运行时配置 > 构建时环境变量 > 默认 /api
+// 上传服务器后可直接修改 config.js 切换后端地址，无需重新构建
+const runtimeBase = (typeof window !== 'undefined' && window.__APP_CONFIG__?.apiBase) || ''
+const apiBase = (runtimeBase || import.meta.env.VITE_API_BASE || '/api').replace(/\/+$/, '')
+
+const isDev = import.meta.env.DEV
+
 // 创建 axios 实例
 const request = axios.create({
-    baseURL: '/api',
+    baseURL: apiBase,
     timeout: 120000, // AI 调用可能需要较长时间，设置为 120 秒
     headers: {
         'Content-Type': 'application/json'
@@ -19,8 +26,8 @@ request.interceptors.request.use(
         if (authStore.token) {
             config.headers.Authorization = `Bearer ${authStore.token}`
         }
-        // 调试日志
-        if (config.url && (config.url.includes('kb/chat') || config.url.includes('parts'))) {
+        // 调试日志（仅开发环境输出，生产环境保持控制台干净）
+        if (isDev && config.url && (config.url.includes('kb/chat') || config.url.includes('parts'))) {
           console.log('API请求 - URL:', config.url)
           console.log('API请求 - Method:', config.method)
           console.log('API请求 - Data:', config.data)
@@ -29,7 +36,7 @@ request.interceptors.request.use(
         return config
     },
     error => {
-        console.error('请求错误', error)
+        if (isDev) console.error('请求错误', error)
         return Promise.reject(error)
     }
 )
@@ -82,7 +89,7 @@ request.interceptors.response.use(
         return Promise.reject(new Error(businessMessage))
     },
     error => {
-        console.error('响应错误', error)
+        if (isDev) console.error('响应错误', error)
 
         // 处理 HTTP 错误状态码
         if (error.response) {

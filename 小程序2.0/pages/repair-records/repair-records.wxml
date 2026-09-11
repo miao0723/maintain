@@ -60,7 +60,7 @@
 
         <!-- 维修图片 -->
         <view class="record-images" wx:if="{{item.images && item.images.length > 0}}">
-          <image
+          <image lazy-load
             class="record-image"
             src="{{baseUrl + image.url}}"
             mode="aspectFill"
@@ -185,7 +185,7 @@
         <view class="form-label">维修图片</view>
         <view class="image-list" wx:if="{{addFormData.images.length > 0}}">
           <view class="image-item" wx:for="{{addFormData.images}}" wx:for-item="img" wx:for-index="imgIdx" wx:key="imgIdx">
-            <image class="image-thumb" src="{{baseUrl + img.url}}" mode="aspectFill" />
+            <image lazy-load class="image-thumb" src="{{baseUrl + img.url}}" mode="aspectFill" />
             <text class="image-remove" bindtap="removeImage" data-index="{{imgIdx}}">×</text>
           </view>
         </view>

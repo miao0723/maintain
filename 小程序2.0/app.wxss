@@ -283,3 +283,53 @@ page {
   background: var(--c-accent-soft);
   color: var(--c-primary);
 }
+
+/* ====== 布局工具类（替代页面里散落的 flex 样板） ====== */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.flex-col-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ====== 统一空状态（页面原各自重写，现可复用） ====== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 40rpx;
+  text-align: center;
+}
+.empty-text {
+  margin-top: 20rpx;
+  font-size: 28rpx;
+  color: var(--c-muted);
+}
+.empty-icon {
+  font-size: 96rpx;
+  line-height: 1;
+  opacity: 0.5;
+}
+
+/* ====== 安全区适配（固定底栏防 iPhone 小横条遮挡） ====== */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.fixed-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  bottom: calc(0rpx + env(safe-area-inset-bottom));
+}

@@ -74,7 +74,13 @@ Page({
     this.checkSubscription()
     this.loadSettings()
     this.calculateCacheSize()
-    this.refreshPageData()
+    // 节流：切回「我的」时，30 秒内不重复拉取全量数据（缓存已即时恢复），
+    // 避免每次切换都并发 9 个请求造成页面卡顿与图片连接重置
+    const now = Date.now()
+    if (now - (this._lastRefreshTs || 0) > 30000) {
+      this.refreshPageData()
+      this._lastRefreshTs = now
+    }
   },
 
   restorePageFromCache() {

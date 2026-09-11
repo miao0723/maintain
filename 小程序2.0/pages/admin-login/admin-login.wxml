@@ -1,6 +1,6 @@
 <view class="login-container">
   <view class="login-header">
-    <image class="logo" src="/images/logo.png" mode="aspectFit"></image>
+    <view class="logo">🔧</view>
     <text class="title">管理员登录</text>
     <text class="subtitle">电子维修后台管理系统</text>
   </view>

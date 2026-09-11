@@ -1499,6 +1499,7 @@ router.post('/message', async (req, res) => {
     const agentEntities = agentResult.entities || {};
     const agentConfidence = agentResult.confidence;
     const requiresHuman = !!agentResult.requiresHuman;
+    const agentData = agentResult.data || null;
 
     conversationHistory.push({ role: 'user', content: message });
     conversationHistory.push({ role: 'assistant', content: reply });
@@ -1520,7 +1521,8 @@ router.post('/message', async (req, res) => {
         confidence: agentConfidence,
         intent: agentIntent,
         entities: agentEntities,
-        agent: agentResult.agent
+        agent: agentResult.agent,
+        structuredData: agentData
       }
     });
 

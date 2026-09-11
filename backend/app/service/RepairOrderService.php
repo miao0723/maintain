@@ -433,41 +433,96 @@ class RepairOrderService
 
     /**
      * 获取订单多维度分析数据
+     *
+     * 返回结构与前端 Transfer.vue 图表严格对应：
+     *  - 各分布统一为 [{ key, label, count }]
+     *  - daily_trend 为 [{ date, count, amount }]，amount 为当日完成金额
+     *
+     * 时间筛选：不传 date_start/date_end => 统计全部时间；
+     * 传入区间 => 按创建时间包含起止日的完整 24 小时。
      */
     public function getAnalytics($filters = [])
     {
         $query = Db::connect('repair')->name('orders');
 
-        // 日期范围筛选
+        // 日期范围筛选（包含结束日当天 23:59:59，避免少算一整天）
         if (!empty($filters['date_start']) && !empty($filters['date_end'])) {
-            $query->whereBetween('created_at', [$filters['date_start'], $filters['date_end']]);
+            $query->where('created_at', '>=', $filters['date_start'] . ' 00:00:00')
+                  ->where('created_at', '<=', $filters['date_end'] . ' 23:59:59');
         }
 
+        // 维度标签映射（与前端 Transfer.vue 保持一致）
+        $statusMap = [
+            'pending'    => '待处理',
+            'quoted'     => '待确认报价',
+            'confirmed'  => '已确认报价',
+            'processing' => '维修中',
+            'review'     => '待验收',
+            'completed'  => '已完成',
+            'cancelled'  => '已取消',
+        ];
+        $deviceTypeMap = [1 => '手机', 2 => '电脑', 3 => '平板', 4 => '手表', 5 => '其他'];
+        $serviceTypeMap = ['shop' => '到店', 'home' => '上门'];
+        $orderTypeMap = ['repair' => '维修', 'recycle' => '回收'];
+        $priorityMap = ['low' => '低', 'medium' => '中', 'high' => '高'];
+
+        $toLabel = function (array $rows, string $keyField, array $map, bool $numericKey = false) {
+            return array_map(function ($i) use ($keyField, $map, $numericKey) {
+                $raw = $i[$keyField] ?? '';
+                $key = $numericKey ? (is_numeric($raw) ? (int) $raw : $raw) : $raw;
+                $label = $map[$key] ?? (is_numeric($raw) ? ('类型' . $raw) : ($raw ?: '未知'));
+                return [
+                    'key'   => $raw,
+                    'label' => $label,
+                    'count' => (int) ($i['count'] ?? 0),
+                ];
+            }, $rows);
+        };
+
         // 状态分布
-        $statusDistribution = (clone $query)->field('status, COUNT(*) as count')
-            ->group('status')->select()->toArray();
+        $statusDistribution = $toLabel(
+            (clone $query)->field('status, COUNT(*) as count')->group('status')->select()->toArray(),
+            'status', $statusMap
+        );
 
         // 设备类型分布
-        $deviceTypeDistribution = (clone $query)->field('device_type, COUNT(*) as count')
-            ->group('device_type')->select()->toArray();
+        $deviceTypeDistribution = $toLabel(
+            (clone $query)->field('device_type, COUNT(*) as count')->group('device_type')->select()->toArray(),
+            'device_type', $deviceTypeMap, true
+        );
 
         // 服务方式分布
-        $serviceTypeDistribution = (clone $query)->field('service_type, COUNT(*) as count')
-            ->group('service_type')->select()->toArray();
+        $serviceTypeDistribution = $toLabel(
+            (clone $query)->field('service_type, COUNT(*) as count')->group('service_type')->select()->toArray(),
+            'service_type', $serviceTypeMap
+        );
 
         // 订单类型分布
-        $orderTypeDistribution = (clone $query)->field('order_type, COUNT(*) as count')
-            ->group('order_type')->select()->toArray();
+        $orderTypeDistribution = $toLabel(
+            (clone $query)->field('order_type, COUNT(*) as count')->group('order_type')->select()->toArray(),
+            'order_type', $orderTypeMap
+        );
 
         // 优先级分布
-        $priorityDistribution = (clone $query)->field('priority, COUNT(*) as count')
-            ->group('priority')->select()->toArray();
+        $priorityDistribution = $toLabel(
+            (clone $query)->field('priority, COUNT(*) as count')->group('priority')->select()->toArray(),
+            'priority', $priorityMap
+        );
 
-        // 每日趋势（最近30天）
-        $dailyTrend = (clone $query)->field("DATE(created_at) as date, COUNT(*) as count")
+        // 每日趋势（订单量 + 完成金额：actual_price 优先，缺省用 estimated_price）
+        $dailyTrend = (clone $query)
+            ->field("DATE(created_at) as date, COUNT(*) as count, COALESCE(SUM(CASE WHEN actual_price IS NOT NULL THEN actual_price ELSE estimated_price END), 0) as amount")
             ->group('DATE(created_at)')
             ->order('date', 'asc')
-            ->select()->toArray();
+            ->select()
+            ->toArray();
+        $dailyTrend = array_map(function ($i) {
+            return [
+                'date'   => $i['date'],
+                'count'  => (int) ($i['count'] ?? 0),
+                'amount' => round((float) ($i['amount'] ?? 0), 2),
+            ];
+        }, $dailyTrend);
 
         // 品牌排行 Top10
         $topBrands = (clone $query)->alias('o')
@@ -476,16 +531,24 @@ class RepairOrderService
             ->group('o.brand_id')
             ->order('count', 'desc')
             ->limit(10)
-            ->select()->toArray();
+            ->select()
+            ->toArray();
+        $topBrands = array_map(function ($i) {
+            return [
+                'key'   => $i['name'],
+                'label' => $i['name'],
+                'count' => (int) ($i['count'] ?? 0),
+            ];
+        }, $topBrands);
 
         return [
-            'status_distribution' => $statusDistribution,
-            'device_type_distribution' => $deviceTypeDistribution,
+            'status_distribution'       => $statusDistribution,
+            'device_type_distribution'  => $deviceTypeDistribution,
             'service_type_distribution' => $serviceTypeDistribution,
-            'order_type_distribution' => $orderTypeDistribution,
-            'priority_distribution' => $priorityDistribution,
-            'daily_trend' => $dailyTrend,
-            'top_brands' => $topBrands,
+            'order_type_distribution'   => $orderTypeDistribution,
+            'priority_distribution'     => $priorityDistribution,
+            'daily_trend'               => $dailyTrend,
+            'top_brands'                => $topBrands,
         ];
     }
 }

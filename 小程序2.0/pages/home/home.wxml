@@ -13,7 +13,7 @@
         </view>
       </view>
       <view class="hero-profile" bindtap="goToMine">
-        <image class="hero-avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
+        <image lazy-load class="hero-avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
       </view>
     </view>
 
@@ -30,7 +30,7 @@
           <text class="hero-summary-role">{{roleText}}</text>
         </view>
         <view class="hero-summary-user">
-          <image class="summary-avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
+          <image lazy-load class="summary-avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" binderror="onAvatarError"></image>
           <view class="summary-meta">
             <text class="summary-name">{{userInfo.nickName}}</text>
             <text class="summary-tip" wx:if="{{summaryTipText}}">{{summaryTipText}}</text>
@@ -183,7 +183,7 @@
       <text class="fill-sub">点击下方头像获取微信头像，昵称可一键填入</text>
 
       <button class="fill-avatar" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" disabled="{{isFilling}}">
-        <image class="fill-avatar-img" src="{{fillAvatarUrl || avatarUrl || defaultAvatarUrl}}" mode="aspectFill"></image>
+        <image lazy-load class="fill-avatar-img" src="{{fillAvatarUrl || avatarUrl || defaultAvatarUrl}}" mode="aspectFill"></image>
       </button>
 
       <view class="fill-nick">

@@ -62,6 +62,11 @@ const PAYMENT_COLUMNS = [
           ADD COLUMN refund_reason VARCHAR(255) NULL COMMENT '退款原因'`
   },
   {
+    name: 'refund_notify_raw',
+    sql: `ALTER TABLE orders
+          ADD COLUMN refund_notify_raw LONGTEXT NULL COMMENT '退款回调原始报文'`
+  },
+  {
     name: 'refunded_at',
     sql: `ALTER TABLE orders
           ADD COLUMN refunded_at DATETIME NULL COMMENT '退款成功时间'`

@@ -19,9 +19,14 @@ async function hasOrderColumn(columnName) {
   return columns.length > 0;
 }
 
+// 列存在性校验只需在进程内执行一次：首次成功后置位标记，
+// 后续订单写操作不再重复查询 INFORMATION_SCHEMA / 执行 ALTER。
+let _quoteUnreadColumnEnsured = false;
 async function ensureQuoteUnreadColumn() {
+  if (_quoteUnreadColumnEnsured) return;
   const exists = await hasOrderColumn('quote_unread');
   if (exists) {
+    _quoteUnreadColumnEnsured = true;
     return;
   }
 
@@ -30,11 +35,13 @@ async function ensureQuoteUnreadColumn() {
       `ALTER TABLE orders
        ADD COLUMN quote_unread TINYINT(1) NULL DEFAULT 0 COMMENT '用户是否有未读报价提醒: 0-已读, 1-未读'`
     );
+    _quoteUnreadColumnEnsured = true;
   } catch (error) {
     const duplicateColumn = error && (error.code === 'ER_DUP_FIELDNAME' || error.errno === 1060 || String(error.message || '').includes('Duplicate column'));
     if (!duplicateColumn) {
       throw error;
     }
+    _quoteUnreadColumnEnsured = true;
   }
 }
 
@@ -94,7 +101,9 @@ async function tryMarkQuoteUnread(orderId, unreadValue) {
   }
 }
 
+let _unreadColumnsEnsured = false;
 async function ensureUnreadColumns() {
+  if (_unreadColumnsEnsured) return;
   const specs = [
     { name: 'user_unread', def: "ADD COLUMN user_unread TINYINT(1) NULL DEFAULT 0 COMMENT '用户未读标记: 1-有更新未查看'" },
     { name: 'admin_unread', def: "ADD COLUMN admin_unread TINYINT(1) NULL DEFAULT 0 COMMENT '管理员未读标记: 1-有更新未查看'" },
@@ -110,6 +119,7 @@ async function ensureUnreadColumns() {
       if (!dup) throw e;
     }
   }
+  _unreadColumnsEnsured = true;
 }
 
 async function trySetUnread(orderId, { user, admin } = {}) {
