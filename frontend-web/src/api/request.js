@@ -114,6 +114,8 @@ request.interceptors.response.use(
                 default:
                     ElMessage.error(data.message || '请求失败')
             }
+        } else if (error.code === 'ERR_CANCELED' || error.code === 'ECANCELED') {
+            // 用户主动取消（如 Agent 停止生成），静默处理不弹错
         } else if (error.code === 'ECONNABORTED') {
             ElMessage.error('请求超时，AI 分析可能需要更长时间，请稍后重试')
         } else {

@@ -247,15 +247,16 @@ const submitMessage = async () => {
 
     // 打字机效果：逐步展示完整回答
     const fullAnswer = res.data?.answer || '未获得有效回复'
-    const reply = {
+    messages.value.push({
       id: `${Date.now()}-assistant`,
       role: 'assistant',
       content: '',
       tools: res.data?.tools_used || [],
       createdAt: new Date().toISOString(),
       requestId: res.data?.request_id || ''
-    }
-    messages.value.push(reply)
+    })
+    // 必须取数组里的响应式代理对象来改 content，直接改原始对象不会触发视图更新
+    const reply = messages.value[messages.value.length - 1]
     await typeOutAnswer(reply, fullAnswer, signal)
   } catch (error) {
     if (error.code === 'ERR_CANCELED' || signal.aborted) {
