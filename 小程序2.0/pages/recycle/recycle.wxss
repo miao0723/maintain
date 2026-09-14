@@ -1078,3 +1078,162 @@
   font-size: 24rpx;
   color: #b0b5be;
 }
+
+/* ============ 回收平台比价区（数据来自回收综合服务后台） ============ */
+.platform-section {
+  flex-shrink: 0;
+  padding: 16rpx 24rpx 6rpx;
+  background: rgba(255, 255, 255, 0.66);
+  border-top: 1rpx solid rgba(59, 94, 82, 0.06);
+}
+
+.platform-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 14rpx;
+  margin-bottom: 12rpx;
+}
+
+.platform-section-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #2f695e;
+}
+
+.platform-section-sub {
+  font-size: 20rpx;
+  color: #8aa39a;
+}
+
+.platform-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.platform-card-list {
+  display: inline-flex;
+  gap: 16rpx;
+  padding-bottom: 8rpx;
+}
+
+.platform-card {
+  display: inline-flex;
+  flex-direction: column;
+  width: 300rpx;
+  padding: 18rpx 20rpx;
+  background: #fff;
+  border-radius: 18rpx;
+  border: 1rpx solid rgba(59, 94, 82, 0.08);
+  box-shadow: 0 4rpx 14rpx rgba(47, 105, 94, 0.06);
+  box-sizing: border-box;
+  white-space: normal;
+}
+
+.platform-card-head {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-bottom: 10rpx;
+}
+
+.platform-logo {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 14rpx;
+  color: #fff;
+  font-size: 26rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.platform-head-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.platform-name {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #273f38;
+}
+
+.platform-type {
+  font-size: 18rpx;
+  color: #7ec8b2;
+}
+
+.platform-desc {
+  font-size: 20rpx;
+  color: #6b837a;
+  line-height: 1.5;
+  height: 90rpx;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.platform-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 8rpx;
+}
+
+.platform-meta-item {
+  font-size: 18rpx;
+  color: #5f7d72;
+  background: rgba(126, 200, 178, 0.14);
+  border-radius: 8rpx;
+  padding: 4rpx 10rpx;
+}
+
+.platform-action {
+  margin-top: 12rpx;
+  display: flex;
+  justify-content: center;
+  padding: 10rpx 0;
+  border-radius: 12rpx;
+  background: linear-gradient(135deg, #4f9782 0%, #7ec8b2 100%);
+}
+
+.platform-action-text {
+  font-size: 22rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 配价来源提示 */
+.catalog-source-tip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  padding: 8rpx 0 14rpx;
+}
+
+.catalog-source-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+}
+
+.catalog-source-dot.cloud {
+  background: #4f9782;
+  box-shadow: 0 0 8rpx rgba(79, 151, 130, 0.6);
+}
+
+.catalog-source-dot.local {
+  background: #c4cfc9;
+}
+
+.catalog-source-text {
+  font-size: 20rpx;
+  color: #8aa39a;
+}
+

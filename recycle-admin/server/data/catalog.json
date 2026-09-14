@@ -1,0 +1,3472 @@
+{
+  "generatedAt": "2026-09-14T08:59:27.384Z",
+  "categories": [
+    {
+      "code": "phone",
+      "name": "手机回收",
+      "icon": "📱",
+      "color": "#4A90D9",
+      "sortOrder": 1,
+      "brands": [
+        {
+          "name": "iPhone",
+          "logoText": "A",
+          "logoColor": "#000000",
+          "sortOrder": 1,
+          "models": [
+            {
+              "name": "iPhone 17 Pro Max",
+              "specs": "A19 Pro芯片 · 6.9英寸",
+              "basePrice": 8500,
+              "marketPrice": 8500,
+              "hot": 1,
+              "sortOrder": 1
+            },
+            {
+              "name": "iPhone 17 Pro",
+              "specs": "A19 Pro芯片 · 6.3英寸",
+              "basePrice": 7500,
+              "marketPrice": 7500,
+              "hot": 1,
+              "sortOrder": 2
+            },
+            {
+              "name": "iPhone 17",
+              "specs": "A19芯片 · 6.3英寸",
+              "basePrice": 5500,
+              "marketPrice": 5500,
+              "hot": 1,
+              "sortOrder": 3
+            },
+            {
+              "name": "iPhone 16 Pro Max",
+              "specs": "A18 Pro芯片 · 6.9英寸",
+              "basePrice": 7200,
+              "marketPrice": 7200,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "iPhone 16 Pro",
+              "specs": "A18 Pro芯片 · 6.3英寸",
+              "basePrice": 6200,
+              "marketPrice": 6200,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "iPhone 15 Pro Max",
+              "specs": "A17 Pro芯片 · 6.7英寸",
+              "basePrice": 5800,
+              "marketPrice": 5800,
+              "hot": 0,
+              "sortOrder": 6
+            },
+            {
+              "name": "iPhone 15 Pro",
+              "specs": "A17 Pro芯片 · 6.1英寸",
+              "basePrice": 4900,
+              "marketPrice": 4900,
+              "hot": 0,
+              "sortOrder": 7
+            },
+            {
+              "name": "iPhone 15",
+              "specs": "A16芯片 · 6.1英寸",
+              "basePrice": 3800,
+              "marketPrice": 3800,
+              "hot": 0,
+              "sortOrder": 8
+            },
+            {
+              "name": "iPhone 14 Pro Max",
+              "specs": "A16芯片 · 6.7英寸",
+              "basePrice": 4600,
+              "marketPrice": 4600,
+              "hot": 0,
+              "sortOrder": 9
+            },
+            {
+              "name": "iPhone 14 Pro",
+              "specs": "A16芯片 · 6.1英寸",
+              "basePrice": 3900,
+              "marketPrice": 3900,
+              "hot": 0,
+              "sortOrder": 10
+            },
+            {
+              "name": "iPhone 14",
+              "specs": "A15芯片 · 6.1英寸",
+              "basePrice": 2800,
+              "marketPrice": 2800,
+              "hot": 0,
+              "sortOrder": 11
+            },
+            {
+              "name": "iPhone 13 系列",
+              "specs": "A15芯片 · 6.1英寸",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 12
+            },
+            {
+              "name": "iPhone SE 系列",
+              "specs": "紧凑设计 · 经典Home键",
+              "basePrice": 1200,
+              "marketPrice": 1200,
+              "hot": 0,
+              "sortOrder": 13
+            }
+          ]
+        },
+        {
+          "name": "华为",
+          "logoText": "华",
+          "logoColor": "#CF0A2C",
+          "sortOrder": 2,
+          "models": [
+            {
+              "name": "Mate 80 Pro",
+              "specs": "麒麟9100 · 6.8英寸",
+              "basePrice": 7500,
+              "marketPrice": 7500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Mate 80",
+              "specs": "麒麟9100 · 6.7英寸",
+              "basePrice": 6000,
+              "marketPrice": 6000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Mate 70 Pro",
+              "specs": "麒麟9100 · 6.8英寸",
+              "basePrice": 6500,
+              "marketPrice": 6500,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "Mate 70",
+              "specs": "麒麟9100 · 6.7英寸",
+              "basePrice": 5200,
+              "marketPrice": 5200,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "Pura 80 Ultra",
+              "specs": "麒麟9020 · 1英寸传感器",
+              "basePrice": 7000,
+              "marketPrice": 7000,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "Pura 70 Ultra",
+              "specs": "麒麟9010 · 6.8英寸",
+              "basePrice": 5800,
+              "marketPrice": 5800,
+              "hot": 0,
+              "sortOrder": 6
+            },
+            {
+              "name": "Mate X6 折叠屏",
+              "specs": "麒麟9020 · 7.9英寸",
+              "basePrice": 9000,
+              "marketPrice": 9000,
+              "hot": 0,
+              "sortOrder": 7
+            },
+            {
+              "name": "Mate X5 折叠屏",
+              "specs": "麒麟9000S · 7.85英寸",
+              "basePrice": 7500,
+              "marketPrice": 7500,
+              "hot": 0,
+              "sortOrder": 8
+            },
+            {
+              "name": "Nova 13 Pro",
+              "specs": "麒麟8000 · 6.7英寸",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 9
+            },
+            {
+              "name": "Nova 系列",
+              "specs": "中端实力派",
+              "basePrice": 1500,
+              "marketPrice": 1500,
+              "hot": 0,
+              "sortOrder": 10
+            }
+          ]
+        },
+        {
+          "name": "荣耀",
+          "logoText": "荣",
+          "logoColor": "#0AB3E6",
+          "sortOrder": 3,
+          "models": [
+            {
+              "name": "Magic7 Pro",
+              "specs": "骁龙8 Elite · 2亿长焦",
+              "basePrice": 5500,
+              "marketPrice": 5500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Magic7",
+              "specs": "骁龙8 Elite · AI智能",
+              "basePrice": 4200,
+              "marketPrice": 4200,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Magic V3 折叠屏",
+              "specs": "骁龙8 Gen3 · 超薄折叠",
+              "basePrice": 6500,
+              "marketPrice": 6500,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "200 Pro",
+              "specs": "第三代骁龙8s · 雅顾影像",
+              "basePrice": 3200,
+              "marketPrice": 3200,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "X60 Pro",
+              "specs": "骁龙6 Gen1 · 长续航",
+              "basePrice": 1800,
+              "marketPrice": 1800,
+              "hot": 0,
+              "sortOrder": 5
+            }
+          ]
+        },
+        {
+          "name": "小米",
+          "logoText": "米",
+          "logoColor": "#FF6900",
+          "sortOrder": 4,
+          "models": [
+            {
+              "name": "小米15 Ultra",
+              "specs": "骁龙8 Elite · 徕卡影像",
+              "basePrice": 6000,
+              "marketPrice": 6000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "小米15 Pro",
+              "specs": "骁龙8 Elite · 6.73英寸",
+              "basePrice": 4800,
+              "marketPrice": 4800,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "小米15",
+              "specs": "骁龙8 Elite · 6.36英寸",
+              "basePrice": 4200,
+              "marketPrice": 4200,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "小米14 Ultra",
+              "specs": "骁龙8 Gen3 · 徕卡全焦段",
+              "basePrice": 4800,
+              "marketPrice": 4800,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "小米14 系列",
+              "specs": "骁龙8 Gen3 · 徕卡光学",
+              "basePrice": 3200,
+              "marketPrice": 3200,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "MIX Fold 4",
+              "specs": "骁龙8 Gen3 · 折叠大屏",
+              "basePrice": 5500,
+              "marketPrice": 5500,
+              "hot": 0,
+              "sortOrder": 6
+            },
+            {
+              "name": "红米K80 Pro",
+              "specs": "骁龙8 Elite · 高性价比",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 7
+            },
+            {
+              "name": "红米K80",
+              "specs": "骁龙8 Gen3 · 国民性能",
+              "basePrice": 2200,
+              "marketPrice": 2200,
+              "hot": 0,
+              "sortOrder": 8
+            },
+            {
+              "name": "红米Note 14 Pro",
+              "specs": "天玑7300 · 金刚品质",
+              "basePrice": 1500,
+              "marketPrice": 1500,
+              "hot": 0,
+              "sortOrder": 9
+            },
+            {
+              "name": "红米Turbo 4",
+              "specs": "天玑8400 · 性能先锋",
+              "basePrice": 1800,
+              "marketPrice": 1800,
+              "hot": 0,
+              "sortOrder": 10
+            }
+          ]
+        },
+        {
+          "name": "OPPO",
+          "logoText": "O",
+          "logoColor": "#1BA784",
+          "sortOrder": 5,
+          "models": [
+            {
+              "name": "Find X8 Ultra",
+              "specs": "骁龙8 Elite · 哈苏影像",
+              "basePrice": 5800,
+              "marketPrice": 5800,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Find X8 Pro",
+              "specs": "天玑9400 · 哈苏四摄",
+              "basePrice": 4800,
+              "marketPrice": 4800,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Find X8",
+              "specs": "天玑9400 · 6.6英寸",
+              "basePrice": 4200,
+              "marketPrice": 4200,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "Find N5 折叠屏",
+              "specs": "骁龙8 Elite · 超薄折叠",
+              "basePrice": 7200,
+              "marketPrice": 7200,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "Reno 13 Pro",
+              "specs": "天玑8350 · 人像大师",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "Reno 系列",
+              "specs": "轻薄影像手机",
+              "basePrice": 1800,
+              "marketPrice": 1800,
+              "hot": 0,
+              "sortOrder": 6
+            },
+            {
+              "name": "A5 Pro",
+              "specs": "天玑6300 · 防水耐用",
+              "basePrice": 1200,
+              "marketPrice": 1200,
+              "hot": 0,
+              "sortOrder": 7
+            },
+            {
+              "name": "A 系列",
+              "specs": "入门性价比之选",
+              "basePrice": 800,
+              "marketPrice": 800,
+              "hot": 0,
+              "sortOrder": 8
+            }
+          ]
+        },
+        {
+          "name": "vivo",
+          "logoText": "V",
+          "logoColor": "#415FFF",
+          "sortOrder": 6,
+          "models": [
+            {
+              "name": "X200 Ultra",
+              "specs": "天玑9400 · 蔡司全焦段",
+              "basePrice": 6000,
+              "marketPrice": 6000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "X200 Pro",
+              "specs": "天玑9400 · 蔡司影像",
+              "basePrice": 5200,
+              "marketPrice": 5200,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "X200",
+              "specs": "天玑9400 · 6.67英寸",
+              "basePrice": 3800,
+              "marketPrice": 3800,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "X Fold4 折叠屏",
+              "specs": "骁龙8 Elite · 双屏体验",
+              "basePrice": 6800,
+              "marketPrice": 6800,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "S20 Pro",
+              "specs": "天玑9300 · 柔光环人像",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "S 系列",
+              "specs": "人像自拍专家",
+              "basePrice": 1600,
+              "marketPrice": 1600,
+              "hot": 0,
+              "sortOrder": 6
+            },
+            {
+              "name": "iQOO 13",
+              "specs": "骁龙8 Elite · 电竞旗舰",
+              "basePrice": 4000,
+              "marketPrice": 4000,
+              "hot": 0,
+              "sortOrder": 7
+            },
+            {
+              "name": "iQOO Neo10 Pro",
+              "specs": "天玑9400 · 性能先锋",
+              "basePrice": 2800,
+              "marketPrice": 2800,
+              "hot": 0,
+              "sortOrder": 8
+            }
+          ]
+        },
+        {
+          "name": "一加",
+          "logoText": "1+",
+          "logoColor": "#F5010C",
+          "sortOrder": 7,
+          "models": [
+            {
+              "name": "一加 13",
+              "specs": "骁龙8 Elite · 哈苏影像",
+              "basePrice": 4500,
+              "marketPrice": 4500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "一加 12",
+              "specs": "骁龙8 Gen3 · 2K东方屏",
+              "basePrice": 3500,
+              "marketPrice": 3500,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "一加 Ace 5 Pro",
+              "specs": "骁龙8 Elite · 游戏旗舰",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "一加 Ace 3V",
+              "specs": "第三代骁龙7+ · 长续航",
+              "basePrice": 1800,
+              "marketPrice": 1800,
+              "hot": 0,
+              "sortOrder": 4
+            }
+          ]
+        },
+        {
+          "name": "真我",
+          "logoText": "RM",
+          "logoColor": "#DAA520",
+          "sortOrder": 8,
+          "models": [
+            {
+              "name": "真我GT7 Pro",
+              "specs": "骁龙8 Elite · 游戏旗舰",
+              "basePrice": 3500,
+              "marketPrice": 3500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "真我GT7",
+              "specs": "天玑9400 · 性能先锋",
+              "basePrice": 2800,
+              "marketPrice": 2800,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "真我GT Neo6 SE",
+              "specs": "第三代骁龙7+ · 高性价比",
+              "basePrice": 1800,
+              "marketPrice": 1800,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "魅族",
+          "logoText": "魅",
+          "logoColor": "#00BCD4",
+          "sortOrder": 9,
+          "models": [
+            {
+              "name": "魅族 21 Pro",
+              "specs": "骁龙8 Gen3 · 白面板",
+              "basePrice": 3500,
+              "marketPrice": 3500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "魅族 21",
+              "specs": "骁龙8 Gen3 · Flyme",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Lucky 08",
+              "specs": "骁龙8s Gen3 · AI手机",
+              "basePrice": 2000,
+              "marketPrice": 2000,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "三星",
+          "logoText": "S",
+          "logoColor": "#1428A0",
+          "sortOrder": 10,
+          "models": [
+            {
+              "name": "Galaxy S25 Ultra",
+              "specs": "骁龙8 Elite · S Pen",
+              "basePrice": 7200,
+              "marketPrice": 7200,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Galaxy S25+",
+              "specs": "骁龙8 Elite · 6.7英寸",
+              "basePrice": 5200,
+              "marketPrice": 5200,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Galaxy S25",
+              "specs": "骁龙8 Elite · 6.2英寸",
+              "basePrice": 4800,
+              "marketPrice": 4800,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "Galaxy S24 Ultra",
+              "specs": "骁龙8 Gen3 · 钛金属",
+              "basePrice": 5800,
+              "marketPrice": 5800,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "Z Fold6",
+              "specs": "骁龙8 Gen3 · 折叠大屏",
+              "basePrice": 7500,
+              "marketPrice": 7500,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "Z Flip6",
+              "specs": "骁龙8 Gen3 · 翻盖折叠",
+              "basePrice": 4200,
+              "marketPrice": 4200,
+              "hot": 0,
+              "sortOrder": 6
+            }
+          ]
+        },
+        {
+          "name": "努比亚/红魔",
+          "logoText": "红",
+          "logoColor": "#E20613",
+          "sortOrder": 11,
+          "models": [
+            {
+              "name": "努比亚 Z70 Ultra",
+              "specs": "骁龙8 Elite · 屏下摄像",
+              "basePrice": 4500,
+              "marketPrice": 4500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "红魔 10 Pro",
+              "specs": "骁龙8 Elite · 内置风扇",
+              "basePrice": 4000,
+              "marketPrice": 4000,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "computer",
+      "name": "电脑回收",
+      "icon": "💻",
+      "color": "#5A6E8A",
+      "sortOrder": 2,
+      "brands": [
+        {
+          "name": "Apple Mac",
+          "logoText": "A",
+          "logoColor": "#000000",
+          "sortOrder": 1,
+          "models": [
+            {
+              "name": "MacBook Pro 16\"",
+              "specs": "M4 Max芯片 · 16英寸",
+              "basePrice": 15000,
+              "marketPrice": 15000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "MacBook Pro 14\"",
+              "specs": "M4 Pro/Max · 14英寸",
+              "basePrice": 12000,
+              "marketPrice": 12000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "MacBook Air 15\"",
+              "specs": "M4芯片 · 15英寸",
+              "basePrice": 8000,
+              "marketPrice": 8000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "MacBook Air 13\"",
+              "specs": "M4芯片 · 13英寸",
+              "basePrice": 6500,
+              "marketPrice": 6500,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "MacBook Pro M3 14\"",
+              "specs": "M3 Pro芯片 · 14英寸",
+              "basePrice": 9000,
+              "marketPrice": 9000,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "iMac 24\" M4",
+              "specs": "M4芯片 · 一体机",
+              "basePrice": 8500,
+              "marketPrice": 8500,
+              "hot": 0,
+              "sortOrder": 6
+            },
+            {
+              "name": "Mac mini M4",
+              "specs": "M4芯片 · 迷你主机",
+              "basePrice": 3500,
+              "marketPrice": 3500,
+              "hot": 0,
+              "sortOrder": 7
+            },
+            {
+              "name": "Mac Studio",
+              "specs": "M2 Ultra · 工作站",
+              "basePrice": 20000,
+              "marketPrice": 20000,
+              "hot": 0,
+              "sortOrder": 8
+            }
+          ]
+        },
+        {
+          "name": "联想 ThinkPad",
+          "logoText": "L",
+          "logoColor": "#E2231A",
+          "sortOrder": 2,
+          "models": [
+            {
+              "name": "ThinkPad X1 Carbon Gen12",
+              "specs": "Ultra 7 · 14英寸",
+              "basePrice": 8000,
+              "marketPrice": 8000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "ThinkPad X1 Carbon",
+              "specs": "Ultra 7 · 14英寸",
+              "basePrice": 7000,
+              "marketPrice": 7000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "ThinkPad T16",
+              "specs": "Ultra 5 · 16英寸",
+              "basePrice": 5000,
+              "marketPrice": 5000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "ThinkPad T14",
+              "specs": "Ultra 5 · 14英寸商务",
+              "basePrice": 4800,
+              "marketPrice": 4800,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "ThinkPad P1",
+              "specs": "Core i9 · RTX专业卡",
+              "basePrice": 12000,
+              "marketPrice": 12000,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "拯救者 Y9000P",
+              "specs": "i9-14900HX · RTX4070",
+              "basePrice": 7000,
+              "marketPrice": 7000,
+              "hot": 0,
+              "sortOrder": 6
+            },
+            {
+              "name": "拯救者 R9000P",
+              "specs": "R9-7945HX · RTX4060",
+              "basePrice": 5500,
+              "marketPrice": 5500,
+              "hot": 0,
+              "sortOrder": 7
+            },
+            {
+              "name": "YOGA Pro 14s",
+              "specs": "Ultra 9 · 3K OLED触屏",
+              "basePrice": 5000,
+              "marketPrice": 5000,
+              "hot": 0,
+              "sortOrder": 8
+            },
+            {
+              "name": "小新Pro 16",
+              "specs": "Ultra 5 · 16英寸全能",
+              "basePrice": 3800,
+              "marketPrice": 3800,
+              "hot": 0,
+              "sortOrder": 9
+            }
+          ]
+        },
+        {
+          "name": "华为",
+          "logoText": "华",
+          "logoColor": "#CF0A2C",
+          "sortOrder": 3,
+          "models": [
+            {
+              "name": "MateBook X Pro 2025",
+              "specs": "Ultra 9 · OLED触屏",
+              "basePrice": 8500,
+              "marketPrice": 8500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "MateBook X Pro",
+              "specs": "Ultra 9 · OLED触屏",
+              "basePrice": 8000,
+              "marketPrice": 8000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "MateBook 14",
+              "specs": "2.8K OLED · 轻薄",
+              "basePrice": 4500,
+              "marketPrice": 4500,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "MateBook 16s",
+              "specs": "i9-13900H · 16英寸大屏",
+              "basePrice": 5000,
+              "marketPrice": 5000,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "MateBook D16",
+              "specs": "i5-13500H · 16英寸",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "MateBook E Go",
+              "specs": "二合一 · 骁龙8cx",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 6
+            }
+          ]
+        },
+        {
+          "name": "戴尔",
+          "logoText": "D",
+          "logoColor": "#007DB8",
+          "sortOrder": 4,
+          "models": [
+            {
+              "name": "XPS 16",
+              "specs": "Ultra 9 · 16英寸OLED",
+              "basePrice": 8000,
+              "marketPrice": 8000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "XPS 14",
+              "specs": "Ultra 7 · 14英寸",
+              "basePrice": 6500,
+              "marketPrice": 6500,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "XPS 系列",
+              "specs": "Ultra处理器 · 窄边框",
+              "basePrice": 6500,
+              "marketPrice": 6500,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "Alienware m18",
+              "specs": "i9-14900HX · RTX4090",
+              "basePrice": 12000,
+              "marketPrice": 12000,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "Alienware X16",
+              "specs": "Ultra 9 · RTX4070",
+              "basePrice": 9000,
+              "marketPrice": 9000,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "Inspiron 16 Plus",
+              "specs": "Ultra 7 · 16英寸全能",
+              "basePrice": 4000,
+              "marketPrice": 4000,
+              "hot": 0,
+              "sortOrder": 6
+            },
+            {
+              "name": "Inspiron 灵越",
+              "specs": "家用全能本",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 7
+            }
+          ]
+        },
+        {
+          "name": "华硕",
+          "logoText": "AS",
+          "logoColor": "#131F35",
+          "sortOrder": 5,
+          "models": [
+            {
+              "name": "ROG 枪神8 超竞版",
+              "specs": "i9-14900HX · RTX4090",
+              "basePrice": 11000,
+              "marketPrice": 11000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "ROG 枪神/幻",
+              "specs": "性能电竞旗舰",
+              "basePrice": 8000,
+              "marketPrice": 8000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "天选5 Pro",
+              "specs": "R9-7940HX · RTX4070",
+              "basePrice": 5500,
+              "marketPrice": 5500,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "天选系列",
+              "specs": "二次元电竞本",
+              "basePrice": 4500,
+              "marketPrice": 4500,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "灵耀14 2025",
+              "specs": "Ultra 9 · 14英寸OLED",
+              "basePrice": 5000,
+              "marketPrice": 5000,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "灵耀系列",
+              "specs": "轻薄商务品质",
+              "basePrice": 4000,
+              "marketPrice": 4000,
+              "hot": 0,
+              "sortOrder": 6
+            },
+            {
+              "name": "ProArt 创16",
+              "specs": "Ultra 9 · RTX4070创作本",
+              "basePrice": 9000,
+              "marketPrice": 9000,
+              "hot": 0,
+              "sortOrder": 7
+            }
+          ]
+        },
+        {
+          "name": "惠普",
+          "logoText": "HP",
+          "logoColor": "#0096D6",
+          "sortOrder": 6,
+          "models": [
+            {
+              "name": "Spectre x360",
+              "specs": "Ultra 9 · OLED翻转触屏",
+              "basePrice": 8000,
+              "marketPrice": 8000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "ENVY x360",
+              "specs": "Ryzen 7 · 翻转全能",
+              "basePrice": 4500,
+              "marketPrice": 4500,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "暗影精灵 10",
+              "specs": "i9-14900HX · RTX4070",
+              "basePrice": 6500,
+              "marketPrice": 6500,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "星Book Pro 16",
+              "specs": "Ultra 7 · 16英寸",
+              "basePrice": 3500,
+              "marketPrice": 3500,
+              "hot": 0,
+              "sortOrder": 4
+            }
+          ]
+        },
+        {
+          "name": "宏碁",
+          "logoText": "AC",
+          "logoColor": "#83B81A",
+          "sortOrder": 7,
+          "models": [
+            {
+              "name": "掠夺者 Helios 18",
+              "specs": "i9-14900HX · RTX4090",
+              "basePrice": 10000,
+              "marketPrice": 10000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "暗影骑士·擎",
+              "specs": "i7-14700HX · RTX4060",
+              "basePrice": 4500,
+              "marketPrice": 4500,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "非凡Go 14",
+              "specs": "Ultra 7 · 2.8K OLED",
+              "basePrice": 4200,
+              "marketPrice": 4200,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "微软 Surface",
+          "logoText": "MS",
+          "logoColor": "#0078D4",
+          "sortOrder": 8,
+          "models": [
+            {
+              "name": "Surface Laptop 7",
+              "specs": "骁龙X Elite · Copilot",
+              "basePrice": 8000,
+              "marketPrice": 8000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Surface Pro 11",
+              "specs": "骁龙X Elite · 二合一",
+              "basePrice": 7000,
+              "marketPrice": 7000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Surface Laptop Go",
+              "specs": "Core i5 · 轻巧便携",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "荣耀",
+          "logoText": "荣",
+          "logoColor": "#0AB3E6",
+          "sortOrder": 9,
+          "models": [
+            {
+              "name": "MagicBook Art 14",
+              "specs": "Ultra 7 · 3.1K OLED",
+              "basePrice": 5500,
+              "marketPrice": 5500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "MagicBook Pro 16",
+              "specs": "Ultra 5 · 16英寸",
+              "basePrice": 4000,
+              "marketPrice": 4000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "MagicBook X 系列",
+              "specs": "Core i5 · 轻薄学生本",
+              "basePrice": 2800,
+              "marketPrice": 2800,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "机械革命",
+          "logoText": "机",
+          "logoColor": "#333333",
+          "sortOrder": 10,
+          "models": [
+            {
+              "name": "旷世 16 Super",
+              "specs": "i9-14900HX · RTX4080",
+              "basePrice": 6000,
+              "marketPrice": 6000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "蛟龙 16 Pro",
+              "specs": "R9-7945HX · RTX4070",
+              "basePrice": 4800,
+              "marketPrice": 4800,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "无界 14X",
+              "specs": "R7-8845HS · 超轻薄",
+              "basePrice": 3200,
+              "marketPrice": 3200,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "tablet",
+      "name": "平板回收",
+      "icon": "📟",
+      "color": "#E67E22",
+      "sortOrder": 3,
+      "brands": [
+        {
+          "name": "iPad",
+          "logoText": "A",
+          "logoColor": "#000000",
+          "sortOrder": 1,
+          "models": [
+            {
+              "name": "iPad Pro M4 13\"",
+              "specs": "M4芯片 · OLED屏",
+              "basePrice": 8500,
+              "marketPrice": 8500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "iPad Pro M4 11\"",
+              "specs": "M4芯片 · OLED屏",
+              "basePrice": 7000,
+              "marketPrice": 7000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "iPad Pro M2 12.9\"",
+              "specs": "M2芯片 · mini-LED",
+              "basePrice": 5500,
+              "marketPrice": 5500,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "iPad Air M3",
+              "specs": "M3芯片 · 11/13英寸",
+              "basePrice": 4500,
+              "marketPrice": 4500,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "iPad Air M2",
+              "specs": "M2芯片 · 11/13英寸",
+              "basePrice": 4200,
+              "marketPrice": 4200,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "iPad 第11代",
+              "specs": "A16芯片 · 10.9英寸",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 6
+            },
+            {
+              "name": "iPad 第10代",
+              "specs": "A14芯片 · 10.9英寸",
+              "basePrice": 2200,
+              "marketPrice": 2200,
+              "hot": 0,
+              "sortOrder": 7
+            },
+            {
+              "name": "iPad mini 7",
+              "specs": "A17 Pro芯片 · 8.3英寸",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 8
+            },
+            {
+              "name": "iPad mini 6",
+              "specs": "A15芯片 · 8.3英寸",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 9
+            }
+          ]
+        },
+        {
+          "name": "华为",
+          "logoText": "华",
+          "logoColor": "#CF0A2C",
+          "sortOrder": 2,
+          "models": [
+            {
+              "name": "MatePad Pro 14.2",
+              "specs": "OLED屏 · 鸿蒙",
+              "basePrice": 6000,
+              "marketPrice": 6000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "MatePad Pro 13.2",
+              "specs": "OLED柔性屏 · 鸿蒙",
+              "basePrice": 5200,
+              "marketPrice": 5200,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "MatePad 12 X",
+              "specs": "120Hz · PaperMatte屏",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "MatePad Air",
+              "specs": "11.5英寸 · 144Hz",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "MatePad SE",
+              "specs": "入门学习平板",
+              "basePrice": 1200,
+              "marketPrice": 1200,
+              "hot": 0,
+              "sortOrder": 5
+            }
+          ]
+        },
+        {
+          "name": "小米",
+          "logoText": "米",
+          "logoColor": "#FF6900",
+          "sortOrder": 3,
+          "models": [
+            {
+              "name": "小米平板 7 Pro",
+              "specs": "骁龙8s Gen3 · 3.2K屏",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "小米平板 7",
+              "specs": "骁龙7+ Gen3 · 2.8K屏",
+              "basePrice": 2000,
+              "marketPrice": 2000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "小米平板 6S Pro",
+              "specs": "骁龙8 Gen2 · 12.4英寸",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "Redmi Pad Pro",
+              "specs": "骁龙7s Gen2 · 12.1英寸",
+              "basePrice": 1400,
+              "marketPrice": 1400,
+              "hot": 0,
+              "sortOrder": 4
+            }
+          ]
+        },
+        {
+          "name": "三星",
+          "logoText": "S",
+          "logoColor": "#1428A0",
+          "sortOrder": 4,
+          "models": [
+            {
+              "name": "Galaxy Tab S10 Ultra",
+              "specs": "天玑9300+ · 14.6英寸",
+              "basePrice": 6500,
+              "marketPrice": 6500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Galaxy Tab S10+",
+              "specs": "天玑9300+ · 12.4英寸",
+              "basePrice": 4800,
+              "marketPrice": 4800,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Galaxy Tab S9 FE",
+              "specs": "Exynos · 10.9英寸",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "联想",
+          "logoText": "L",
+          "logoColor": "#E2231A",
+          "sortOrder": 5,
+          "models": [
+            {
+              "name": "拯救者 Y700",
+              "specs": "骁龙8 Gen3 · 8.8英寸电竞",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "小新Pad Pro",
+              "specs": "天玑8300 · 12.7英寸",
+              "basePrice": 1800,
+              "marketPrice": 1800,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        },
+        {
+          "name": "OPPO",
+          "logoText": "O",
+          "logoColor": "#1BA784",
+          "sortOrder": 6,
+          "models": [
+            {
+              "name": "OPPO Pad 3 Pro",
+              "specs": "骁龙8 Gen3 · 12.1英寸",
+              "basePrice": 3200,
+              "marketPrice": 3200,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "OPPO Pad 3",
+              "specs": "天玑8350 · 2.8K屏",
+              "basePrice": 2200,
+              "marketPrice": 2200,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        },
+        {
+          "name": "vivo",
+          "logoText": "V",
+          "logoColor": "#415FFF",
+          "sortOrder": 7,
+          "models": [
+            {
+              "name": "vivo Pad3 Pro",
+              "specs": "天玑9300 · 13英寸巨幕",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "vivo Pad3",
+              "specs": "骁龙8s Gen3 · 12.1英寸",
+              "basePrice": 2400,
+              "marketPrice": 2400,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "wearable",
+      "name": "智能穿戴",
+      "icon": "⌚",
+      "color": "#8E44AD",
+      "sortOrder": 4,
+      "brands": [
+        {
+          "name": "Apple Watch",
+          "logoText": "A",
+          "logoColor": "#000000",
+          "sortOrder": 1,
+          "models": [
+            {
+              "name": "Apple Watch Ultra 2",
+              "specs": "S9芯片 · 49mm钛金属",
+              "basePrice": 4500,
+              "marketPrice": 4500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Apple Watch S10",
+              "specs": "S10芯片 · 全天候显示",
+              "basePrice": 2800,
+              "marketPrice": 2800,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Apple Watch S9",
+              "specs": "S9芯片 · 全天候显示",
+              "basePrice": 2200,
+              "marketPrice": 2200,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "Apple Watch SE 2",
+              "specs": "S8芯片 · 性价比之选",
+              "basePrice": 1500,
+              "marketPrice": 1500,
+              "hot": 0,
+              "sortOrder": 4
+            }
+          ]
+        },
+        {
+          "name": "华为",
+          "logoText": "华",
+          "logoColor": "#CF0A2C",
+          "sortOrder": 2,
+          "models": [
+            {
+              "name": "WATCH Ultimate",
+              "specs": "100米潜水 · 卫星通信",
+              "basePrice": 4000,
+              "marketPrice": 4000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "WATCH GT 5 Pro",
+              "specs": "钛合金 · 14天续航",
+              "basePrice": 2200,
+              "marketPrice": 2200,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "WATCH GT 5",
+              "specs": "AMOLED屏 · 专业运动",
+              "basePrice": 1400,
+              "marketPrice": 1400,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "WATCH FIT 3",
+              "specs": "方形轻薄设计",
+              "basePrice": 800,
+              "marketPrice": 800,
+              "hot": 0,
+              "sortOrder": 4
+            }
+          ]
+        },
+        {
+          "name": "小米",
+          "logoText": "米",
+          "logoColor": "#FF6900",
+          "sortOrder": 3,
+          "models": [
+            {
+              "name": "小米手表 S4",
+              "specs": "1.43英寸AMOLED",
+              "basePrice": 1000,
+              "marketPrice": 1000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "小米手表 S3",
+              "specs": "可换表圈 · 12通道心率",
+              "basePrice": 800,
+              "marketPrice": 800,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Redmi Watch 5",
+              "specs": "1.97英寸大屏 · 20天续航",
+              "basePrice": 400,
+              "marketPrice": 400,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "三星",
+          "logoText": "S",
+          "logoColor": "#1428A0",
+          "sortOrder": 4,
+          "models": [
+            {
+              "name": "Galaxy Watch Ultra",
+              "specs": "钛金属 · 户外旗舰",
+              "basePrice": 3500,
+              "marketPrice": 3500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Galaxy Watch7",
+              "specs": "BioActive传感器",
+              "basePrice": 1800,
+              "marketPrice": 1800,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Galaxy Watch FE",
+              "specs": "入门智能手表",
+              "basePrice": 1000,
+              "marketPrice": 1000,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "OPPO",
+          "logoText": "O",
+          "logoColor": "#1BA784",
+          "sortOrder": 5,
+          "models": [
+            {
+              "name": "OPPO Watch X2",
+              "specs": "骁龙W5 · 全智能",
+              "basePrice": 1800,
+              "marketPrice": 1800,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "OPPO Watch SE",
+              "specs": "性价比智能手表",
+              "basePrice": 800,
+              "marketPrice": 800,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        },
+        {
+          "name": "荣耀",
+          "logoText": "荣",
+          "logoColor": "#0AB3E6",
+          "sortOrder": 6,
+          "models": [
+            {
+              "name": "荣耀手表5",
+              "specs": "1.85英寸 · 14天续航",
+              "basePrice": 1000,
+              "marketPrice": 1000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "荣耀手表 GS4",
+              "specs": "经典圆形 · 商务风",
+              "basePrice": 1200,
+              "marketPrice": 1200,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        },
+        {
+          "name": "佳明",
+          "logoText": "G",
+          "logoColor": "#000000",
+          "sortOrder": 7,
+          "models": [
+            {
+              "name": "Fēnix 8",
+              "specs": "军工级 · 专业户外",
+              "basePrice": 5500,
+              "marketPrice": 5500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Epix Pro Gen2",
+              "specs": "AMOLED · 多频定位",
+              "basePrice": 4000,
+              "marketPrice": 4000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Forerunner 965",
+              "specs": "铁人三项专业表",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "Venu 3",
+              "specs": "健康管理 · 日常运动",
+              "basePrice": 2000,
+              "marketPrice": 2000,
+              "hot": 0,
+              "sortOrder": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "display",
+      "name": "显示器回收",
+      "icon": "🖥️",
+      "color": "#16A085",
+      "sortOrder": 5,
+      "brands": [
+        {
+          "name": "Apple",
+          "logoText": "A",
+          "logoColor": "#000000",
+          "sortOrder": 1,
+          "models": [
+            {
+              "name": "Studio Display",
+              "specs": "5K分辨率 · 27英寸",
+              "basePrice": 8000,
+              "marketPrice": 8000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Pro Display XDR",
+              "specs": "6K分辨率 · 32英寸",
+              "basePrice": 25000,
+              "marketPrice": 25000,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        },
+        {
+          "name": "戴尔",
+          "logoText": "D",
+          "logoColor": "#007DB8",
+          "sortOrder": 2,
+          "models": [
+            {
+              "name": "UltraSharp U3224KB",
+              "specs": "6K分辨率 · 32英寸",
+              "basePrice": 12000,
+              "marketPrice": 12000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "UltraSharp U2723QE",
+              "specs": "4K IPS Black · 27英寸",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Alienware AW3423DW",
+              "specs": "QD-OLED · 34英寸 175Hz",
+              "basePrice": 5000,
+              "marketPrice": 5000,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "三星",
+          "logoText": "S",
+          "logoColor": "#1428A0",
+          "sortOrder": 3,
+          "models": [
+            {
+              "name": "Odyssey Neo G9",
+              "specs": "量子点Mini-LED · 57英寸",
+              "basePrice": 8000,
+              "marketPrice": 8000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Odyssey G8 QD-OLED",
+              "specs": "QD-OLED · 34英寸 175Hz",
+              "basePrice": 4500,
+              "marketPrice": 4500,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Smart Monitor M8",
+              "specs": "4K · 32英寸智能屏幕",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "LG",
+          "logoText": "LG",
+          "logoColor": "#A50034",
+          "sortOrder": 4,
+          "models": [
+            {
+              "name": "UltraGear 27GR95QE",
+              "specs": "OLED · 27英寸 240Hz",
+              "basePrice": 4000,
+              "marketPrice": 4000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "27UP850N",
+              "specs": "4K · 27英寸专业色准",
+              "basePrice": 2200,
+              "marketPrice": 2200,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "OLED C3 42\"",
+              "specs": "OLED · 42英寸电视/显示器",
+              "basePrice": 5000,
+              "marketPrice": 5000,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "小米",
+          "logoText": "米",
+          "logoColor": "#FF6900",
+          "sortOrder": 5,
+          "models": [
+            {
+              "name": "Redmi 电竞 27",
+              "specs": "Fast IPS · 27英寸 180Hz",
+              "basePrice": 800,
+              "marketPrice": 800,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "小米 4K显示器",
+              "specs": "4K · 27英寸专业色准",
+              "basePrice": 1800,
+              "marketPrice": 1800,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "home",
+      "name": "生活家居",
+      "icon": "🏠",
+      "color": "#27AE60",
+      "sortOrder": 6,
+      "brands": [
+        {
+          "name": "音频设备",
+          "logoText": "音",
+          "logoColor": "#555555",
+          "sortOrder": 1,
+          "models": [
+            {
+              "name": "AirPods Pro 2",
+              "specs": "H2芯片 · 主动降噪",
+              "basePrice": 1400,
+              "marketPrice": 1400,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "AirPods 4",
+              "specs": "H2芯片 · 空间音频",
+              "basePrice": 900,
+              "marketPrice": 900,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "AirPods Max",
+              "specs": "H1双芯片 · 头戴降噪",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "WH-1000XM5",
+              "specs": "顶级降噪头戴",
+              "basePrice": 1800,
+              "marketPrice": 1800,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "WF-1000XM5",
+              "specs": "旗舰真无线降噪",
+              "basePrice": 1200,
+              "marketPrice": 1200,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "Bose QC Ultra",
+              "specs": "沉浸空间音频",
+              "basePrice": 2000,
+              "marketPrice": 2000,
+              "hot": 0,
+              "sortOrder": 6
+            },
+            {
+              "name": "Bose QC Ultra Earbuds",
+              "specs": "真无线沉浸降噪",
+              "basePrice": 1500,
+              "marketPrice": 1500,
+              "hot": 0,
+              "sortOrder": 7
+            },
+            {
+              "name": "华为 FreeBuds 6",
+              "specs": "强力降噪 · 超长续航",
+              "basePrice": 800,
+              "marketPrice": 800,
+              "hot": 0,
+              "sortOrder": 8
+            },
+            {
+              "name": "小米 Buds 5 Pro",
+              "specs": "Hi-Fi音质 · 空间音频",
+              "basePrice": 700,
+              "marketPrice": 700,
+              "hot": 0,
+              "sortOrder": 9
+            },
+            {
+              "name": "Galaxy Buds3 Pro",
+              "specs": "Galaxy AI · 智能降噪",
+              "basePrice": 900,
+              "marketPrice": 900,
+              "hot": 0,
+              "sortOrder": 10
+            },
+            {
+              "name": "HomePod mini",
+              "specs": "Siri智能音箱",
+              "basePrice": 600,
+              "marketPrice": 600,
+              "hot": 0,
+              "sortOrder": 11
+            },
+            {
+              "name": "JBL Flip 7",
+              "specs": "便携防水蓝牙音箱",
+              "basePrice": 500,
+              "marketPrice": 500,
+              "hot": 0,
+              "sortOrder": 12
+            }
+          ]
+        },
+        {
+          "name": "网络设备",
+          "logoText": "网",
+          "logoColor": "#555555",
+          "sortOrder": 2,
+          "models": [
+            {
+              "name": "华为路由 AX6",
+              "specs": "Wi-Fi 6+ · 7200Mbps",
+              "basePrice": 300,
+              "marketPrice": 300,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "华为路由 BE7",
+              "specs": "Wi-Fi 7 · 万兆口",
+              "basePrice": 800,
+              "marketPrice": 800,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "小米 BE10000",
+              "specs": "Wi-Fi 7 · 三频万兆",
+              "basePrice": 1200,
+              "marketPrice": 1200,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "小米 AX9000",
+              "specs": "Wi-Fi 6 · 三频",
+              "basePrice": 600,
+              "marketPrice": 600,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "TP-Link Archer BE800",
+              "specs": "Wi-Fi 7 旗舰",
+              "basePrice": 1000,
+              "marketPrice": 1000,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "华硕 RT-BE96U",
+              "specs": "Wi-Fi 7 · 双万兆口",
+              "basePrice": 1500,
+              "marketPrice": 1500,
+              "hot": 0,
+              "sortOrder": 6
+            }
+          ]
+        },
+        {
+          "name": "扫地机器人",
+          "logoText": "扫",
+          "logoColor": "#555555",
+          "sortOrder": 3,
+          "models": [
+            {
+              "name": "石头 G30/G20S",
+              "specs": "智能避障 · 自清洁 · 热水洗",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "石头 G/S 系列",
+              "specs": "智能避障 · 自清洁",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "追觅 X50 Ultra",
+              "specs": "仿生双机械臂 · 自动上下水",
+              "basePrice": 4000,
+              "marketPrice": 4000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "追觅 X 系列",
+              "specs": "仿生机械臂",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "科沃斯 X5 Pro",
+              "specs": "全能基站 · 热水洗 · 机械臂",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "科沃斯 T50 Pro",
+              "specs": "超高避障 · 大吸力",
+              "basePrice": 2000,
+              "marketPrice": 2000,
+              "hot": 0,
+              "sortOrder": 6
+            }
+          ]
+        },
+        {
+          "name": "键盘鼠标",
+          "logoText": "键",
+          "logoColor": "#555555",
+          "sortOrder": 4,
+          "models": [
+            {
+              "name": "Apple Magic Keyboard",
+              "specs": "妙控键盘 · Mac专用",
+              "basePrice": 800,
+              "marketPrice": 800,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "罗技 MX Master 3S",
+              "specs": "Master系列 · 人体工学",
+              "basePrice": 500,
+              "marketPrice": 500,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "罗技 G Pro X 60",
+              "specs": "电竞机械键盘",
+              "basePrice": 800,
+              "marketPrice": 800,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "雷蛇 BlackWidow V4",
+              "specs": "绿轴机械 · RGB灯效",
+              "basePrice": 600,
+              "marketPrice": 600,
+              "hot": 0,
+              "sortOrder": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "camera",
+      "name": "相机回收",
+      "icon": "📷",
+      "color": "#E74C3C",
+      "sortOrder": 7,
+      "brands": [
+        {
+          "name": "索尼",
+          "logoText": "S",
+          "logoColor": "#000000",
+          "sortOrder": 1,
+          "models": [
+            {
+              "name": "α1 II",
+              "specs": "5000万像素 · 30fps连拍",
+              "basePrice": 35000,
+              "marketPrice": 35000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "α7R V",
+              "specs": "6100万像素 · AI对焦",
+              "basePrice": 18000,
+              "marketPrice": 18000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "α7 IV",
+              "specs": "3300万像素 · 全能旗舰",
+              "basePrice": 12000,
+              "marketPrice": 12000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "α7C II",
+              "specs": "紧凑全画幅",
+              "basePrice": 9000,
+              "marketPrice": 9000,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "α7CR",
+              "specs": "6100万像素 · 紧凑机身",
+              "basePrice": 14000,
+              "marketPrice": 14000,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "ZV-E1",
+              "specs": "全画幅Vlog相机",
+              "basePrice": 10000,
+              "marketPrice": 10000,
+              "hot": 0,
+              "sortOrder": 6
+            },
+            {
+              "name": "ZV-E10 II",
+              "specs": "APS-C Vlog相机",
+              "basePrice": 5000,
+              "marketPrice": 5000,
+              "hot": 0,
+              "sortOrder": 7
+            }
+          ]
+        },
+        {
+          "name": "佳能",
+          "logoText": "C",
+          "logoColor": "#CC0000",
+          "sortOrder": 2,
+          "models": [
+            {
+              "name": "EOS R1",
+              "specs": "2400万像素 · 旗舰速度机",
+              "basePrice": 35000,
+              "marketPrice": 35000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "EOS R5 II",
+              "specs": "4500万像素 · 8K视频",
+              "basePrice": 20000,
+              "marketPrice": 20000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "EOS R5",
+              "specs": "4500万像素 · 8K30P",
+              "basePrice": 15000,
+              "marketPrice": 15000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "EOS R6 II",
+              "specs": "2420万像素 · 高速连拍",
+              "basePrice": 12000,
+              "marketPrice": 12000,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "EOS R8",
+              "specs": "入门全画幅",
+              "basePrice": 7000,
+              "marketPrice": 7000,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "EOS R7",
+              "specs": "APS-C高速相机",
+              "basePrice": 6000,
+              "marketPrice": 6000,
+              "hot": 0,
+              "sortOrder": 6
+            }
+          ]
+        },
+        {
+          "name": "尼康",
+          "logoText": "N",
+          "logoColor": "#D4AF37",
+          "sortOrder": 3,
+          "models": [
+            {
+              "name": "Z9",
+              "specs": "4570万像素 · 120fps",
+              "basePrice": 28000,
+              "marketPrice": 28000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Z8",
+              "specs": "4570万像素 · 8K60P",
+              "basePrice": 20000,
+              "marketPrice": 20000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Z6 III",
+              "specs": "2450万像素 · 高速全能",
+              "basePrice": 12000,
+              "marketPrice": 12000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "Zf",
+              "specs": "复古全画幅 · 2450万像素",
+              "basePrice": 10000,
+              "marketPrice": 10000,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "Z50 II",
+              "specs": "APS-C入门 · 便携",
+              "basePrice": 5000,
+              "marketPrice": 5000,
+              "hot": 0,
+              "sortOrder": 5
+            }
+          ]
+        },
+        {
+          "name": "富士",
+          "logoText": "F",
+          "logoColor": "#000000",
+          "sortOrder": 4,
+          "models": [
+            {
+              "name": "GFX100 II",
+              "specs": "1亿像素 · 中画幅",
+              "basePrice": 35000,
+              "marketPrice": 35000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "GFX50S II",
+              "specs": "中画幅入门",
+              "basePrice": 18000,
+              "marketPrice": 18000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "X-T5",
+              "specs": "4020万像素 · 复古旗舰",
+              "basePrice": 9000,
+              "marketPrice": 9000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "X-H2S",
+              "specs": "2616万像素 · 40fps堆栈",
+              "basePrice": 10000,
+              "marketPrice": 10000,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "X100VI",
+              "specs": "4020万像素 · 复古旁轴",
+              "basePrice": 8000,
+              "marketPrice": 8000,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "X-S20",
+              "specs": "Vlog全能 · 2610万像素",
+              "basePrice": 6000,
+              "marketPrice": 6000,
+              "hot": 0,
+              "sortOrder": 6
+            }
+          ]
+        },
+        {
+          "name": "运动相机",
+          "logoText": "Go",
+          "logoColor": "#005DAA",
+          "sortOrder": 5,
+          "models": [
+            {
+              "name": "GoPro HERO13",
+              "specs": "5.3K视频 · 防水20m",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "GoPro HERO12",
+              "specs": "5.3K视频 · HDR",
+              "basePrice": 2000,
+              "marketPrice": 2000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "DJI Action 5",
+              "specs": "4K · 磁吸快拆",
+              "basePrice": 2000,
+              "marketPrice": 2000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "DJI Action 4",
+              "specs": "1/1.3\"传感器 · 防水",
+              "basePrice": 1500,
+              "marketPrice": 1500,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "Insta360 X4",
+              "specs": "8K全景 · 360°拍摄",
+              "basePrice": 2800,
+              "marketPrice": 2800,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "Insta360 Ace Pro",
+              "specs": "徕卡联合 · 8K视频",
+              "basePrice": 2000,
+              "marketPrice": 2000,
+              "hot": 0,
+              "sortOrder": 6
+            }
+          ]
+        },
+        {
+          "name": "镜头",
+          "logoText": "镜",
+          "logoColor": "#555555",
+          "sortOrder": 6,
+          "models": [
+            {
+              "name": "Sony FE 24-70 F2.8 GM II",
+              "specs": "大三元标准变焦",
+              "basePrice": 10000,
+              "marketPrice": 10000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Sony FE 70-200 F2.8 GM II",
+              "specs": "大三元长焦",
+              "basePrice": 12000,
+              "marketPrice": 12000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Sony FE 50 F1.2 GM",
+              "specs": "人像镜皇",
+              "basePrice": 8000,
+              "marketPrice": 8000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "Canon RF 24-70 F2.8L",
+              "specs": "L系列标准变焦",
+              "basePrice": 10000,
+              "marketPrice": 10000,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "Canon RF 70-200 F2.8L",
+              "specs": "L系列轻量长焦",
+              "basePrice": 12000,
+              "marketPrice": 12000,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "Nikon Z 24-70 F2.8 S",
+              "specs": "S-Line标准变焦",
+              "basePrice": 10000,
+              "marketPrice": 10000,
+              "hot": 0,
+              "sortOrder": 6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "gaming",
+      "name": "游戏机回收",
+      "icon": "🎮",
+      "color": "#9B59B6",
+      "sortOrder": 8,
+      "brands": [
+        {
+          "name": "PlayStation",
+          "logoText": "PS",
+          "logoColor": "#003791",
+          "sortOrder": 1,
+          "models": [
+            {
+              "name": "PS5 Pro",
+              "specs": "性能升级 · 光追增强",
+              "basePrice": 3800,
+              "marketPrice": 3800,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "PS5 Slim",
+              "specs": "轻薄款 · 1TB存储",
+              "basePrice": 2800,
+              "marketPrice": 2800,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "PS5 数字版",
+              "specs": "SSD超快加载",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "PS4 Pro",
+              "specs": "4K游戏主机",
+              "basePrice": 1200,
+              "marketPrice": 1200,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "PS VR2",
+              "specs": "4K HDR · 眼球追踪",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 5
+            }
+          ]
+        },
+        {
+          "name": "任天堂",
+          "logoText": "N",
+          "logoColor": "#E60012",
+          "sortOrder": 2,
+          "models": [
+            {
+              "name": "Nintendo Switch 2",
+              "specs": "新世代 · 性能升级",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Switch OLED",
+              "specs": "7英寸OLED屏",
+              "basePrice": 1500,
+              "marketPrice": 1500,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Switch 续航版",
+              "specs": "经典款 · 续航增强",
+              "basePrice": 1000,
+              "marketPrice": 1000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "Switch Lite",
+              "specs": "纯掌机便携版",
+              "basePrice": 800,
+              "marketPrice": 800,
+              "hot": 0,
+              "sortOrder": 4
+            }
+          ]
+        },
+        {
+          "name": "Xbox",
+          "logoText": "X",
+          "logoColor": "#107C10",
+          "sortOrder": 3,
+          "models": [
+            {
+              "name": "Xbox Series X",
+              "specs": "12TF性能 · 4K120",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Xbox Series S",
+              "specs": "小巧次世代主机",
+              "basePrice": 1400,
+              "marketPrice": 1400,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Xbox One X",
+              "specs": "强化版主机",
+              "basePrice": 800,
+              "marketPrice": 800,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "Steam Deck",
+          "logoText": "SD",
+          "logoColor": "#1A9FFF",
+          "sortOrder": 4,
+          "models": [
+            {
+              "name": "Steam Deck OLED",
+              "specs": "OLED屏 · 90Hz · 定制APU",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Steam Deck LCD",
+              "specs": "定制APU · 7英寸",
+              "basePrice": 1800,
+              "marketPrice": 1800,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        },
+        {
+          "name": "复古/掌机",
+          "logoText": "掌",
+          "logoColor": "#555555",
+          "sortOrder": 5,
+          "models": [
+            {
+              "name": "ROG Ally X",
+              "specs": "锐龙Z1 · 1080P 120Hz",
+              "basePrice": 3500,
+              "marketPrice": 3500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Lenovo Legion Go",
+              "specs": "锐龙Z1 · 8.8英寸",
+              "basePrice": 2800,
+              "marketPrice": 2800,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "AYANEO 2S",
+              "specs": "7840U · 无边框掌机",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "drone",
+      "name": "无人机回收",
+      "icon": "🚁",
+      "color": "#3498DB",
+      "sortOrder": 9,
+      "brands": [
+        {
+          "name": "大疆",
+          "logoText": "DJ",
+          "logoColor": "#404040",
+          "sortOrder": 1,
+          "models": [
+            {
+              "name": "Mavic 4 Pro",
+              "specs": "哈苏多焦段 · 全向避障",
+              "basePrice": 12000,
+              "marketPrice": 12000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Mavic 3 Pro",
+              "specs": "哈苏三摄 · 43分钟",
+              "basePrice": 10000,
+              "marketPrice": 10000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "Mavic 3 Classic",
+              "specs": "哈苏单摄 · 46分钟",
+              "basePrice": 7000,
+              "marketPrice": 7000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "Air 3S",
+              "specs": "双摄 · 全向避障",
+              "basePrice": 6500,
+              "marketPrice": 6500,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "Air 3",
+              "specs": "双摄 · 全向避障",
+              "basePrice": 5500,
+              "marketPrice": 5500,
+              "hot": 0,
+              "sortOrder": 5
+            },
+            {
+              "name": "Mini 4 Pro",
+              "specs": "249g · 全向避障",
+              "basePrice": 4200,
+              "marketPrice": 4200,
+              "hot": 0,
+              "sortOrder": 6
+            },
+            {
+              "name": "Mini 3 Pro",
+              "specs": "249g · 三向避障",
+              "basePrice": 3000,
+              "marketPrice": 3000,
+              "hot": 0,
+              "sortOrder": 7
+            },
+            {
+              "name": "Avata 2",
+              "specs": "沉浸飞行体验",
+              "basePrice": 3500,
+              "marketPrice": 3500,
+              "hot": 0,
+              "sortOrder": 8
+            },
+            {
+              "name": "DJI Neo",
+              "specs": "掌上起降 · 入门首选",
+              "basePrice": 1200,
+              "marketPrice": 1200,
+              "hot": 0,
+              "sortOrder": 9
+            },
+            {
+              "name": "DJI Flip",
+              "specs": "轻便折叠 · Vlog航拍",
+              "basePrice": 2500,
+              "marketPrice": 2500,
+              "hot": 0,
+              "sortOrder": 10
+            }
+          ]
+        },
+        {
+          "name": "道通",
+          "logoText": "道",
+          "logoColor": "#F39C12",
+          "sortOrder": 2,
+          "models": [
+            {
+              "name": "EVO II Pro V3",
+              "specs": "1英寸传感器 · 6K",
+              "basePrice": 6000,
+              "marketPrice": 6000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "EVO Lite+",
+              "specs": "1英寸传感器 · 249g+",
+              "basePrice": 3500,
+              "marketPrice": 3500,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "server",
+      "name": "服务器回收",
+      "icon": "🖥️",
+      "color": "#5B6B8C",
+      "sortOrder": 10,
+      "brands": [
+        {
+          "name": "戴尔",
+          "logoText": "戴",
+          "logoColor": "#007DB8",
+          "sortOrder": 1,
+          "models": [
+            {
+              "name": "PowerEdge R760",
+              "specs": "2U双路 · 至强可扩展",
+              "basePrice": 16000,
+              "marketPrice": 16000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "PowerEdge R750",
+              "specs": "2U双路 · 主流机架",
+              "basePrice": 9000,
+              "marketPrice": 9000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "PowerEdge R650",
+              "specs": "1U双路 · 高密度",
+              "basePrice": 7000,
+              "marketPrice": 7000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "PowerEdge T550",
+              "specs": "塔式 · 双路",
+              "basePrice": 6000,
+              "marketPrice": 6000,
+              "hot": 0,
+              "sortOrder": 4
+            }
+          ]
+        },
+        {
+          "name": "惠普HPE",
+          "logoText": "HP",
+          "logoColor": "#0096D6",
+          "sortOrder": 2,
+          "models": [
+            {
+              "name": "ProLiant DL380 Gen11",
+              "specs": "2U双路 · 经典机架",
+              "basePrice": 14000,
+              "marketPrice": 14000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "ProLiant DL360 Gen11",
+              "specs": "1U双路 · 高性能",
+              "basePrice": 10000,
+              "marketPrice": 10000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "ProLiant ML350",
+              "specs": "塔式 · 双路",
+              "basePrice": 7000,
+              "marketPrice": 7000,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "联想",
+          "logoText": "联",
+          "logoColor": "#E2231A",
+          "sortOrder": 3,
+          "models": [
+            {
+              "name": "ThinkSystem SR650",
+              "specs": "2U双路 · 企业级",
+              "basePrice": 11000,
+              "marketPrice": 11000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "ThinkSystem SR630",
+              "specs": "1U双路 · 高密度",
+              "basePrice": 8000,
+              "marketPrice": 8000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "ThinkSystem ST550",
+              "specs": "塔式 · 双路",
+              "basePrice": 6000,
+              "marketPrice": 6000,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "华为",
+          "logoText": "华",
+          "logoColor": "#CF0A2C",
+          "sortOrder": 4,
+          "models": [
+            {
+              "name": "FusionServer 2288H V6",
+              "specs": "2U双路 · 鲲鹏/至强",
+              "basePrice": 12000,
+              "marketPrice": 12000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "TaiShan 2280",
+              "specs": "2U · 鲲鹏处理器",
+              "basePrice": 9000,
+              "marketPrice": 9000,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        },
+        {
+          "name": "浪潮",
+          "logoText": "浪",
+          "logoColor": "#1E6FD9",
+          "sortOrder": 5,
+          "models": [
+            {
+              "name": "NF5280M7",
+              "specs": "2U双路 · 主流机架",
+              "basePrice": 10000,
+              "marketPrice": 10000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "NF5260M6",
+              "specs": "1U双路 · 高密度",
+              "basePrice": 7000,
+              "marketPrice": 7000,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        },
+        {
+          "name": "新华三H3C",
+          "logoText": "H3",
+          "logoColor": "#E60012",
+          "sortOrder": 6,
+          "models": [
+            {
+              "name": "UniServer R4900 G6",
+              "specs": "2U双路 · 企业级",
+              "basePrice": 10500,
+              "marketPrice": 10500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "UniServer R4700 G6",
+              "specs": "1U双路 · 高密度",
+              "basePrice": 8500,
+              "marketPrice": 8500,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "network",
+      "name": "网络设备回收",
+      "icon": "📡",
+      "color": "#3E8E7E",
+      "sortOrder": 11,
+      "brands": [
+        {
+          "name": "华为",
+          "logoText": "华",
+          "logoColor": "#CF0A2C",
+          "sortOrder": 1,
+          "models": [
+            {
+              "name": "AX3 Pro",
+              "specs": "WiFi6 · 双核",
+              "basePrice": 150,
+              "marketPrice": 150,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "AX6",
+              "specs": "WiFi6+ · 千兆",
+              "basePrice": 300,
+              "marketPrice": 300,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "BE3 Pro",
+              "specs": "WiFi7 · 双频",
+              "basePrice": 450,
+              "marketPrice": 450,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "企业AR系列路由",
+              "specs": "企业级 · 多业务",
+              "basePrice": 1500,
+              "marketPrice": 1500,
+              "hot": 0,
+              "sortOrder": 4
+            }
+          ]
+        },
+        {
+          "name": "华三H3C",
+          "logoText": "H3",
+          "logoColor": "#E60012",
+          "sortOrder": 2,
+          "models": [
+            {
+              "name": "Magic NX30 Pro",
+              "specs": "WiFi6 · 3000M",
+              "basePrice": 250,
+              "marketPrice": 250,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "企业MSR路由器",
+              "specs": "企业级 · 多业务",
+              "basePrice": 1200,
+              "marketPrice": 1200,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "交换机/Switch",
+              "specs": "全千兆/万兆",
+              "basePrice": 1000,
+              "marketPrice": 1000,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "TP-LINK",
+          "logoText": "TP",
+          "logoColor": "#0050A4",
+          "sortOrder": 3,
+          "models": [
+            {
+              "name": "XDR5480",
+              "specs": "WiFi6 · 5400M",
+              "basePrice": 350,
+              "marketPrice": 350,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "XDR6030",
+              "specs": "WiFi6 · 6000M",
+              "basePrice": 250,
+              "marketPrice": 250,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "企业ER系列",
+              "specs": "企业级 · 多WAN",
+              "basePrice": 800,
+              "marketPrice": 800,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "小米",
+          "logoText": "米",
+          "logoColor": "#FF6900",
+          "sortOrder": 4,
+          "models": [
+            {
+              "name": "路由器AX9000",
+              "specs": "WiFi6 · 三频",
+              "basePrice": 400,
+              "marketPrice": 400,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "路由器AX6000",
+              "specs": "WiFi6 · 6000M",
+              "basePrice": 250,
+              "marketPrice": 250,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "路由器BE6500",
+              "specs": "WiFi7 · 双频",
+              "basePrice": 450,
+              "marketPrice": 450,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "网件Netgear",
+          "logoText": "NG",
+          "logoColor": "#7AB800",
+          "sortOrder": 5,
+          "models": [
+            {
+              "name": "Nighthawk RAX200",
+              "specs": "WiFi6 · 三频",
+              "basePrice": 900,
+              "marketPrice": 900,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Orbi Mesh",
+              "specs": "分布式 · 全屋覆盖",
+              "basePrice": 1500,
+              "marketPrice": 1500,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        },
+        {
+          "name": "思科Cisco",
+          "logoText": "Ci",
+          "logoColor": "#1BA0D7",
+          "sortOrder": 6,
+          "models": [
+            {
+              "name": "企业路由器ISR",
+              "specs": "企业级 · 多业务",
+              "basePrice": 2000,
+              "marketPrice": 2000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Catalyst交换机",
+              "specs": "企业级 · 核心交换",
+              "basePrice": 1800,
+              "marketPrice": 1800,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "gpu",
+      "name": "显卡回收",
+      "icon": "🎛️",
+      "color": "#8E5B8C",
+      "sortOrder": 12,
+      "brands": [
+        {
+          "name": "NVIDIA",
+          "logoText": "NV",
+          "logoColor": "#76B900",
+          "sortOrder": 1,
+          "models": [
+            {
+              "name": "RTX 4090",
+              "specs": "24G · 旗舰游戏/AI",
+              "basePrice": 12000,
+              "marketPrice": 12000,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "RTX 4080 Super",
+              "specs": "16G · 高端",
+              "basePrice": 8000,
+              "marketPrice": 8000,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "RTX 4070 Ti Super",
+              "specs": "16G · 高性价比",
+              "basePrice": 6000,
+              "marketPrice": 6000,
+              "hot": 0,
+              "sortOrder": 3
+            },
+            {
+              "name": "RTX 4060",
+              "specs": "8G · 主流",
+              "basePrice": 2200,
+              "marketPrice": 2200,
+              "hot": 0,
+              "sortOrder": 4
+            },
+            {
+              "name": "RTX 3090",
+              "specs": "24G · 上代旗舰",
+              "basePrice": 5000,
+              "marketPrice": 5000,
+              "hot": 0,
+              "sortOrder": 5
+            }
+          ]
+        },
+        {
+          "name": "AMD",
+          "logoText": "A",
+          "logoColor": "#ED1C24",
+          "sortOrder": 2,
+          "models": [
+            {
+              "name": "RX 7900 XTX",
+              "specs": "24G · 旗舰",
+              "basePrice": 6500,
+              "marketPrice": 6500,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "RX 7800 XT",
+              "specs": "16G · 高端",
+              "basePrice": 3800,
+              "marketPrice": 3800,
+              "hot": 0,
+              "sortOrder": 2
+            },
+            {
+              "name": "RX 7600",
+              "specs": "8G · 主流",
+              "basePrice": 1800,
+              "marketPrice": 1800,
+              "hot": 0,
+              "sortOrder": 3
+            }
+          ]
+        },
+        {
+          "name": "英特尔",
+          "logoText": "I",
+          "logoColor": "#0071C5",
+          "sortOrder": 3,
+          "models": [
+            {
+              "name": "Arc A770",
+              "specs": "16G · 独显",
+              "basePrice": 1800,
+              "marketPrice": 1800,
+              "hot": 0,
+              "sortOrder": 1
+            },
+            {
+              "name": "Arc B580",
+              "specs": "12G · 新架构",
+              "basePrice": 1600,
+              "marketPrice": 1600,
+              "hot": 0,
+              "sortOrder": 2
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "guideQuestions": [
+    {
+      "id": "condition",
+      "question": "您的设备成色如何？",
+      "type": "select",
+      "options": [
+        {
+          "label": "全新未使用",
+          "value": "mint",
+          "rate": 1,
+          "desc": "未拆封或仅拆封，无任何使用痕迹"
+        },
+        {
+          "label": "九成新",
+          "value": "excellent",
+          "rate": 0.9,
+          "desc": "轻微使用痕迹，无划痕"
+        },
+        {
+          "label": "八成新",
+          "value": "good",
+          "rate": 0.8,
+          "desc": "正常使用痕迹，可能有细微划痕"
+        },
+        {
+          "label": "七成新",
+          "value": "fair",
+          "rate": 0.7,
+          "desc": "明显使用痕迹，有划痕或磕碰"
+        },
+        {
+          "label": "六成新及以下",
+          "value": "poor",
+          "rate": 0.55,
+          "desc": "明显磨损、磕碰，但功能正常"
+        }
+      ]
+    },
+    {
+      "id": "screen",
+      "question": "屏幕状况如何？",
+      "type": "select",
+      "options": [
+        {
+          "label": "屏幕完好无损",
+          "value": "perfect",
+          "rate": 1
+        },
+        {
+          "label": "有轻微划痕",
+          "value": "scratched",
+          "rate": 0.9
+        },
+        {
+          "label": "有明显划痕",
+          "value": "deep-scratched",
+          "rate": 0.75
+        },
+        {
+          "label": "有碎裂/坏点",
+          "value": "damaged",
+          "rate": 0.4
+        },
+        {
+          "label": "屏幕完全损坏",
+          "value": "broken",
+          "rate": 0.15
+        }
+      ]
+    },
+    {
+      "id": "function",
+      "question": "设备功能是否正常？",
+      "type": "select",
+      "options": [
+        {
+          "label": "全部功能正常",
+          "value": "all-good",
+          "rate": 1
+        },
+        {
+          "label": "部分功能有问题",
+          "value": "minor-issues",
+          "rate": 0.7,
+          "desc": "如扬声器、按键等小问题"
+        },
+        {
+          "label": "有较大故障",
+          "value": "major-issues",
+          "rate": 0.4,
+          "desc": "如摄像头不工作、信号差等"
+        },
+        {
+          "label": "无法正常使用",
+          "value": "not-working",
+          "rate": 0.15,
+          "desc": "不开机或无法正常操作"
+        }
+      ]
+    },
+    {
+      "id": "version",
+      "question": "您的设备是什么版本？",
+      "type": "select",
+      "options": [
+        {
+          "label": "国行/大陆版",
+          "value": "china",
+          "rate": 1,
+          "desc": "中国大陆正规渠道购买"
+        },
+        {
+          "label": "港版/澳版",
+          "value": "hk",
+          "rate": 0.95,
+          "desc": "港澳地区购买"
+        },
+        {
+          "label": "国际版/海外版",
+          "value": "international",
+          "rate": 0.85,
+          "desc": "海外渠道购买"
+        },
+        {
+          "label": "不确定",
+          "value": "unknown",
+          "rate": 0.9
+        }
+      ]
+    },
+    {
+      "id": "accessories",
+      "question": "配件是否齐全？",
+      "type": "select",
+      "options": [
+        {
+          "label": "原装配件齐全（含包装）",
+          "value": "full-box",
+          "rate": 1,
+          "desc": "包装盒、充电器、数据线等都在"
+        },
+        {
+          "label": "有充电器和数据线",
+          "value": "basic",
+          "rate": 0.98,
+          "desc": "基础配件都有"
+        },
+        {
+          "label": "只有裸机",
+          "value": "device-only",
+          "rate": 0.93,
+          "desc": "无任何配件"
+        }
+      ]
+    },
+    {
+      "id": "repair-history",
+      "question": "设备是否有维修史？",
+      "type": "select",
+      "options": [
+        {
+          "label": "从未维修过",
+          "value": "never",
+          "rate": 1
+        },
+        {
+          "label": "官方授权店维修过",
+          "value": "official",
+          "rate": 0.92,
+          "desc": "有官方维修记录"
+        },
+        {
+          "label": "非官方渠道维修过",
+          "value": "third-party",
+          "rate": 0.75,
+          "desc": "第三方维修或拆机过"
+        },
+        {
+          "label": "不确定",
+          "value": "unknown-repair",
+          "rate": 0.85
+        }
+      ]
+    },
+    {
+      "id": "extra",
+      "question": "还有其他需要说明的问题吗？",
+      "type": "input",
+      "placeholder": "如进水、摔过、电池鼓包等额外情况...",
+      "required": false
+    }
+  ],
+  "conditionRates": {
+    "mint": 1,
+    "excellent": 0.9,
+    "good": 0.8,
+    "fair": 0.7,
+    "poor": 0.55
+  }
+}

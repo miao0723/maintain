@@ -1,9 +1,11 @@
 // pages/recycle-guide/recycle-guide.js
 const { guideQuestions, conditionRates } = require('../../utils/recycleData.js');
 const { orderApi } = require('../../utils/api.js');
+const { loadValuationConfig } = require('../../utils/recycleCatalog.js');
 
 // 二手回收基准系数：即便是“全新未使用”，回收方也以低于全新零售价（约 9 折）回收，
 // 避免估价虚高等于 100% 全新零售价，使金额更接近真实二手行情。
+// 该系数可由回收综合服务后台（recycle_settings.base_factor）在线调整，未配置时用本地默认值。
 const RECYCLE_BASE_FACTOR = 0.9;
 
 Page({
@@ -90,13 +92,45 @@ Page({
       questions,
       totalQuestions: questions.length,
       estimatedPrice: product.modelPrice,
+      baseFactor: RECYCLE_BASE_FACTOR,
       isInternal: guideIsInternal
     });
+
+    // 异步加载回收后台维护的估价配置（基准系数/成色系数），有更新则覆盖本地默认
+    this.loadValuationSettings();
 
     // 入场动画
     setTimeout(() => {
       this.setData({ questionState: 'visible' });
     }, 300);
+  },
+
+  /**
+   * 加载回收后台估价配置：
+   * - base_factor：二手回收基准系数
+   * - factors：各评估因子选项系数（按 value 匹配覆盖本地 guideQuestions）
+   */
+  async loadValuationSettings() {
+    const config = await loadValuationConfig();
+    if (!config.managed) return;
+
+    const updates = { baseFactor: config.baseFactor };
+
+    if (config.factors && Object.keys(config.factors).length > 0) {
+      updates.questions = this.data.questions.map((q) => {
+        const remoteOptions = config.factors[q.id];
+        if (!Array.isArray(remoteOptions)) return q;
+        return {
+          ...q,
+          options: (q.options || []).map((opt) => {
+            const remote = remoteOptions.find((r) => r.value === opt.value);
+            return remote ? { ...opt, rate: remote.rate } : opt;
+          })
+        };
+      });
+    }
+
+    this.setData(updates);
   },
 
   /**
@@ -140,7 +174,7 @@ Page({
         quickEstimate *= answers[key].rate;
       }
     });
-    quickEstimate *= RECYCLE_BASE_FACTOR;
+    quickEstimate *= (this.data.baseFactor || RECYCLE_BASE_FACTOR);
 
     const nextIndex = currentQuestionIndex + 1;
     const isLast = nextIndex >= questions.length;
@@ -246,8 +280,8 @@ Page({
     if (answers.version) price *= answers.version.rate;
     if (answers.accessories) price *= answers.accessories.rate;
     if (answers['repair-history']) price *= answers['repair-history'].rate;
-    // 叠加二手回收基准系数，使估价更接近真实回收行情
-    price *= RECYCLE_BASE_FACTOR;
+    // 叠加二手回收基准系数，使估价更接近真实回收行情（系数可由回收后台在线调整）
+    price *= (this.data.baseFactor || RECYCLE_BASE_FACTOR);
     return Math.round(price);
   },
 

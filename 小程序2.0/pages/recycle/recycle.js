@@ -1,5 +1,6 @@
 // pages/recycle/recycle.js
 const { categories } = require('../../utils/recycleData.js');
+const recycleCatalog = require('../../utils/recycleCatalog.js');
 
 const CATEGORY_VISUALS = {
   phone:    { icon: '📱', scene: '双摄旗舰', badge: '手机', imageUrl: '/pages/recycle/images/phone.webp' },
@@ -56,6 +57,13 @@ Page({
     selectedBrandIndex: -1,
     scrollToBrand: '',
 
+    // ===== 云端配价状态 =====
+    catalogManaged: false,     // 配价是否来自回收后台云端维护
+    catalogLoading: true,      // 云端配价是否仍在加载
+
+    // ===== 平台比价 =====
+    platforms: [],             // 回收平台列表（来自回收后台维护）
+
     // ===== 搜索相关 =====
     searchKeyword: '',        // 输入框文本
     searchResults: [],        // 搜索结果列表
@@ -65,8 +73,31 @@ Page({
   },
 
   onLoad() {
+    // 第一步：先用本地内置配价渲染，保证页面秒开、离线可用
+    this.applyCategories(categories);
+
+    // 读取搜索历史
+    const history = wx.getStorageSync('recycle_search_history') || [];
+
+    // 检测内部人员身份：公司内部人员发起回收免付款申请，无需支付
+    const userInfo = wx.getStorageSync('userInfo') || {};
+
+    this.setData({
+      searchHistory: history,
+      isInternal: userInfo.role === 'internal'
+    });
+
+    // 第二步：异步加载回收后台云端维护的最新配价（有更新则覆盖渲染）
+    this.loadCloudCatalog();
+
+    // 第三步：加载回收平台比价数据
+    this.loadPlatforms();
+  },
+
+  /** 将目录数据（本地或云端）处理为页面渲染结构 */
+  applyCategories(sourceCategories) {
     // 处理分类数据，只保留必要的字段
-    const processedCategories = categories.map(cat => ({
+    const processedCategories = sourceCategories.map(cat => ({
       id: cat.id,
       name: cat.name,
       icon: cat.icon,
@@ -94,7 +125,7 @@ Page({
 
     // 构建全局搜索索引（扁平化所有型号，附带分类/品牌信息）
     const searchIndex = [];
-    categories.forEach(cat => {
+    sourceCategories.forEach(cat => {
       cat.brands.forEach(brand => {
         brand.models.forEach(model => {
           searchIndex.push({
@@ -121,19 +152,59 @@ Page({
       });
     });
 
-    // 读取搜索历史
-    const history = wx.getStorageSync('recycle_search_history') || [];
-
-    // 检测内部人员身份：公司内部人员发起回收免付款申请，无需支付
-    const userInfo = wx.getStorageSync('userInfo') || {};
-
     this.setData({
       categories: processedCategories,
       currentCategory: processedCategories[0],
       currentCategoryIndex: 0,
-      searchIndex,
-      searchHistory: history,
-      isInternal: userInfo.role === 'internal'
+      selectedBrandIndex: -1,
+      searchIndex
+    });
+  },
+
+  /**
+   * 加载回收后台云端维护的配价目录
+   * 云端有数据时覆盖本地目录（配价以回收后台最新调价为准），失败保持本地
+   */
+  async loadCloudCatalog() {
+    try {
+      const { managed, categories: cloudCategories } = await recycleCatalog.loadCatalog();
+      if (managed && Array.isArray(cloudCategories) && cloudCategories.length > 0) {
+        this.applyCategories(cloudCategories);
+      }
+      this.setData({ catalogManaged: managed, catalogLoading: false });
+    } catch (e) {
+      this.setData({ catalogManaged: false, catalogLoading: false });
+    }
+  },
+
+  /** 加载回收平台比价数据（后台「回收平台管理」维护） */
+  async loadPlatforms() {
+    const platforms = await recycleCatalog.loadPlatforms();
+    this.setData({ platforms });
+  },
+
+  /** 平台卡片点击：复制链接并上报跳转统计（小程序无法直接打开外部网址） */
+  onPlatformTap(e) {
+    const platform = e.currentTarget.dataset.platform;
+    if (!platform || !platform.url) return;
+
+    recycleCatalog.reportPlatformClick(platform.id);
+
+    wx.showModal({
+      title: platform.name,
+      content: `小程序暂不支持直接跳转外部网站，已为您复制链接，可粘贴到浏览器打开比价。\n\n${platform.url}`,
+      confirmText: '复制链接',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          wx.setClipboardData({
+            data: platform.url,
+            success: () => {
+              wx.showToast({ title: '链接已复制', icon: 'success' });
+            }
+          });
+        }
+      }
     });
   },
 

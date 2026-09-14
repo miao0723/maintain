@@ -122,6 +122,46 @@
     </scroll-view>
   </view>
 
+  <!-- ============ 回收平台比价（数据来自回收综合服务后台维护） ============ -->
+  <view class="platform-section" wx:if="{{platforms.length > 0}}">
+    <view class="platform-section-header">
+      <text class="platform-section-title">♻️ 平台比价</text>
+      <text class="platform-section-sub">多平台对比出手更放心</text>
+    </view>
+    <scroll-view class="platform-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="platform-card-list">
+        <view
+          class="platform-card"
+          wx:for="{{platforms}}"
+          wx:key="id"
+          bindtap="onPlatformTap"
+          data-platform="{{item}}">
+          <view class="platform-card-head">
+            <view class="platform-logo" style="background:{{item.logoColor}};">{{item.logoText}}</view>
+            <view class="platform-head-info">
+              <text class="platform-name">{{item.name}}</text>
+              <text class="platform-type">{{item.typeLabel}}</text>
+            </view>
+          </view>
+          <text class="platform-desc">{{item.description}}</text>
+          <view class="platform-meta" wx:if="{{item.serviceMode || item.settlement}}">
+            <text class="platform-meta-item" wx:if="{{item.serviceMode}}">{{item.serviceMode}}</text>
+            <text class="platform-meta-item" wx:if="{{item.settlement}}">{{item.settlement}}</text>
+          </view>
+          <view class="platform-action">
+            <text class="platform-action-text">复制链接比价</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 配价来源提示 -->
+  <view class="catalog-source-tip" wx:if="{{!catalogLoading}}">
+    <text class="catalog-source-dot {{catalogManaged ? 'cloud' : 'local'}}"></text>
+    <text class="catalog-source-text">{{catalogManaged ? '配价已同步回收后台最新数据' : '当前展示本地基准配价'}}</text>
+  </view>
+
   <!-- ============ 搜索面板（全屏覆盖层） ============ -->
   <view class="search-panel {{showSearchPanel ? 'show' : ''}}" catchtap="onSearchCancel">
     <!-- 搜索头部（阻止冒泡） -->
