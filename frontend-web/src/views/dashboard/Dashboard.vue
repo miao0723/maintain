@@ -1,5 +1,39 @@
 <template>
   <div class="dashboard">
+    <!-- 维修 / 回收 快捷跳转入口（带未读消息提醒） -->
+    <el-card class="quick-entry-card" shadow="hover">
+      <div class="quick-entry">
+        <div class="entry-item repair" @click="goRepair" title="进入维修订单管理">
+          <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
+            <div class="entry-inner">
+              <span class="entry-icon">🔧</span>
+              <div class="entry-text">
+                <div class="entry-title">维修工作台</div>
+                <div class="entry-desc">小程序维修订单 / 进度 / 评价管理</div>
+              </div>
+            </div>
+          </el-badge>
+        </div>
+        <div class="entry-divider"></div>
+        <div class="entry-item recycle" @click="goRecycle" title="新窗口打开回收综合服务平台">
+          <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
+            <div class="entry-inner">
+              <span class="entry-icon">♻️</span>
+              <div class="entry-text">
+                <div class="entry-title">回收管理平台</div>
+                <div class="entry-desc">配价库 / 回收订单管理（独立网页）</div>
+              </div>
+            </div>
+          </el-badge>
+        </div>
+        <div class="entry-tip">
+          <el-icon><Bell /></el-icon>
+          <span v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }} 条未读消息，点击处理</span>
+          <span v-else>暂无未读消息</span>
+        </div>
+      </div>
+    </el-card>
+
     <el-row :gutter="20" class="stats-row">
       <el-col :span="6">
         <el-card class="stat-card">
@@ -132,9 +166,32 @@
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
+import { Bell } from '@element-plus/icons-vue'
 import { getDashboardStatistics } from '@/api/dashboard'
+import { getUnreadCount } from '@/api/notification'
 
 const router = useRouter()
+
+const unreadCount = ref(0)
+
+const fetchUnreadCount = async () => {
+  try {
+    const res = await getUnreadCount()
+    unreadCount.value = Number(res.data?.count ?? res.data ?? 0) || 0
+  } catch (error) {
+    console.warn('[Dashboard] 获取未读消息数失败:', error)
+  }
+}
+
+// 维修：系统内跳转到维修订单管理
+const goRepair = () => {
+  router.push('/repair/orders/miniprogram')
+}
+
+// 回收：新标签打开独立的回收综合服务网页（经 443 网关 /recycle-admin/ 子路径）
+const goRecycle = () => {
+  window.open('/recycle-admin/', '_blank')
+}
 
 const trendChartRef = ref(null)
 const faultChartRef = ref(null)
@@ -367,6 +424,7 @@ const handleThemeChange = () => {
 
 onMounted(async () => {
   await loadDashboardData()
+  fetchUnreadCount()
   window.addEventListener('resize', handleResize)
   window.addEventListener('theme-changed', handleThemeChange)
 })
@@ -383,6 +441,81 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .dashboard {
+  .quick-entry-card {
+    margin-bottom: 20px;
+
+    .quick-entry {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .entry-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+
+      .entry-inner {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .entry-icon {
+        font-size: 30px;
+        line-height: 1;
+      }
+
+      .entry-title {
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .entry-desc {
+        font-size: 12px;
+        color: #909399;
+        margin-top: 4px;
+      }
+
+      &.repair {
+        background: rgba(64, 158, 255, 0.08);
+
+        &:hover {
+          background: rgba(64, 158, 255, 0.18);
+          border-color: #409eff;
+        }
+      }
+
+      &.recycle {
+        background: rgba(103, 194, 58, 0.08);
+
+        &:hover {
+          background: rgba(103, 194, 58, 0.18);
+          border-color: #67c23a;
+        }
+      }
+    }
+
+    .entry-divider {
+      width: 1px;
+      height: 44px;
+      background: #ebeef5;
+    }
+
+    .entry-tip {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #909399;
+    }
+  }
+
   .stats-row {
     margin-bottom: 20px;
   }
