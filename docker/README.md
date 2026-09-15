@@ -10,6 +10,7 @@
 | `frontend-web` | 后台管理系统前端 | Vue3 + Vite + Nginx | 80 | 8081 |
 | `php` | 后台管理系统后端 | ThinkPHP + PHP-FPM | 9000 | — |
 | `miniprogram-backend` | 小程序后端 | Node.js 20 + Express + WS | 3001 | **3001** |
+| `recycle-admin` | 回收综合服务平台（独立后台，页面+API 同端口） | Node.js 20 + Express + Vue3 | 3005 | 3005（仅本机） |
 | `mysql` | 数据库 | MySQL 8.0 | 3306 | 3306 |
 | `redis` | 缓存 | Redis 7 | 6379 | 6379 |
 | `agent-service` | AI Agent 服务 | Python | 8001 | 8001 |
@@ -29,6 +30,7 @@
 | `/` | `frontend-web` | 后台管理系统页面（SPA） |
 | `/api/*` | `php` | 后台管理系统接口 |
 | `/mp-api/*` | `miniprogram-backend` 的 `/api/*` | 小程序接口（网关方式） |
+| `/recycle-admin/*` | `recycle-admin`（剥离子路径前缀） | 回收综合服务平台页面与接口 |
 | `/ws/chat` | `miniprogram-backend` | 小程序 WebSocket 聊天 |
 | `/mp-health` | `miniprogram-backend` 的 `/health` | 小程序后端健康检查 |
 | `/uploads/*` | 共享上传目录 | 小程序与后台共用的图片/附件 |

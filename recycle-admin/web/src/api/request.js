@@ -3,7 +3,8 @@ import { ElMessage } from 'element-plus'
 import router from '../router'
 
 const request = axios.create({
-  baseURL: '/api',
+  // 子路径部署时由构建注入 VITE_API_BASE（如 /recycle-admin/api），默认同源 /api
+  baseURL: import.meta.env.VITE_API_BASE || '/api',
   timeout: 20000
 })
 

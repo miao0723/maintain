@@ -92,6 +92,20 @@ DB_NAME=repair
 JWT_SECRET=<请修改为强随机串>
 ```
 
+### 服务器实际部署（Docker，已接入统一编排）
+
+本系统已容器化接入 `docker/docker-compose.yml`，与维修系统共用 443 网关，**无需开放 3005 公网端口**：
+
+- 访问入口：`https://zych.net.cn/recycle-admin/`（nginx 剥离 `/recycle-admin` 前缀后转发到容器 3005）
+- 环境变量：`docker/.env.recycleadmin`（模板 `.env.recycleadmin.example`，数据库复用 sqfe2 的 MySQL）
+- 前端构建参数 `VITE_BASE=/recycle-admin/`、`VITE_API_BASE=/recycle-admin/api` 由 compose 注入，
+  本地开发不受影响（默认 `/` 与 `/api`）
+
+```bash
+cd docker
+docker compose build recycle-admin && docker compose up -d recycle-admin
+```
+
 ## 🗄️ 数据表
 
 | 表 | 说明 |

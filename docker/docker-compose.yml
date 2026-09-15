@@ -237,6 +237,31 @@ services:
     networks:
       - cmms-network
 
+  # ==================== 回收综合服务平台 (Node.js + Vue3) ====================
+  # 独立回收后台：server(Express, 3005) 托管 web/dist，配价库/回收订单管理
+  # 与小程序后端共用同一个 MySQL（sqfe2-mysql-1，经 sqfe2-net 访问）
+  recycle-admin:
+    build:
+      context: ..
+      dockerfile: docker/recycle-admin/Dockerfile
+      args:
+        # 网关以 https://zych.net.cn/recycle-admin/ 子路径对外，
+        # 前端构建时注入对应 base 与 API 前缀
+        VITE_BASE: /recycle-admin/
+        VITE_API_BASE: /recycle-admin/api
+    env_file:
+      - .env.recycleadmin
+    environment:
+      NODE_ENV: production
+      PORT: 3005
+    ports:
+      # 仅本机可访问，外部访问统一走 443 nginx 网关 /recycle-admin/
+      - "127.0.0.1:3005:3005"
+    restart: unless-stopped
+    networks:
+      - cmms-network
+      - sqfe2-net
+
   # ==================== 统一入口网关 ====================
   nginx:
     image: nginx:1.24-alpine
@@ -254,6 +279,7 @@ services:
       - php
       - frontend-web
       - miniprogram-backend
+      - recycle-admin
     restart: unless-stopped
     networks:
       - cmms-network

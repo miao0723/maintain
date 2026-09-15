@@ -26,7 +26,8 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  // BASE_URL 由 vite base 配置注入，子路径部署时路由自动带上前缀
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes
 })
 
