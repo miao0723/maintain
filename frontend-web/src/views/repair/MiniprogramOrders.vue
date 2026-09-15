@@ -702,7 +702,22 @@ const handleProcessSubmit = async () => {
   }
 }
 
+// 支持从 URL query 预填筛选（首页待办深链：?order_type=recycle&status=pending）
+const applyRouteQuery = () => {
+  const q = route.query
+  if (q.order_type && ['repair', 'recycle'].includes(String(q.order_type))) {
+    searchForm.order_type = String(q.order_type)
+  }
+  if (q.status) {
+    searchForm.status = String(q.status)
+  }
+  if (q.device_type !== undefined && q.device_type !== '') {
+    searchForm.device_type = Number(q.device_type) || ''
+  }
+}
+
 onMounted(() => {
+  applyRouteQuery()
   loadData()
   fetchUsers()
   fetchDeviceTypes()

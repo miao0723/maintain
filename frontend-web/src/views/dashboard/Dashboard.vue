@@ -4,7 +4,7 @@
     <el-card class="quick-entry-card" shadow="never">
       <div class="quick-entry">
         <div class="entry-item repair" @click="goRepair" title="进入维修订单管理">
-          <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
+          <el-badge :value="pendingRepairCount" :hidden="pendingRepairCount === 0" :max="99">
             <div class="entry-inner">
               <span class="entry-icon">🔧</span>
               <div class="entry-text">
@@ -14,9 +14,8 @@
             </div>
           </el-badge>
         </div>
-        <div class="entry-divider"></div>
         <div class="entry-item recycle" @click="goRecycle" title="新窗口打开回收综合服务平台">
-          <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
+          <el-badge :value="pendingRecycleCount" :hidden="pendingRecycleCount === 0" :max="99">
             <div class="entry-inner">
               <span class="entry-icon">♻️</span>
               <div class="entry-text">
@@ -26,6 +25,14 @@
             </div>
           </el-badge>
         </div>
+        <div class="entry-todos">
+          <div class="todo-chip repair" @click="goPendingRepairOrders" title="查看待处理维修订单">
+            待处理维修 <b>{{ pendingRepairCount }}</b>
+          </div>
+          <div class="todo-chip recycle" @click="goPendingRecycleOrders" title="查看待报价回收订单">
+            待报价回收 <b>{{ pendingRecycleCount }}</b>
+          </div>
+        </div>
         <div
           class="entry-tip"
           :class="{ active: unreadCount > 0 }"
@@ -33,7 +40,7 @@
           title="查看通知消息"
         >
           <el-icon><Bell /></el-icon>
-          <span v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }} 条未读消息，点击处理</span>
+          <span v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }} 条未读消息</span>
           <span v-else>暂无未读消息</span>
         </div>
         <el-button class="refresh-btn" :icon="Refresh" circle :loading="loading" title="刷新数据" @click="refreshAll" />
@@ -175,12 +182,15 @@ import * as echarts from 'echarts'
 import { Bell, Refresh } from '@element-plus/icons-vue'
 import { getDashboardStatistics } from '@/api/dashboard'
 import { getUnreadCount } from '@/api/notification'
+import { getMiniAdminOrders } from '@/api/miniAdmin'
 
 const router = useRouter()
 
 const unreadCount = ref(0)
+const pendingRepairCount = ref(0)
+const pendingRecycleCount = ref(0)
 const loading = ref(false)
-// 未读消息每 60 秒自动刷新一次
+// 未读消息与待办订单每 60 秒自动刷新一次
 const UNREAD_REFRESH_INTERVAL = 60000
 let unreadTimer = null
 
@@ -193,10 +203,24 @@ const fetchUnreadCount = async () => {
   }
 }
 
+// 小程序订单真实待办数：待处理维修单 / 待报价回收单
+const fetchPendingOrders = async () => {
+  try {
+    const [repairRes, recycleRes] = await Promise.all([
+      getMiniAdminOrders({ page: 1, pageSize: 1, order_type: 'repair', status: 'pending' }),
+      getMiniAdminOrders({ page: 1, pageSize: 1, order_type: 'recycle', status: 'pending' })
+    ])
+    pendingRepairCount.value = Number(repairRes.data?.total ?? 0) || 0
+    pendingRecycleCount.value = Number(recycleRes.data?.total ?? 0) || 0
+  } catch (error) {
+    console.warn('[Dashboard] 获取待办订单数失败:', error)
+  }
+}
+
 const refreshAll = async () => {
   loading.value = true
   try {
-    await Promise.all([loadDashboardData(), fetchUnreadCount()])
+    await Promise.all([loadDashboardData(), fetchUnreadCount(), fetchPendingOrders()])
   } finally {
     loading.value = false
   }
@@ -215,6 +239,15 @@ const goRecycle = () => {
 // 未读提醒：跳转通知中心
 const goNotifications = () => {
   router.push('/notifications')
+}
+
+// 深链到筛选好的订单列表（MiniprogramOrders 支持从 query 预填筛选条件）
+const goPendingRepairOrders = () => {
+  router.push({ path: '/repair/orders/miniprogram', query: { order_type: 'repair', status: 'pending' } })
+}
+
+const goPendingRecycleOrders = () => {
+  router.push({ path: '/repair/orders/miniprogram', query: { order_type: 'recycle', status: 'pending' } })
 }
 
 const trendChartRef = ref(null)
@@ -449,7 +482,11 @@ const handleThemeChange = () => {
 onMounted(async () => {
   await loadDashboardData()
   fetchUnreadCount()
-  unreadTimer = setInterval(fetchUnreadCount, UNREAD_REFRESH_INTERVAL)
+  fetchPendingOrders()
+  unreadTimer = setInterval(() => {
+    fetchUnreadCount()
+    fetchPendingOrders()
+  }, UNREAD_REFRESH_INTERVAL)
   window.addEventListener('resize', handleResize)
   window.addEventListener('theme-changed', handleThemeChange)
 })
@@ -539,6 +576,48 @@ onUnmounted(() => {
       width: 1px;
       height: 44px;
       background: #dcdfe6;
+    }
+
+    .entry-todos {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      .todo-chip {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+
+        b {
+          font-size: 14px;
+        }
+
+        &.repair {
+          color: #409eff;
+          background: rgba(64, 158, 255, 0.08);
+
+          &:hover {
+            background: rgba(64, 158, 255, 0.18);
+            border-color: rgba(64, 158, 255, 0.4);
+          }
+        }
+
+        &.recycle {
+          color: #67c23a;
+          background: rgba(103, 194, 58, 0.08);
+
+          &:hover {
+            background: rgba(103, 194, 58, 0.18);
+            border-color: rgba(103, 194, 58, 0.4);
+          }
+        }
+      }
     }
 
     .entry-tip {
