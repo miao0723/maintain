@@ -1,6 +1,7 @@
 import os
 import socket
 from typing import Any, Dict, List
+from urllib.parse import quote_plus
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
@@ -66,7 +67,10 @@ def mysql_url(prefix: str) -> str:
     database = env(f"{prefix}_DATABASE", "")
     username = env(f"{prefix}_USERNAME", "root")
     password = env(f"{prefix}_PASSWORD", "")
-    return f"mysql+pymysql://{username}:{password}@{host}:{port}/{database}?charset=utf8mb4"
+    # 用户名/密码必须做 URL 编码：密码里含 @ : / 等字符时，
+    # SQLAlchemy 会按第一个 @ 拆分，把密码后半段错当主机名
+    return (f"mysql+pymysql://{quote_plus(username)}:{quote_plus(password)}"
+            f"@{host}:{port}/{database}?charset=utf8mb4")
 
 
 CMMS_ENGINE = create_engine(mysql_url("DATABASE"), pool_pre_ping=True)
