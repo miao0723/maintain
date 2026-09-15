@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard">
     <!-- 维修 / 回收 快捷跳转入口（带未读消息提醒） -->
-    <el-card class="quick-entry-card" shadow="hover">
+    <el-card class="quick-entry-card" shadow="never">
       <div class="quick-entry">
         <div class="entry-item repair" @click="goRepair" title="进入维修订单管理">
           <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
@@ -26,19 +26,25 @@
             </div>
           </el-badge>
         </div>
-        <div class="entry-tip">
+        <div
+          class="entry-tip"
+          :class="{ active: unreadCount > 0 }"
+          @click="goNotifications"
+          title="查看通知消息"
+        >
           <el-icon><Bell /></el-icon>
           <span v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }} 条未读消息，点击处理</span>
           <span v-else>暂无未读消息</span>
         </div>
+        <el-button class="refresh-btn" :icon="Refresh" circle :loading="loading" title="刷新数据" @click="refreshAll" />
       </div>
     </el-card>
 
     <el-row :gutter="20" class="stats-row">
       <el-col :span="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card clickable" shadow="hover" @click="goToOrders">
           <div class="stat-content">
-            <div class="stat-icon" style="background: #409eff;">
+            <div class="stat-icon icon-blue">
               <el-icon><Tickets /></el-icon>
             </div>
             <div class="stat-info">
@@ -49,9 +55,9 @@
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card clickable" shadow="hover" @click="goToOrders">
           <div class="stat-content">
-            <div class="stat-icon" style="background: #e6a23c;">
+            <div class="stat-icon icon-orange">
               <el-icon><Clock /></el-icon>
             </div>
             <div class="stat-info">
@@ -62,9 +68,9 @@
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card clickable" shadow="hover" @click="goToOrders">
           <div class="stat-content">
-            <div class="stat-icon" style="background: #67c23a;">
+            <div class="stat-icon icon-green">
               <el-icon><CircleCheck /></el-icon>
             </div>
             <div class="stat-info">
@@ -75,9 +81,9 @@
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card" shadow="hover">
           <div class="stat-content">
-            <div class="stat-icon" style="background: #f56c6c;">
+            <div class="stat-icon icon-red">
               <el-icon><Monitor /></el-icon>
             </div>
             <div class="stat-info">
@@ -136,7 +142,7 @@
               <el-button type="primary" link @click="goToOrders">查看全部</el-button>
             </div>
           </template>
-          <el-table :data="recentOrders" style="width: 100%">
+          <el-table :data="recentOrders" v-loading="loading" style="width: 100%">
             <el-table-column prop="order_id" label="订单号" width="170" />
             <el-table-column prop="device_model" label="设备型号" min-width="160" />
             <el-table-column prop="problem_description" label="问题描述" min-width="220" show-overflow-tooltip />
@@ -166,13 +172,17 @@
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
-import { Bell } from '@element-plus/icons-vue'
+import { Bell, Refresh } from '@element-plus/icons-vue'
 import { getDashboardStatistics } from '@/api/dashboard'
 import { getUnreadCount } from '@/api/notification'
 
 const router = useRouter()
 
 const unreadCount = ref(0)
+const loading = ref(false)
+// 未读消息每 60 秒自动刷新一次
+const UNREAD_REFRESH_INTERVAL = 60000
+let unreadTimer = null
 
 const fetchUnreadCount = async () => {
   try {
@@ -180,6 +190,15 @@ const fetchUnreadCount = async () => {
     unreadCount.value = Number(res.data?.count ?? res.data ?? 0) || 0
   } catch (error) {
     console.warn('[Dashboard] 获取未读消息数失败:', error)
+  }
+}
+
+const refreshAll = async () => {
+  loading.value = true
+  try {
+    await Promise.all([loadDashboardData(), fetchUnreadCount()])
+  } finally {
+    loading.value = false
   }
 }
 
@@ -191,6 +210,11 @@ const goRepair = () => {
 // 回收：新标签打开独立的回收综合服务网页（经 443 网关 /recycle-admin/ 子路径）
 const goRecycle = () => {
   window.open('/recycle-admin/', '_blank')
+}
+
+// 未读提醒：跳转通知中心
+const goNotifications = () => {
+  router.push('/notifications')
 }
 
 const trendChartRef = ref(null)
@@ -425,11 +449,16 @@ const handleThemeChange = () => {
 onMounted(async () => {
   await loadDashboardData()
   fetchUnreadCount()
+  unreadTimer = setInterval(fetchUnreadCount, UNREAD_REFRESH_INTERVAL)
   window.addEventListener('resize', handleResize)
   window.addEventListener('theme-changed', handleThemeChange)
 })
 
 onUnmounted(() => {
+  if (unreadTimer) {
+    clearInterval(unreadTimer)
+    unreadTimer = null
+  }
   window.removeEventListener('resize', handleResize)
   window.removeEventListener('theme-changed', handleThemeChange)
   trendChart?.dispose()
@@ -443,6 +472,8 @@ onUnmounted(() => {
 .dashboard {
   .quick-entry-card {
     margin-bottom: 20px;
+    border: none;
+    background: linear-gradient(135deg, #f0f7ff 0%, #f6fbf4 100%);
 
     .quick-entry {
       display: flex;
@@ -453,11 +484,11 @@ onUnmounted(() => {
     .entry-item {
       display: flex;
       align-items: center;
-      padding: 14px 20px;
-      border-radius: 10px;
+      padding: 16px 26px;
+      border-radius: 14px;
       cursor: pointer;
       border: 1px solid transparent;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 
       .entry-inner {
         display: flex;
@@ -466,13 +497,15 @@ onUnmounted(() => {
       }
 
       .entry-icon {
-        font-size: 30px;
+        font-size: 32px;
         line-height: 1;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12));
       }
 
       .entry-title {
         font-size: 16px;
-        font-weight: 600;
+        font-weight: 700;
+        letter-spacing: 0.5px;
       }
 
       .entry-desc {
@@ -482,20 +515,22 @@ onUnmounted(() => {
       }
 
       &.repair {
-        background: rgba(64, 158, 255, 0.08);
+        background: linear-gradient(135deg, rgba(64, 158, 255, 0.10), rgba(64, 158, 255, 0.04));
 
         &:hover {
-          background: rgba(64, 158, 255, 0.18);
-          border-color: #409eff;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 18px rgba(64, 158, 255, 0.25);
+          border-color: rgba(64, 158, 255, 0.5);
         }
       }
 
       &.recycle {
-        background: rgba(103, 194, 58, 0.08);
+        background: linear-gradient(135deg, rgba(103, 194, 58, 0.10), rgba(103, 194, 58, 0.04));
 
         &:hover {
-          background: rgba(103, 194, 58, 0.18);
-          border-color: #67c23a;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 18px rgba(103, 194, 58, 0.25);
+          border-color: rgba(103, 194, 58, 0.5);
         }
       }
     }
@@ -503,7 +538,7 @@ onUnmounted(() => {
     .entry-divider {
       width: 1px;
       height: 44px;
-      background: #ebeef5;
+      background: #dcdfe6;
     }
 
     .entry-tip {
@@ -513,11 +548,64 @@ onUnmounted(() => {
       gap: 6px;
       font-size: 13px;
       color: #909399;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+
+      &.active {
+        color: #f56c6c;
+        font-weight: 600;
+
+        .el-icon {
+          animation: bell-ring 2s ease-in-out infinite;
+        }
+
+        &:hover {
+          background: rgba(245, 108, 108, 0.1);
+        }
+      }
+    }
+
+    .refresh-btn {
+      margin-left: 12px;
+    }
+
+    @keyframes bell-ring {
+      0%, 100% { transform: rotate(0deg); }
+      10% { transform: rotate(12deg); }
+      20% { transform: rotate(-12deg); }
+      30% { transform: rotate(8deg); }
+      40% { transform: rotate(-8deg); }
+      50% { transform: rotate(0deg); }
     }
   }
 
   .stats-row {
     margin-bottom: 20px;
+  }
+
+  .stat-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 10px;
+
+    &.clickable {
+      cursor: pointer;
+
+      &:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.09);
+      }
+    }
+
+    .stat-icon {
+      border-radius: 12px;
+
+      &.icon-blue { background: linear-gradient(135deg, #409eff, #66b1ff); }
+      &.icon-orange { background: linear-gradient(135deg, #e6a23c, #f0c78a); }
+      &.icon-green { background: linear-gradient(135deg, #67c23a, #95d475); }
+      &.icon-red { background: linear-gradient(135deg, #f56c6c, #f89898); }
+    }
   }
 
   .stat-card {
