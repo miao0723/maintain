@@ -267,6 +267,9 @@ services:
     image: nginx:1.24-alpine
     ports:
       - "443:443"
+      # 备用 HTTPS 入口（443 让给其它系统前的过渡期双挂；
+      # 小程序 networkConfig.js 改用 :9443 并重新发布后可撤掉上面的 443）
+      - "9443:443"
       # HTTP->HTTPS 跳转端口，仅本机
       - "127.0.0.1:8080:80"
     volumes:
