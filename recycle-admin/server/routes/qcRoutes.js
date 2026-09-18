@@ -661,7 +661,7 @@ function parseSnapshot(raw) {
 
 async function loadDetail(id) {
   const qcRows = await db.query(
-    `SELECT q.*, o.order_id AS order_no, o.order_type, o.device_model, o.brand_name,
+    `SELECT q.*, o.order_id AS order_no, o.order_type, o.device_model,
       o.device_condition, o.problem_description, o.estimated_price, o.actual_price,
       o.status AS biz_order_status,
       u.nickname AS user_name, u.phone AS user_phone, t.name AS template_name

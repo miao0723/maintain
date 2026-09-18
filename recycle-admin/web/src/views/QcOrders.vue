@@ -1,8 +1,25 @@
 <template>
   <div class="qc-page">
-    <!-- 汇总：彩色状态卡 -->
+    <!-- 汇总：彩色状态卡（全部 + 单状态，点击切换筛选，再点一次取消） -->
     <div class="stat-strip">
-      <div v-for="card in statCards" :key="card.key" class="stat-card" :class="card.cls" @click="quickFilter(card.key)">
+      <div
+        class="stat-card c-all"
+        :class="{ active: !searchForm.status }"
+        @click="quickFilter('')"
+      >
+        <span class="stat-icon">📦</span>
+        <div class="stat-text">
+          <div class="stat-num">{{ totalCount }}</div>
+          <div class="stat-label">全部质检单</div>
+        </div>
+      </div>
+      <div
+        v-for="card in statCards"
+        :key="card.key"
+        class="stat-card"
+        :class="[card.cls, { active: searchForm.status === card.key }]"
+        @click="quickFilter(searchForm.status === card.key ? '' : card.key)"
+      >
         <span class="stat-icon">{{ card.icon }}</span>
         <div class="stat-text">
           <div class="stat-num">{{ summary[card.key] ?? 0 }}</div>
@@ -330,7 +347,7 @@
         </div>
         <el-descriptions :column="3" border size="small" class="block">
           <el-descriptions-item label="回收订单">{{ report.qc.order_no }}</el-descriptions-item>
-          <el-descriptions-item label="设备">{{ report.qc.brand_name || '' }} {{ report.qc.device_model || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="设备">{{ report.qc.device_model || '-' }}</el-descriptions-item>
           <el-descriptions-item label="用户">{{ report.qc.user_name || '-' }}</el-descriptions-item>
           <el-descriptions-item label="标准版本">{{ report.standard?.version_no || '-' }}</el-descriptions-item>
           <el-descriptions-item label="总分">{{ report.qc.grade_score ?? '-' }}</el-descriptions-item>
@@ -412,6 +429,10 @@ const quickFilter = (statusKey) => {
   searchForm.status = statusKey
   handleSearch()
 }
+
+const totalCount = computed(() =>
+  Object.values(summary.value).reduce((sum, n) => sum + (Number(n) || 0), 0)
+)
 
 const scoreColor = (score) => {
   const n = Number(score) || 0
@@ -707,6 +728,11 @@ onMounted(() => {
 .qc-page .c-cyan { background: linear-gradient(135deg, rgba(0,186,199,.14), rgba(0,186,199,.05)); color: #0a8a94; }
 .qc-page .c-red { background: linear-gradient(135deg, rgba(245,108,108,.14), rgba(245,108,108,.05)); color: #d04545; }
 .qc-page .c-green { background: linear-gradient(135deg, rgba(103,194,58,.14), rgba(103,194,58,.05)); color: #4e9a2c; }
+.qc-page .c-all { background: linear-gradient(135deg, rgba(96,98,102,.12), rgba(96,98,102,.04)); color: #4b4f52; }
+.qc-page .stat-card.active {
+  border-color: currentColor;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
+}
 .qc-page .new-btn { background: linear-gradient(135deg, #409eff, #66b1ff); color: #fff; }
 .qc-page .new-btn .stat-label { opacity: 0.85; }
 .qc-page .muted { color: #c0c4cc; font-size: 12px; }
