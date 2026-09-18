@@ -723,3 +723,4 @@ function formatNow() {
 }
 
 module.exports = router;
+module.exports.ensureTables = ensureTables;

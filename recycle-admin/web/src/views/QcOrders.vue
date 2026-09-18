@@ -1,18 +1,22 @@
 <template>
   <div class="qc-page">
-    <!-- 汇总 + 新建 -->
-    <el-row :gutter="16" class="summary-row">
-      <el-col :span="4"><el-card shadow="never"><el-statistic title="待质检" :value="summary.pending" /></el-card></el-col>
-      <el-col :span="4"><el-card shadow="never"><el-statistic title="质检中" :value="summary.in_progress" /></el-card></el-col>
-      <el-col :span="4"><el-card shadow="never"><el-statistic title="已定级" :value="summary.graded" /></el-card></el-col>
-      <el-col :span="4"><el-card shadow="never"><el-statistic title="复核中" :value="summary.review" /></el-card></el-col>
-      <el-col :span="4"><el-card shadow="never"><el-statistic title="争议中" :value="summary.disputed" /></el-card></el-col>
-      <el-col :span="4">
-        <el-card shadow="never" class="new-card">
-          <el-button type="primary" @click="openCreateDialog">新建质检单</el-button>
-        </el-card>
-      </el-col>
-    </el-row>
+    <!-- 汇总：彩色状态卡 -->
+    <div class="stat-strip">
+      <div v-for="card in statCards" :key="card.key" class="stat-card" :class="card.cls" @click="quickFilter(card.key)">
+        <span class="stat-icon">{{ card.icon }}</span>
+        <div class="stat-text">
+          <div class="stat-num">{{ summary[card.key] ?? 0 }}</div>
+          <div class="stat-label">{{ card.label }}</div>
+        </div>
+      </div>
+      <div class="stat-card new-btn" @click="openCreateDialog">
+        <span class="stat-icon">➕</span>
+        <div class="stat-text">
+          <div class="stat-num" style="font-size: 15px">新建质检单</div>
+          <div class="stat-label">选择回收订单开始质检</div>
+        </div>
+      </div>
+    </div>
 
     <!-- 筛选 -->
     <el-form :inline="true" :model="searchForm" class="search-form">
@@ -63,8 +67,16 @@
       <el-table-column prop="template_name" label="质检模板" width="120" show-overflow-tooltip>
         <template #default="{ row }">{{ row.template_name || '-' }}</template>
       </el-table-column>
-      <el-table-column label="总分" width="80" align="center">
-        <template #default="{ row }">{{ row.grade_score ?? '-' }}</template>
+      <el-table-column label="总分" width="120">
+        <template #default="{ row }">
+          <el-progress
+            v-if="row.grade_score !== null && row.grade_score !== undefined"
+            :percentage="Number(row.grade_score)"
+            :stroke-width="8"
+            :color="scoreColor(row.grade_score)"
+          />
+          <span v-else class="muted">待质检</span>
+        </template>
       </el-table-column>
       <el-table-column label="定级" width="80" align="center">
         <template #default="{ row }">
@@ -386,6 +398,29 @@ const conditionType = (c) => ({ good: 'success', normal: 'primary', fair: 'warni
 const reviewStatusText = (s) => ({ open: '待处理', agreed: '已同意', rejected: '已驳回', resolved: '已解决' }[s] || s)
 const openUrl = (url) => url && window.open(url, '_blank')
 
+// 汇总状态卡（点击快速筛选）
+const statCards = [
+  { key: 'pending', label: '待质检', icon: '📋', cls: 'c-blue' },
+  { key: 'in_progress', label: '质检中', icon: '🔍', cls: 'c-orange' },
+  { key: 'graded', label: '已定级', icon: '✅', cls: 'c-purple' },
+  { key: 'review', label: '复核中', icon: '👀', cls: 'c-cyan' },
+  { key: 'disputed', label: '争议中', icon: '⚠️', cls: 'c-red' },
+  { key: 'completed', label: '已完成', icon: '🎉', cls: 'c-green' }
+]
+
+const quickFilter = (statusKey) => {
+  searchForm.status = statusKey
+  handleSearch()
+}
+
+const scoreColor = (score) => {
+  const n = Number(score) || 0
+  if (n >= 90) return '#67c23a'
+  if (n >= 75) return '#409eff'
+  if (n >= 60) return '#e6a23c'
+  return '#f56c6c'
+}
+
 const loadData = async () => {
   loading.value = true
   try {
@@ -643,8 +678,38 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.qc-page .summary-row { margin-bottom: 16px; }
-.qc-page .new-card { display: flex; align-items: center; justify-content: center; }
+.qc-page .stat-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.qc-page .stat-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.qc-page .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+.qc-page .stat-card .stat-icon { font-size: 26px; line-height: 1; }
+.qc-page .stat-card .stat-num { font-size: 22px; font-weight: 700; line-height: 1.1; }
+.qc-page .stat-card .stat-label { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+.qc-page .c-blue { background: linear-gradient(135deg, rgba(64,158,255,.14), rgba(64,158,255,.05)); color: #1d6fd0; }
+.qc-page .c-orange { background: linear-gradient(135deg, rgba(230,162,60,.16), rgba(230,162,60,.05)); color: #b07a1e; }
+.qc-page .c-purple { background: linear-gradient(135deg, rgba(155,89,255,.14), rgba(155,89,255,.05)); color: #7c4fd6; }
+.qc-page .c-cyan { background: linear-gradient(135deg, rgba(0,186,199,.14), rgba(0,186,199,.05)); color: #0a8a94; }
+.qc-page .c-red { background: linear-gradient(135deg, rgba(245,108,108,.14), rgba(245,108,108,.05)); color: #d04545; }
+.qc-page .c-green { background: linear-gradient(135deg, rgba(103,194,58,.14), rgba(103,194,58,.05)); color: #4e9a2c; }
+.qc-page .new-btn { background: linear-gradient(135deg, #409eff, #66b1ff); color: #fff; }
+.qc-page .new-btn .stat-label { opacity: 0.85; }
+.qc-page .muted { color: #c0c4cc; font-size: 12px; }
 .qc-page .search-form { margin-bottom: 12px; }
 .qc-page .el-pagination { margin-top: 16px; justify-content: flex-end; }
 .qc-page .block { margin-bottom: 16px; }
@@ -655,4 +720,7 @@ onMounted(() => {
 .qc-page .report-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .qc-page .report-head h3 { margin: 0; }
 .qc-page .report-note { color: #606266; font-size: 13px; }
+@media (max-width: 1200px) {
+  .qc-page .stat-strip { grid-template-columns: repeat(4, 1fr); }
+}
 </style>
