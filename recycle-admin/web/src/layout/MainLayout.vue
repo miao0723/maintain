@@ -122,6 +122,8 @@ const menus = [
   { path: '/dashboard', title: '数据看板', icon: 'Odometer' },
   { path: '/screen', title: '数据大屏', icon: 'DataLine' },
   { path: '/orders', title: '回收订单', icon: 'List' },
+  { path: '/qc-orders', title: '质检单', icon: 'CircleCheck' },
+  { path: '/qc-templates', title: '质检模板与标准', icon: 'SetUp' },
   { path: '/catalog', title: '设备配价库', icon: 'PriceTag' },
   { path: '/platforms', title: '回收平台管理', icon: 'Shop' },
   { path: '/links', title: '采购链接管理', icon: 'Link' },

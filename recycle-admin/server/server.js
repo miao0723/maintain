@@ -20,6 +20,7 @@ const linkRoutes = require('./routes/linkRoutes');
 const statsRoutes = require('./routes/statsRoutes');
 const settingRoutes = require('./routes/settingRoutes');
 const logRoutes = require('./routes/logRoutes');
+const qcRoutes = require('./routes/qcRoutes');
 
 const app = express();
 app.use(cors());
@@ -41,6 +42,7 @@ app.use('/api/catalog', authenticate, catalogRoutes);
 app.use('/api/platforms', authenticate, platformRoutes);
 app.use('/api/links', authenticate, linkRoutes);
 app.use('/api/stats', authenticate, statsRoutes);
+app.use('/api/qc', authenticate, qcRoutes);
 app.use('/api/system', settingRoutes);
 app.use('/api/logs', logRoutes);
 
