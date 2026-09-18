@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="catalog-wrap">
     <!-- 左侧：分类/品牌树 -->
     <div class="page-card tree-panel">
       <div class="table-toolbar">
-        <span style="font-weight:600">设备分类</span>
+        <span class="card-title">设备分类</span>
         <el-button size="small" type="primary" :icon="Plus" @click="openCategoryDialog()">新增分类</el-button>
       </div>
       <el-input v-model="treeKeyword" placeholder="搜索分类/品牌" clearable size="small" style="margin-bottom:10px" />
@@ -40,6 +40,7 @@
         </el-select>
         <el-button type="primary" :icon="Search" @click="loadModels(1)">查询</el-button>
         <div style="flex:1"></div>
+        <el-button :icon="Download" @click="exportCatalog">导出配价</el-button>
         <el-button :icon="Clock" @click="openPriceLogs">调价记录</el-button>
         <el-button type="warning" :icon="Operation" :disabled="selection.length === 0" @click="batchVisible = true">
           批量调价{{ selection.length ? `(${selection.length})` : '' }}
@@ -75,9 +76,10 @@
             <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? '上架' : '下架' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="warning" link @click="openPriceDialog(row)">调价</el-button>
+            <el-button size="small" type="success" link @click="openTrend(row)">走势</el-button>
             <el-button size="small" type="primary" link @click="openModelDialog(row)">编辑</el-button>
             <el-button size="small" type="info" link @click="toggleStatus(row)">{{ row.status === 1 ? '下架' : '上架' }}</el-button>
             <el-button size="small" type="danger" link @click="removeModel(row)">删除</el-button>
@@ -196,6 +198,18 @@
       </template>
     </el-dialog>
 
+    <!-- 型号价格走势 -->
+    <el-dialog v-model="trendVisible" :title="`价格走势 - ${trendModel?.name || ''}`" width="680px">
+      <div v-loading="trendLoading" class="trend-box">
+        <div ref="trendChartEl" class="trend-chart"></div>
+        <div v-if="!trendLoading && trendLogs.length === 0" class="trend-empty">该型号暂无调价记录</div>
+      </div>
+      <template #footer>
+        <span class="text-muted" style="margin-right:12px">共 {{ trendLogs.length }} 次调价</span>
+        <el-button @click="trendVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 调价记录 -->
     <el-drawer v-model="logsVisible" title="配价调整记录" size="560px">
       <el-table :data="priceLogs" size="small">
@@ -218,14 +232,21 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Clock, Operation, Delete } from '@element-plus/icons-vue'
+import { Plus, Search, Clock, Operation, Delete, Download } from '@element-plus/icons-vue'
+import * as echarts from 'echarts'
+import { chartTheme } from '../utils/theme'
 import {
   getCatalogTree, getModels, createCategory, updateCategory, deleteCategory,
   createBrand, updateBrand, deleteBrand, createModel, updateModel, updateModelPrice,
-  deleteModel, batchPrice, getPriceLogs
+  deleteModel, batchPrice, getPriceLogs, exportCatalogUrl
 } from '../api'
+
+// 导出当前配价库全量 CSV（带 BOM，Excel 可直接打开）
+function exportCatalog() {
+  window.open(exportCatalogUrl(), '_blank')
+}
 
 const fmtMoney = (v) => Number(v || 0).toLocaleString('zh-CN')
 
@@ -498,6 +519,104 @@ async function openPriceLogs() {
   logTotal.value = res.data.total
 }
 
+// ===== 型号价格走势 =====
+const trendVisible = ref(false)
+const trendLoading = ref(false)
+const trendModel = ref(null)
+const trendLogs = ref([])
+const trendChartEl = ref(null)
+let trendChart = null
+
+async function openTrend(row) {
+  trendModel.value = row
+  trendVisible.value = true
+  trendLoading.value = true
+  trendLogs.value = []
+  try {
+    const res = await getPriceLogs({ modelId: row.id, page: 1, pageSize: 100 })
+    trendLogs.value = res.data.list || []
+    await nextTick()
+    renderTrend()
+  } finally {
+    trendLoading.value = false
+  }
+}
+
+function renderTrend() {
+  if (!trendChartEl.value) return
+  const t = chartTheme()
+  const logs = trendLogs.value
+  // 首次调价前没有 old_price，用当前基准价补出终点；序列含 old→new 两点使折线连续
+  const points = []
+  if (logs.length === 1 && logs[0].old_price == null) {
+    points.push({ label: '初始定价', price: Number(logs[0].new_price), date: logs[0].created_at })
+  } else {
+    for (const l of logs) {
+      if (l.old_price != null) points.push({ label: '调前', price: Number(l.old_price), date: l.created_at })
+      points.push({ label: '调后', price: Number(l.new_price), date: l.created_at, reason: l.reason })
+    }
+  }
+
+  trendChart = trendChart || echarts.init(trendChartEl.value)
+  trendChart.setOption({
+    grid: { left: 56, right: 24, top: 30, bottom: 30 },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: t.tooltipBg,
+      borderColor: t.tooltipBorder,
+      textStyle: { color: t.tooltipText },
+      formatter: (ps) => {
+        const p = ps[0]
+        const reason = p.data.reason ? `<br/>原因：${p.data.reason}` : ''
+        return `${p.axisValue}<br/>¥${Number(p.value).toLocaleString()}${reason}`
+      }
+    },
+    xAxis: {
+      type: 'category',
+      data: points.map((p, i) => (i === points.length - 1 ? '当前' : String(p.date).slice(5, 16))),
+      axisLine: { lineStyle: { color: t.axisLine } },
+      axisLabel: { color: t.axisLabel, fontSize: 11 }
+    },
+    yAxis: {
+      type: 'value',
+      scale: true,
+      axisLabel: { color: t.axisLabel, formatter: '¥{value}' },
+      splitLine: { lineStyle: { color: t.splitLine } }
+    },
+    series: [{
+      type: 'line',
+      data: points.map((p) => ({ value: p.price, reason: p.reason })),
+      smooth: true,
+      symbolSize: 7,
+      itemStyle: { color: '#67c23a' },
+      lineStyle: { width: 3, color: '#67c23a' },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: 'rgba(103, 194, 58, 0.25)' },
+          { offset: 1, color: 'rgba(103, 194, 58, 0.02)' }
+        ])
+      },
+      markLine: trendModel.value
+        ? {
+            symbol: 'none',
+            silent: true,
+            lineStyle: { color: '#e6a23c', type: 'dashed' },
+            label: { color: '#e6a23c', formatter: '当前基准 ¥' + fmtMoney(trendModel.value.base_price) },
+            data: [{ yAxis: Number(trendModel.value.base_price) }]
+          }
+        : undefined
+    }]
+  })
+}
+
+// 主题切换时重绘走势图配色
+const onTrendTheme = () => trendVisible.value && renderTrend()
+onMounted(() => window.addEventListener('theme-changed', onTrendTheme))
+onBeforeUnmount(() => {
+  window.removeEventListener('theme-changed', onTrendTheme)
+  trendChart && trendChart.dispose()
+})
+
 onMounted(() => {
   loadTree()
   loadModels()
@@ -505,6 +624,23 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.trend-box {
+  position: relative;
+  min-height: 300px;
+}
+.trend-chart {
+  width: 100%;
+  height: 300px;
+}
+.trend-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #909399;
+  font-size: 13px;
+}
 .catalog-wrap {
   display: grid;
   grid-template-columns: 260px 1fr;

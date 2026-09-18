@@ -1,5 +1,9 @@
 <template>
   <div class="page-card" v-loading="loading">
+    <div class="table-toolbar">
+      <span class="card-title">采购链接管理</span>
+      <span class="text-muted">按分类 / 机型维护外部采购与比价链接，支持一键跳转</span>
+    </div>
     <div class="filter-bar">
       <el-select v-model="query.categoryId" placeholder="适用分类" clearable style="width:150px">
         <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />

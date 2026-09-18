@@ -67,7 +67,7 @@ router.put('/condition-rates/:id', authenticate, requireWrite, async (req, res) 
     }
     const sets = [];
     const params = [];
-    if (label != null) { sets.push('label = ?'); params.push(label); }
+    if (label != null) { sets.push('label = ?'); params.push(String(label).trim()); }
     sets.push('rate = ?');
     params.push(rateNum);
     params.push(id);
@@ -76,7 +76,62 @@ router.put('/condition-rates/:id', authenticate, requireWrite, async (req, res) 
     res.json({ success: true, message: '系数已更新' });
   } catch (err) {
     console.error('[settings/updateRate]', err);
-    res.status(500).json({ success: false, message: '更新系数失败' });
+    res.status(500).json({ success: false, message: '更新估价系数失败' });
+  }
+});
+
+// 新增估价系数选项（指定因子分组）
+router.post('/condition-rates', authenticate, requireWrite, async (req, res) => {
+  try {
+    const { factor_key: factorKey, label, rate } = req.body || {};
+    const rateNum = Number(rate);
+    if (!factorKey || !label || !String(label).trim()) {
+      return res.status(400).json({ success: false, message: '请提供因子分组与选项文案' });
+    }
+    if (!Number.isFinite(rateNum) || rateNum < 0 || rateNum > 2) {
+      return res.status(400).json({ success: false, message: '系数需在 0~2 之间' });
+    }
+    const exist = await db.query('SELECT factor_name FROM recycle_condition_rates WHERE factor_key = ? LIMIT 1', [factorKey]);
+    if (exist.length === 0) {
+      return res.status(400).json({ success: false, message: '因子分组不存在' });
+    }
+    const dup = await db.query('SELECT id FROM recycle_condition_rates WHERE factor_key = ? AND label = ?', [factorKey, String(label).trim()]);
+    if (dup.length > 0) {
+      return res.status(400).json({ success: false, message: '该选项已存在' });
+    }
+    const maxRow = await db.query('SELECT COALESCE(MAX(sort_order), 0) AS m FROM recycle_condition_rates WHERE factor_key = ?', [factorKey]);
+    // value 为小程序端选项匹配编码，后台新增档位生成唯一编码即可
+    const value = `opt_${factorKey}_${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}`;
+    const result = await db.query(
+      'INSERT INTO recycle_condition_rates (factor_key, factor_name, label, value, rate, sort_order) VALUES (?,?,?,?,?,?)',
+      [factorKey, exist[0].factor_name || factorKey, String(label).trim(), value, rateNum, Number(maxRow[0].m) + 1]
+    );
+    await writeOpLog(req, 'setting', 'rate_create', `新增估价系数「${label}」= ${rateNum}`);
+    res.json({ success: true, data: { id: result.insertId }, message: '选项已新增' });
+  } catch (err) {
+    console.error('[settings/createRate]', err);
+    res.status(500).json({ success: false, message: '新增估价系数失败' });
+  }
+});
+
+// 删除估价系数选项
+router.delete('/condition-rates/:id', authenticate, requireWrite, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const rows = await db.query('SELECT factor_key, label FROM recycle_condition_rates WHERE id = ?', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: '选项不存在' });
+    }
+    const left = await db.query('SELECT COUNT(*) AS c FROM recycle_condition_rates WHERE factor_key = ?', [rows[0].factor_key]);
+    if (Number(left[0].c) <= 2) {
+      return res.status(400).json({ success: false, message: '每个因子至少保留 2 个选项' });
+    }
+    await db.query('DELETE FROM recycle_condition_rates WHERE id = ?', [id]);
+    await writeOpLog(req, 'setting', 'rate_delete', `删除估价系数「${rows[0].label}」`);
+    res.json({ success: true, message: '选项已删除' });
+  } catch (err) {
+    console.error('[settings/deleteRate]', err);
+    res.status(500).json({ success: false, message: '删除估价系数失败' });
   }
 });
 

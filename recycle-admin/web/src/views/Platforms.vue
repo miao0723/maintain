@@ -1,5 +1,9 @@
 <template>
   <div class="page-card" v-loading="loading">
+    <div class="table-toolbar">
+      <span class="card-title">回收平台管理</span>
+      <span class="text-muted">维护回收 / 采购 / 比价平台档案，小程序端展示并统计跳转</span>
+    </div>
     <div class="filter-bar">
       <el-select v-model="queryType" placeholder="平台类型" clearable style="width:140px">
         <el-option label="回收平台" value="recycle" />

@@ -1,0 +1,117 @@
+/**
+ * 回收系统暗色模式（html.dark 扁平选择器）
+ *
+ * 经验教训（同维修后台）：scoped 样式里 :global(.dark){ 嵌套 } 会被编译器
+ * 丢弃嵌套选择器，暗色覆盖全部失效；必须写在非 scoped 全局块 + 扁平选择器。
+ * Element 组件由 dark/css-vars.css 自动适配，这里只处理自定义硬编码浅色。
+ */
+
+html.dark {
+  body,
+  #app {
+    background: #121212;
+  }
+
+  /* 通用卡片容器（global.css 中硬编码白底） */
+  .page-card,
+  .chart-box,
+  .stat-card {
+    background: #1d1d1d !important;
+    border-color: #333 !important;
+  }
+
+  .chart-box .chart-title {
+    color: #e0e0e0;
+  }
+
+  /* 统一卡片标题与订单状态 chips 的暗色适配 */
+  .card-title {
+    color: #e5eaf3 !important;
+  }
+
+  .status-chip {
+    color: #a8b8ad;
+    background: #1a2e20;
+    border-color: #2c4433;
+  }
+
+  .status-chip:hover {
+    border-color: #4a7a58;
+    color: #c7e3cf;
+  }
+
+  .status-chip.active {
+    background: #2d5a40;
+    border-color: #3a7d54;
+    color: #fff;
+  }
+
+  .stat-card .stat-value {
+    color: #e5eaf3 !important;
+  }
+
+  .stat-card .stat-label,
+  .text-muted,
+  .click-count {
+    color: #8d9199 !important;
+  }
+
+  .price-text {
+    color: #f3c47e;
+  }
+
+  /* 框架布局：侧边栏（墨绿 → 深黑绿）、顶栏、主区 */
+  .layout-aside {
+    background: #0f1c14 !important;
+  }
+
+  .layout-aside .logo-area {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .layout-aside .el-menu {
+    background: #0f1c14 !important;
+  }
+
+  .layout-aside .el-menu-item {
+    color: #a8b8ad;
+  }
+
+  .layout-aside .el-menu-item:hover {
+    background: #16281d;
+  }
+
+  .layout-aside .aside-footer {
+    color: #5c6e62;
+  }
+
+  .layout-header {
+    background: #1a1a1a !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  .collapse-btn {
+    color: #c0c4cc;
+  }
+
+  .user-name {
+    color: #e0e0e0;
+  }
+
+  .back-main-btn {
+    color: #95d475 !important;
+    --el-button-bg-color: #1a2e20;
+    --el-button-hover-bg-color: #223c2a;
+    --el-button-hover-border-color: #3a5a44;
+  }
+
+  /* 环保贡献渐变卡片本身自带深色底，暗色下仅调文字可读性 */
+  .eco-card .eco-sub {
+    color: rgba(255, 255, 255, 0.78) !important;
+  }
+
+  /* 滚动条 */
+  ::-webkit-scrollbar-thumb {
+    background: #3d3d3d;
+  }
+}

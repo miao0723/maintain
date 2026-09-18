@@ -34,6 +34,65 @@ html, body, #app {
   margin-bottom: 12px;
 }
 
+/* 统一的卡片区块标题（绿色渐变竖条锚点，各管理页通用） */
+.card-title {
+  position: relative;
+  font-size: 15px;
+  font-weight: 700;
+  color: #303133;
+  padding-left: 11px;
+}
+
+.card-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 15px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #67c23a, #3a9d5d);
+}
+
+/* 订单页快捷状态筛选 chips */
+.status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #4b6b56;
+  background: #f0f7f2;
+  border: 1px solid #dcebe1;
+  border-radius: 999px;
+  padding: 5px 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.status-chip b {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.status-chip:hover {
+  border-color: #95d475;
+  color: #2d5a40;
+}
+
+.status-chip.active {
+  background: #2d5a40;
+  border-color: #2d5a40;
+  color: #fff;
+}
+
 .text-muted {
   color: #909399;
   font-size: 12px;
@@ -53,23 +112,39 @@ html, body, #app {
 
 .stat-card {
   background: #fff;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 18px 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef2f0;
+  box-shadow: 0 1px 3px rgba(16, 42, 28, 0.06);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(16, 42, 28, 0.1);
 }
 
 .stat-card .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
+  color: #fff;
+  flex-shrink: 0;
 }
+
+.stat-icon.c-green  { background: linear-gradient(135deg, #67c23a, #95d475); box-shadow: 0 6px 14px rgba(103, 194, 58, 0.32); }
+.stat-icon.c-amber  { background: linear-gradient(135deg, #e6a23c, #f0c78a); box-shadow: 0 6px 14px rgba(230, 162, 60, 0.32); }
+.stat-icon.c-blue   { background: linear-gradient(135deg, #409eff, #66b1ff); box-shadow: 0 6px 14px rgba(64, 158, 255, 0.32); }
+.stat-icon.c-lime   { background: linear-gradient(135deg, #3a9d5d, #7cc99a); box-shadow: 0 6px 14px rgba(58, 157, 93, 0.32); }
+.stat-icon.c-purple { background: linear-gradient(135deg, #8e5b8c, #b48ab2); box-shadow: 0 6px 14px rgba(142, 91, 140, 0.3); }
+.stat-icon.c-red    { background: linear-gradient(135deg, #f56c6c, #f89898); box-shadow: 0 6px 14px rgba(245, 108, 108, 0.32); }
 
 .stat-card .stat-value {
   font-size: 26px;
@@ -98,16 +173,31 @@ html, body, #app {
 
 .chart-box {
   background: #fff;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef2f0;
+  box-shadow: 0 1px 3px rgba(16, 42, 28, 0.06);
 }
 
 .chart-box .chart-title {
+  position: relative;
   font-size: 15px;
   font-weight: 600;
   color: #303133;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  padding-left: 12px;
+}
+
+.chart-box .chart-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 15px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #67c23a, #3a9d5d);
 }
 
 .chart-el {

@@ -37,6 +37,26 @@
           </el-breadcrumb>
         </div>
         <div class="header-right">
+          <!-- 主题切换：日夜滑块（与维修后台共用主题，两边同步） -->
+          <button
+            class="theme-switch"
+            :class="{ 'is-dark': isDark }"
+            aria-label="切换主题"
+            :title="isDark ? '切换到白天模式' : '切换到夜间模式'"
+            @click="onToggleTheme"
+          >
+            <span class="switch-track">
+              <el-icon class="ico ico-moon"><Moon /></el-icon>
+              <el-icon class="ico ico-sun"><Sunny /></el-icon>
+              <span class="switch-knob"></span>
+            </span>
+          </button>
+
+          <!-- 返回维修后台：同源部署，主系统会话仍在，直接进入 -->
+          <el-button class="back-main-btn" text bg @click="backToMain">
+            <el-icon style="margin-right:4px"><Back /></el-icon>
+            返回维修系统
+          </el-button>
           <el-dropdown @command="handleCommand">
             <span class="user-info">
               <el-avatar :size="30" style="background:#67c23a">{{ adminName.substring(0, 1) }}</el-avatar>
@@ -79,22 +99,34 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { changePassword } from '../api'
+import { toggleTheme, isDarkNow } from '../utils/theme'
 
 const router = useRouter()
 const collapsed = ref(false)
 
+// ===== 主题切换 =====
+const isDark = ref(isDarkNow())
+const onToggleTheme = () => {
+  toggleTheme()
+  isDark.value = isDarkNow()
+}
+const onThemeChanged = () => { isDark.value = isDarkNow() }
+onMounted(() => window.addEventListener('theme-changed', onThemeChanged))
+onBeforeUnmount(() => window.removeEventListener('theme-changed', onThemeChanged))
+
 const menus = [
   { path: '/dashboard', title: '数据看板', icon: 'Odometer' },
+  { path: '/screen', title: '数据大屏', icon: 'DataLine' },
   { path: '/orders', title: '回收订单', icon: 'List' },
   { path: '/catalog', title: '设备配价库', icon: 'PriceTag' },
   { path: '/platforms', title: '回收平台管理', icon: 'Shop' },
   { path: '/links', title: '采购链接管理', icon: 'Link' },
   { path: '/pricing', title: '估价配置', icon: 'SetUp' },
-  { path: '/stats', title: '数据统计', icon: 'TrendCharts' },
+  { path: '/logs', title: '操作日志', icon: 'Notebook' },
   { path: '/settings', title: '系统设置', icon: 'Setting' }
 ]
 
@@ -105,6 +137,11 @@ const roleLabel = computed(() => ({ super: '超级管理员', admin: '管理员'
 const pwdDialog = ref(false)
 const pwdLoading = ref(false)
 const pwdForm = ref({ oldPassword: '', newPassword: '', confirm: '' })
+
+// 与维修后台同源部署，根路径即主系统入口；主系统会话仍在，直接进入
+function backToMain() {
+  window.location.href = '/'
+}
 
 function handleCommand(cmd) {
   if (cmd === 'logout') {
@@ -191,6 +228,70 @@ async function submitPassword() {
   font-size: 20px;
   cursor: pointer;
   color: #606266;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+/* 日夜切换滑块（与维修后台同款交互） */
+.theme-switch {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  line-height: 1;
+}
+.theme-switch:focus-visible {
+  outline: 2px solid #67c23a;
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+.theme-switch .switch-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 58px;
+  height: 28px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffd591, #ff9c3e);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.18);
+  transition: background 0.35s ease;
+}
+.theme-switch .ico {
+  position: relative;
+  z-index: 1;
+  font-size: 14px;
+  transition: color 0.3s ease;
+}
+.theme-switch .ico-moon { color: rgba(255, 255, 255, 0.6); }
+.theme-switch .ico-sun { color: #fff; }
+.theme-switch .switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+  transition: transform 0.35s cubic-bezier(0.4, 2, 0.6, 1), background 0.35s ease;
+}
+.theme-switch.is-dark .switch-track { background: linear-gradient(135deg, #3b4b8f, #1c2657); }
+.theme-switch.is-dark .ico-moon { color: #ffd86b; }
+.theme-switch.is-dark .ico-sun { color: rgba(255, 255, 255, 0.45); }
+.theme-switch.is-dark .switch-knob {
+  transform: translateX(30px);
+  background: radial-gradient(circle at 35% 35%, #f5f7ff, #c9d2f5);
+}
+.back-main-btn {
+  color: #2d5a40;
+  --el-button-bg-color: #f0f9eb;
+  --el-button-hover-bg-color: #e1f3d8;
+  --el-button-hover-border-color: #c2e7b0;
 }
 .header-right .user-info {
   display: flex;

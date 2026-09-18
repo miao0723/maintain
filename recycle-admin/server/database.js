@@ -74,6 +74,20 @@ class Database {
     return this._orderColumns;
   }
 
+  /**
+   * user_addresses 表同样存在环境间结构差异（部分环境无 detail 列），
+   * 订单详情联查前调用，按需拼接字段。
+   */
+  async addressColumns() {
+    if (this._addressColumns) return this._addressColumns;
+    const rows = await this.query(
+      `SELECT COLUMN_NAME AS name FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_addresses'`
+    );
+    this._addressColumns = new Set(rows.map((r) => r.name));
+    return this._addressColumns;
+  }
+
   async ensureTables(conn) {
     const ddl = [
       // 管理员（本系统独立账号体系）
@@ -340,7 +354,11 @@ class Database {
       ['price_valid_days', '3', '配价有效期(天)，超期需重新询价'],
       ['service_phone', '400-888-8888', '回收服务电话'],
       ['recycle_notice', '回收前请备份数据并退出账号；工程师验机后确定最终价格。', '回收须知'],
-      ['max_price_adjust_percent', '20', '单次调价幅度上限(%)，超过需二次确认']
+      ['max_price_adjust_percent', '20', '单次调价幅度上限(%)，超过需二次确认'],
+      // 环保贡献换算系数（行业估算口径，可在系统设置中调整）
+      ['eco_co2_per_device', '25', '环保换算：每台设备回收减少碳排放(kg CO2e)'],
+      ['eco_tree_co2_year', '18', '环保换算：一棵树年吸收二氧化碳(kg)，用于等效植树'],
+      ['eco_energy_per_device', '8.7', '环保换算：每台设备回收节省电能(kWh)']
     ];
     for (const [key, value, desc] of defaultSettings) {
       await conn.query(

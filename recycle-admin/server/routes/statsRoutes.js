@@ -70,6 +70,23 @@ router.get('/dashboard', authenticate, async (req, res) => {
       7: '游戏机', 8: '无人机', 99: '其他', 0: '自定义'
     };
 
+    // 环保贡献：以累计回收完成台数为基础，按系统设置中的行业换算系数折算
+    const ecoRows = await db.query(
+      `SELECT config_key, config_value FROM recycle_settings
+        WHERE config_key IN ('eco_co2_per_device', 'eco_tree_co2_year', 'eco_energy_per_device')`
+    );
+    const ecoCfg = Object.fromEntries(ecoRows.map((r) => [r.config_key, Number(r.config_value)]));
+    const co2PerDevice = ecoCfg.eco_co2_per_device || 25;
+    const treeCo2Year = ecoCfg.eco_tree_co2_year || 18;
+    const energyPerDevice = ecoCfg.eco_energy_per_device || 8.7;
+    const ecoDevices = Number(summary.completedCount || 0);
+    const eco = {
+      devices: ecoDevices,
+      co2Kg: Math.round(ecoDevices * co2PerDevice * 10) / 10,
+      trees: Math.round((ecoDevices * co2PerDevice / treeCo2Year) * 10) / 10,
+      energyKwh: Math.round(ecoDevices * energyPerDevice * 10) / 10
+    };
+
     res.json({
       success: true,
       data: {
@@ -85,6 +102,7 @@ router.get('/dashboard', authenticate, async (req, res) => {
           totalCompletedAmount: Number(summary.totalCompletedAmount || 0),
           monthCompletedAmount: Number(summary.monthCompletedAmount || 0)
         },
+        eco,
         trend,
         topModels,
         deviceTypeDist: deviceTypeRows.map((r) => ({

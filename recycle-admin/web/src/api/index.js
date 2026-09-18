@@ -2,8 +2,11 @@ import request from './request'
 
 // ===== 认证 =====
 export const login = (data) => request.post('/auth/login', data)
+export const ssoLogin = (mainToken) => request.post('/auth/sso', { token: mainToken })
 export const getMe = () => request.get('/auth/me')
 export const changePassword = (data) => request.post('/auth/change-password', data)
+
+// ===== 估价系数（快速估价用，详见下方系统设置区块的 getConditionRates）=====
 
 // ===== 回收订单 =====
 export const getOrders = (params) => request.get('/orders', { params })
@@ -16,6 +19,8 @@ export const exportOrderUrl = (params) => `/api/orders/export/list?${new URLSear
 
 // ===== 配价库 =====
 export const getCatalogTree = () => request.get('/catalog/tree')
+export const getCategoryFactors = () => request.get('/catalog/category-factors')
+export const updateCategoryFactor = (id, factor) => request.put(`/catalog/category-factors/${id}`, { factor })
 export const getModels = (params) => request.get('/catalog/models', { params })
 export const createCategory = (data) => request.post('/catalog/categories', data)
 export const updateCategory = (id, data) => request.put(`/catalog/categories/${id}`, data)
@@ -29,6 +34,11 @@ export const updateModelPrice = (id, data) => request.put(`/catalog/models/${id}
 export const deleteModel = (id) => request.delete(`/catalog/models/${id}`)
 export const batchPrice = (data) => request.post('/catalog/models/batch-price', data)
 export const getPriceLogs = (params) => request.get('/catalog/price-logs', { params })
+
+// ===== 系统日志 =====
+export const getOpLogs = (params) => request.get('/logs', { params })
+// 配价库导出（新窗口下载 CSV，?token= 供鉴权）
+export const exportCatalogUrl = () => `/api/catalog/export/models?token=${encodeURIComponent(localStorage.getItem('recycle_admin_token') || '')}`
 
 // ===== 回收平台 =====
 export const getPlatforms = (params) => request.get('/platforms', { params })
@@ -47,13 +57,14 @@ export const getClickStats = () => request.get('/links/click-stats')
 
 // ===== 统计 =====
 export const getDashboard = () => request.get('/stats/dashboard')
-export const getOrderStats = (params) => request.get('/stats/orders', { params })
 
 // ===== 系统设置 =====
 export const getSettings = () => request.get('/system/settings')
 export const saveSettings = (items) => request.put('/system/settings', { items })
 export const getConditionRates = () => request.get('/system/condition-rates')
 export const updateConditionRate = (id, data) => request.put(`/system/condition-rates/${id}`, data)
+export const createConditionRate = (data) => request.post('/system/condition-rates', data)
+export const deleteConditionRate = (id) => request.delete(`/system/condition-rates/${id}`)
 export const getAdmins = () => request.get('/system/admins')
 export const createAdmin = (data) => request.post('/system/admins', data)
 export const updateAdmin = (id, data) => request.put(`/system/admins/${id}`, data)

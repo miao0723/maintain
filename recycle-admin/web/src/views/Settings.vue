@@ -1,5 +1,9 @@
 <template>
   <div class="page-card">
+    <div class="table-toolbar">
+      <span class="card-title">系统设置</span>
+      <span class="text-muted">系统参数 / 管理员账号 / 操作记录，参数修改即时生效</span>
+    </div>
     <el-tabs v-model="activeTab">
       <!-- 系统参数 -->
       <el-tab-pane label="系统参数" name="params">

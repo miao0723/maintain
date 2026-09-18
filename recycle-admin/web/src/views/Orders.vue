@@ -1,5 +1,32 @@
 <template>
   <div class="page-card" v-loading="loading">
+    <div class="table-toolbar">
+      <span class="card-title">回收订单</span>
+      <span class="text-muted">点击行查看详情，支持报价 / 流转 / 打印回收单</span>
+    </div>
+
+    <!-- 快捷状态筛选（带实时数量，一键切换常用视图） -->
+    <div class="status-chips" style="margin-bottom:12px">
+      <div class="status-chip" :class="{ active: !query.status }" @click="quickStatus('')">
+        全部 <b>{{ summary.totalOrders ?? '—' }}</b>
+      </div>
+      <div class="status-chip" :class="{ active: query.status === 'pending' }" @click="quickStatus('pending')">
+        待确认 <b>{{ summary.pendingCount ?? '—' }}</b>
+      </div>
+      <div class="status-chip" :class="{ active: query.status === 'quoted' }" @click="quickStatus('quoted')">
+        已报价 <b>{{ summary.quotedCount ?? '—' }}</b>
+      </div>
+      <div class="status-chip" :class="{ active: query.status === 'processing' }" @click="quickStatus('processing')">
+        处理中 <b>{{ summary.processingCount ?? '—' }}</b>
+      </div>
+      <div class="status-chip" :class="{ active: query.status === 'completed' }" @click="quickStatus('completed')">
+        已完成 <b>{{ summary.completedCount ?? '—' }}</b>
+      </div>
+      <div class="status-chip" :class="{ active: query.status === 'cancelled' }" @click="quickStatus('cancelled')">
+        已取消 <b>{{ summary.cancelledCount ?? '—' }}</b>
+      </div>
+    </div>
+
     <div class="filter-bar">
       <el-input v-model="query.keyword" placeholder="订单号/型号/客户/手机号" clearable style="width:230px" @keyup.enter="loadList(1)" />
       <el-select v-model="query.status" placeholder="订单状态" clearable style="width:130px">
@@ -51,11 +78,12 @@
         </template>
       </el-table-column>
       <el-table-column prop="created_at" label="创建时间" width="150" show-overflow-tooltip />
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column label="操作" width="240" fixed="right">
         <template #default="{ row }">
           <el-button size="small" type="primary" link @click.stop="openQuote(row)">报价</el-button>
           <el-button size="small" type="success" link @click.stop="openStatus(row)">流转</el-button>
           <el-button size="small" link @click.stop="openDetail(row.id)">详情</el-button>
+          <el-button size="small" type="info" link @click.stop="printOrder(row)">打印</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -100,6 +128,22 @@
           <div class="text-muted" style="margin-bottom:6px">设备照片（点击放大）</div>
           <el-image v-for="(img, i) in detail.images" :key="i" :src="img" :preview-src-list="detail.images"
             fit="cover" style="width:86px;height:86px;border-radius:6px;margin:0 8px 8px 0" />
+        </div>
+
+        <!-- 电子回收凭证：设备合规回收存证，支持打印 -->
+        <div class="eco-cert">
+          <div class="cert-head">
+            <span class="cert-title">♻ 电子回收凭证</span>
+            <el-button size="small" type="success" plain @click="printOrder(detail)">打印凭证</el-button>
+          </div>
+          <div class="cert-rows">
+            <div class="cert-row"><span>凭证编号</span><b>{{ detail.order_id }}</b></div>
+            <div class="cert-row"><span>回收设备</span><b>{{ detail.device_model || '-' }}<template v-if="detail.conditionLabel">（{{ detail.conditionLabel }}）</template></b></div>
+            <div class="cert-row"><span>回收客户</span><b>{{ detail.real_name || detail.nickname || '-' }}</b></div>
+            <div class="cert-row"><span>成交金额</span><b class="price-text">¥{{ fmtMoney(detail.actual_price ?? detail.quote_price ?? detail.estimated_price) }}</b></div>
+            <div class="cert-row eco"><span>本次减碳贡献</span><b>≈ {{ ecoPerDevice }} kg CO₂e</b></div>
+          </div>
+          <p class="cert-note">本凭证由回收综合服务平台生成，可作为设备已合规回收、数据已清除的电子存证。</p>
         </div>
 
         <div style="margin-top:18px;display:flex;gap:10px" v-if="!['completed','cancelled'].includes(detail.status)">
@@ -191,7 +235,22 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search, Download, Plus } from '@element-plus/icons-vue'
-import { getOrders, getOrderDetail, quoteOrder, updateOrderStatus, createOrder, getUserOptions } from '../api'
+import { getOrders, getOrderDetail, quoteOrder, updateOrderStatus, createOrder, getUserOptions, getDashboard, getSettings } from '../api'
+
+// 快捷状态筛选的实时数量（来自看板统计接口）
+const summary = ref({})
+async function loadSummary() {
+  try {
+    const res = await getDashboard()
+    summary.value = res.data.summary || {}
+  } catch (e) {
+    // 数量加载失败不影响列表
+  }
+}
+function quickStatus(status) {
+  query.status = status
+  loadList(1)
+}
 
 const route = useRoute()
 const loading = ref(false)
@@ -251,11 +310,85 @@ function handleExport() {
 // ===== 详情 =====
 const detailVisible = ref(false)
 const detail = ref(null)
+// 电子凭证减碳系数（系统设置 eco_co2_per_device，默认 25）
+const ecoPerDevice = ref(25)
+let ecoLoaded = false
 async function openDetail(id) {
   detailVisible.value = true
   detail.value = null
   const res = await getOrderDetail(id)
   detail.value = res.data
+  if (!ecoLoaded) {
+    ecoLoaded = true
+    try {
+      const s = await getSettings()
+      const eco = (s.data || []).find((x) => x.config_key === 'eco_co2_per_device')
+      if (eco && Number(eco.config_value) > 0) ecoPerDevice.value = Number(eco.config_value)
+    } catch (e) { /* 保持默认 */ }
+  }
+}
+
+// ===== 回收单打印 =====
+// 生成可打印的回收单据（设备信息 / 报价信息 / 双方签字栏），用于线下留存与客户确认
+function printOrder(row) {
+  const label = {
+    pending: '待确认', quoted: '已报价', confirmed: '已确认', processing: '处理中',
+    completed: '已完成', review: '待评价', cancelled: '已取消'
+  }[row.status] || row.status
+  const cond = { good: '优', normal: '良', fair: '中', poor: '差', excellent: '优+', mint: '全新' }[row.device_condition] || (row.device_condition || '-')
+  const money = (v) => (v === null || v === undefined || v === '' ? '-' : `¥${Number(v).toLocaleString('zh-CN', { maximumFractionDigits: 2 })}`)
+  const esc = (v) => String(v ?? '-').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  const rows = [
+    ['订单编号', esc(row.order_id), '下单时间', esc(row.created_at)],
+    ['客户', esc(row.real_name || row.nickname || '-'), '联系电话', esc(row.phone || '-')],
+    ['设备型号', esc(row.device_model || '-'), '设备成色', esc(cond)],
+    ['服务方式', row.service_type === 'home' ? '上门回收' : '到店回收', '订单状态', esc(label)],
+    ['预估价格', money(row.estimated_price), '报价 / 成交价', money(row.quote_price ?? row.actual_price)]
+  ]
+
+  const win = window.open('', '_blank', 'width=820,height=680')
+  win.document.write(`<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>回收单 - ${esc(row.order_id)}</title>
+<style>
+  body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; color: #1f3d2b; padding: 36px 44px; }
+  .head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #2d5a40; padding-bottom: 12px; }
+  .head h1 { margin: 0; font-size: 22px; letter-spacing: 2px; }
+  .head .no { font-size: 12px; color: #666; }
+  table { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 14px; }
+  td, th { border: 1px solid #b7c9bd; padding: 9px 12px; text-align: left; }
+  th { background: #f0f7f2; width: 110px; color: #2d5a40; font-weight: 600; }
+  .note { margin-top: 16px; font-size: 12px; color: #666; line-height: 1.8; }
+  .signs { display: flex; justify-content: space-between; margin-top: 56px; font-size: 14px; }
+  .signs span { display: inline-block; width: 240px; border-top: 1px solid #333; padding-top: 6px; text-align: center; }
+  @media print { @page { margin: 14mm; } }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>电子产品回收单</h1>
+    <div class="no">电子产品回收综合服务平台 · 打印时间 ${new Date().toLocaleString('zh-CN')}</div>
+  </div>
+  <table>
+    ${rows.map((r) => `<tr><th>${r[0]}</th><td>${r[1]}</td><th>${r[2]}</th><td>${r[3]}</td></tr>`).join('\n')}
+    <tr><th>设备情况说明</th><td colspan="3" style="height:64px">${esc(row.problem_description || row.custom_description || '')}</td></tr>
+  </table>
+  <div class="note">
+    说明：本单一式两联，客户与平台各执一份；最终回收价格以工程师现场验机确认为准；
+    请客户在交付前备份数据并退出设备账号。数据清除后不可恢复。
+  </div>
+  <div class="signs">
+    <span>客户签字 / 日期</span>
+    <span>回收员签字 / 日期</span>
+  </div>
+</body>
+</html>`)
+  win.document.close()
+  win.focus()
+  win.print()
 }
 
 // ===== 报价 =====
@@ -346,6 +479,59 @@ async function submitCreate() {
 
 onMounted(() => {
   loadList()
+  loadSummary()
   if (route.query.focus) openDetail(Number(route.query.focus))
 })
 </script>
+
+<style scoped>
+/* 电子回收凭证 */
+.eco-cert {
+  margin-top: 16px;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(150deg, #f0f9eb 0%, #e8f7ef 100%);
+  border: 1px solid #d3edc8;
+}
+.cert-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.cert-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2d5a40;
+}
+.cert-rows {
+  background: rgba(255, 255, 255, 0.75);
+  border-radius: 8px;
+  padding: 2px 12px;
+}
+.cert-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 13px;
+  border-bottom: 1px dashed #dcebe1;
+}
+.cert-row:last-child { border-bottom: none; }
+.cert-row span { color: #7d9384; }
+.cert-row b { color: #303133; text-align: right; word-break: break-all; }
+.cert-row.eco b { color: #3a9d5d; }
+.cert-note {
+  margin: 10px 2px 0;
+  font-size: 11px;
+  color: #8aa392;
+}
+
+html.dark .eco-cert {
+  background: linear-gradient(150deg, #14261b 0%, #122019 100%);
+  border-color: #2c4433;
+}
+html.dark .cert-rows { background: rgba(255, 255, 255, 0.05); }
+html.dark .cert-row { border-bottom-color: #2c4433; }
+html.dark .cert-row b { color: #e0e0e0; }
+</style>

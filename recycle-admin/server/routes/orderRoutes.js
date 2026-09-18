@@ -130,9 +130,13 @@ router.get('/:id', authenticate, async (req, res) => {
     if (!id) return res.status(400).json({ success: false, message: '参数错误' });
 
     const fields = await orderSelect();
+    // 地址表列按环境动态拼接（部分环境缺 detail 等列），缺失列输出 NULL 保持响应结构稳定
+    const addrCols = await db.addressColumns();
+    const addrField = (col) => (addrCols.has(col) ? `a.${col}` : `NULL AS ${col}`);
     const rows = await db.query(
       `SELECT ${fields.join(', ')},
-              a.contact_name, a.contact_phone, a.province, a.city, a.district, a.detail
+              ${addrField('contact_name')}, ${addrField('contact_phone')},
+              ${addrField('province')}, ${addrField('city')}, ${addrField('district')}, ${addrField('detail')}
        FROM orders o
        LEFT JOIN users u ON u.id = o.user_id
        LEFT JOIN user_addresses a ON a.id = o.address_id

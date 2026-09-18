@@ -19,6 +19,7 @@ const { router: platformRoutes } = require('./routes/platformRoutes');
 const linkRoutes = require('./routes/linkRoutes');
 const statsRoutes = require('./routes/statsRoutes');
 const settingRoutes = require('./routes/settingRoutes');
+const logRoutes = require('./routes/logRoutes');
 
 const app = express();
 app.use(cors());
@@ -41,6 +42,7 @@ app.use('/api/platforms', authenticate, platformRoutes);
 app.use('/api/links', authenticate, linkRoutes);
 app.use('/api/stats', authenticate, statsRoutes);
 app.use('/api/system', settingRoutes);
+app.use('/api/logs', logRoutes);
 
 // 健康检查
 app.get('/health', async (req, res) => {
