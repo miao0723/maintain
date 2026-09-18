@@ -455,6 +455,28 @@ const routes = [
     }
     ]
   },
+  // 4.5 质检中心（服务小程序回收定级/估价）
+  {
+    path: 'qc',
+    name: 'Qc',
+    component: () => import('@/modules/RepairModule.vue'),
+    meta: { title: '质检中心', icon: 'CircleCheck' },
+    redirect: '/qc/orders',
+    children: [
+      {
+        path: 'orders',
+        name: 'QcOrders',
+        component: () => import('@/views/qc/Orders.vue'),
+        meta: { title: '质检单', icon: 'Tickets' }
+      },
+      {
+        path: 'templates',
+        name: 'QcTemplates',
+        component: () => import('@/views/qc/Templates.vue'),
+        meta: { title: '质检模板与标准', icon: 'Setting' }
+      }
+    ]
+  },
   // 5. 支付模块
   {
     path: 'payment',
