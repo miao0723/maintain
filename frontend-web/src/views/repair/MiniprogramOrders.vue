@@ -207,8 +207,12 @@ type="success"
     <!-- 接单对话框 -->
     <el-dialog v-model="acceptDialogVisible" title="接单" width="500px" :close-on-click-modal="false">
       <el-form :model="acceptForm" ref="acceptFormRef" label-width="100px">
-        <el-form-item label="选择维修人员" prop="user_id">
-          <el-select v-model="acceptForm.user_id" placeholder="请选择维修人员" style="width: 100%">
+        <el-form-item :label="currentOrderType === 'recycle' ? '选择回收人员' : '选择维修人员'" prop="user_id">
+          <el-select
+            v-model="acceptForm.user_id"
+            :placeholder="currentOrderType === 'recycle' ? '请选择回收人员' : '请选择维修人员'"
+            style="width: 100%"
+          >
             <el-option
               v-for="user in users"
               :key="user.id"
@@ -343,6 +347,8 @@ const detailDialogVisible = ref(false)
 const currentOrder = ref(null)
 const currentImages = ref([])
 const currentOrderId = ref(null)
+// 接单对象订单类型：回收单叫“回收人员”，维修单叫“维修人员”
+const currentOrderType = ref('repair')
 
 const searchForm = reactive({
   order_id: '',
@@ -509,7 +515,8 @@ const fetchUsers = async () => {
       params: { page: 1, pageSize: 500, position: 'engineer', status: 1 }
     })
     if (res.code === 200 || res.code === 0) {
-      users.value = res.data.items || []
+      // 接口分页字段为 list（旧版为 items），两者兼容，否则下拉为空
+      users.value = res.data.items || res.data.list || []
     }
   } catch (error) {
     console.error('获取用户列表失败', error)
@@ -605,6 +612,7 @@ const handleDetailDialogClose = () => {
 // 从详情对话框接单
 const handleAcceptFromDetail = () => {
   currentOrderId.value = currentOrder.value.id
+  currentOrderType.value = currentOrder.value.order_type || 'repair'
   acceptForm.user_id = null
   detailDialogVisible.value = false
   acceptDialogVisible.value = true
@@ -613,6 +621,7 @@ const handleAcceptFromDetail = () => {
 // 接单
 const handleAccept = (row) => {
   currentOrderId.value = row.id
+  currentOrderType.value = row.order_type || 'repair'
   acceptForm.user_id = null
   acceptDialogVisible.value = true
 }
@@ -620,7 +629,7 @@ const handleAccept = (row) => {
 // 提交接单
 const handleAcceptSubmit = async () => {
   if (!acceptForm.user_id) {
-    ElMessage.warning('请选择维修人员')
+    ElMessage.warning(currentOrderType.value === 'recycle' ? '请选择回收人员' : '请选择维修人员')
     return
   }
   const selected = users.value.find(u => String(u.id) === String(acceptForm.user_id))

@@ -52,12 +52,20 @@
         </div>
 
         <div class="header-right">
-          <!-- 主题切换 -->
-          <el-tooltip content="切换主题" placement="bottom">
-            <el-icon class="header-icon" @click="themeStore.toggleTheme">
-              <Moon v-if="themeStore.isDark" />
-              <Sunny v-else />
-            </el-icon>
+          <!-- 主题切换：日夜滑块开关 -->
+          <el-tooltip :content="themeStore.isDark ? '切换到白天模式' : '切换到夜间模式'" placement="bottom">
+            <button
+              class="theme-switch"
+              :class="{ 'is-dark': themeStore.isDark }"
+              aria-label="切换主题"
+              @click="themeStore.toggleTheme"
+            >
+              <span class="switch-track">
+                <el-icon class="ico ico-moon"><Moon /></el-icon>
+                <el-icon class="ico ico-sun"><Sunny /></el-icon>
+                <span class="switch-knob"></span>
+              </span>
+            </button>
           </el-tooltip>
 
           <!-- 通知 -->
@@ -417,8 +425,7 @@ const goToNotifications = () => {
 const handleCommand = (command) => {
   switch (command) {
     case 'profile':
-      // 打开个人中心
-      ElMessage.info('个人中心功能开发中')
+      router.push('/profile')
       break
     case 'password':
       passwordDialogVisible.value = true
@@ -570,20 +577,96 @@ const handlePasswordSubmit = async () => {
     }
   }
 
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 20px;
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
 
-    .header-icon {
-      font-size: 20px;
-      cursor: pointer;
-      transition: color 0.3s;
+      .header-icon {
+        font-size: 20px;
+        cursor: pointer;
+        transition: color 0.3s;
 
-      &:hover {
-        color: #409eff;
+        &:hover {
+          color: #409eff;
+        }
       }
-    }
+
+      // 日夜切换滑块：白天暖橙底+白色旋钮，夜间深蓝底+月光旋钮
+      .theme-switch {
+        border: none;
+        background: transparent;
+        padding: 0;
+        cursor: pointer;
+        line-height: 1;
+
+        &:focus-visible {
+          outline: 2px solid #409eff;
+          outline-offset: 3px;
+          border-radius: 999px;
+        }
+
+        .switch-track {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 58px;
+          height: 28px;
+          padding: 0 6px;
+          box-sizing: border-box;
+          border-radius: 999px;
+          background: linear-gradient(135deg, #ffd591, #ff9c3e);
+          box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.18);
+          transition: background 0.35s ease;
+        }
+
+        .ico {
+          position: relative;
+          z-index: 1;
+          font-size: 14px;
+          transition: color 0.3s ease;
+        }
+
+        .ico-moon {
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        .ico-sun {
+          color: #fff;
+        }
+
+        .switch-knob {
+          position: absolute;
+          top: 3px;
+          left: 3px;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: #fff;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+          transition: transform 0.35s cubic-bezier(0.4, 2, 0.6, 1), background 0.35s ease;
+        }
+
+        &.is-dark {
+          .switch-track {
+            background: linear-gradient(135deg, #3b4b8f, #1c2657);
+          }
+
+          .ico-moon {
+            color: #ffd86b;
+          }
+
+          .ico-sun {
+            color: rgba(255, 255, 255, 0.45);
+          }
+
+          .switch-knob {
+            transform: translateX(30px);
+            background: radial-gradient(circle at 35% 35%, #f5f7ff, #c9d2f5);
+          }
+        }
+      }
 
     .notice-badge {
       cursor: pointer;
@@ -628,51 +711,7 @@ const handlePasswordSubmit = async () => {
   scrollbar-gutter: stable;
 }
 
-// 暗色模式
-:global(.dark) {
-  .header {
-    background: #1a1a1a;
-    border-bottom-color: #2c2c2c;
-
-    .header-left .collapse-btn:hover {
-      color: #409eff;
-    }
-
-    .header-right {
-      .header-icon:hover {
-        color: #409eff;
-      }
-
-      .user-info {
-        color: #e0e0e0;
-
-        &:hover {
-          background: #2c2c2c;
-        }
-      }
-    }
-
-    .el-breadcrumb {
-      :deep(.el-breadcrumb__item) {
-        .el-breadcrumb__inner {
-          color: #e0e0e0;
-
-          &:hover {
-            color: #409eff;
-          }
-        }
-
-        &:last-child .el-breadcrumb__inner {
-          color: #909399;
-        }
-      }
-    }
-  }
-
-  .main-content {
-    background: #121212;
-  }
-}
+// 暗色模式覆盖见文件末尾非 scoped 样式块（scoped 中 :global 嵌套会被编译器丢弃）。
 
 // 页面切换动画
 .fade-enter-active,
@@ -919,6 +958,66 @@ html.notice-panel-open {
 
 // 暗色模式下的通知面板
 html.dark {
+  // 框架暗色（侧边栏/顶栏/内容区）。
+  // 与上面通知面板同因：必须写在这个非 scoped 全局块里才能命中。
+  .layout-container {
+    .sidebar {
+      background: #141414;
+
+      .logo {
+        background: #0f0f0f;
+        color: #e0e0e0;
+      }
+
+      .sidebar-menu,
+      .el-menu {
+        background: #141414;
+      }
+
+      .el-menu-item {
+        color: #a3a6ad;
+
+        &:hover {
+          background: #1f1f1f;
+        }
+
+        &.is-active {
+          background: #409eff;
+          color: #fff;
+        }
+      }
+    }
+
+    .header {
+      background: #1d1d1d;
+      border-bottom-color: #2c2c2c;
+
+      .el-breadcrumb__inner {
+        color: #cfd3dc;
+
+        &:hover {
+          color: #409eff;
+        }
+      }
+
+      .el-breadcrumb__item:last-child .el-breadcrumb__inner {
+        color: #909399;
+      }
+
+      .user-info {
+        color: #e0e0e0;
+
+        &:hover {
+          background: #2c2c2c;
+        }
+      }
+    }
+
+    .main-content {
+      background: #121212;
+    }
+  }
+
   .el-popper.notice-popper {
     background: #1f1f1f;
     border-color: #2c2c2c;

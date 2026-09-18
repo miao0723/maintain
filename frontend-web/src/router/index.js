@@ -137,6 +137,13 @@ const routes = [
     component: () => import('@/views/dashboard/Dashboard.vue'),
     meta: { title: '首页', icon: 'Odometer' }
   },
+  // 个人中心（隐藏菜单，经右上角用户下拉进入）
+  {
+    path: 'profile',
+    name: 'Profile',
+    component: () => import('@/views/profile/Index.vue'),
+    meta: { title: '个人中心', icon: 'User', hidden: true }
+  },
   // 1. 基础管理模块
   {
     path: 'basic',

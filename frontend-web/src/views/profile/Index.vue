@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="profile-container">
     <el-card shadow="never">
       <template #header>
@@ -93,6 +93,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'

@@ -41,6 +41,11 @@ export default defineConfig({
       '/miniprogram-uploads': {
         target: apiTarget,
         changeOrigin: true
+      },
+      // 回收综合服务平台（独立网页，经网关 /recycle-admin/ 子路径提供）
+      '/recycle-admin': {
+        target: apiTarget,
+        changeOrigin: true
       }
     }
   }

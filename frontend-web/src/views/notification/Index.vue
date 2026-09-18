@@ -5,12 +5,13 @@
         <div class="card-header">
           <div class="header-left">
             <h2>通知消息</h2>
-            <el-tag v-if="unreadCount > 0" type="danger" size="small">
-              {{ unreadCount }}条未读
-            </el-tag>
+            <span v-if="unreadCount > 0" class="unread-pill">
+              {{ unreadCount > 99 ? '99+' : unreadCount }} 条未读
+            </span>
           </div>
           <div class="header-right">
-            <el-button type="primary" size="small" @click="handleMarkAllAsRead" :disabled="unreadCount === 0">
+            <el-button type="primary" plain size="small" @click="handleMarkAllAsRead" :disabled="unreadCount === 0">
+              <el-icon style="margin-right:4px"><Checked /></el-icon>
               全部标为已读
             </el-button>
             <el-button size="small" @click="fetchNotifications">
@@ -22,7 +23,7 @@
       </template>
 
       <el-tabs v-model="activeTab" class="notification-tabs">
-        <el-tab-pane label="全部通知" name="all">
+        <el-tab-pane :label="`全部通知${total ? ` (${total})` : ''}`" name="all">
           <el-empty v-if="allNotifications.length === 0" description="暂无通知" />
           <div v-else class="notification-list">
             <div
@@ -31,10 +32,11 @@
               :class="['notification-item', { unread: !notification.is_read }]"
               @click="openDetail(notification)"
             >
-              <div class="notification-icon">
+              <div :class="['notification-icon', typeColor(notification.type)]">
                 <el-icon>
                   <component :is="noticeIcon(notification.type)" />
                 </el-icon>
+                <span v-if="!notification.is_read" class="icon-dot"></span>
               </div>
               <div class="notification-content">
                 <div class="notification-header">
@@ -57,18 +59,10 @@
                 </div>
                 <p class="notification-message">{{ notification.content }}</p>
               </div>
-              <el-tag
-                v-if="!notification.is_read"
-                type="danger"
-                size="small"
-                class="unread-badge"
-              >
-                未读
-              </el-tag>
             </div>
           </div>
         </el-tab-pane>
-        <el-tab-pane label="未读通知" name="unread">
+        <el-tab-pane :label="`未读通知${unreadCount ? ` (${unreadCount})` : ''}`" name="unread">
           <el-empty v-if="unreadNotifications.length === 0" description="暂无未读通知" />
           <div v-else class="notification-list">
             <div
@@ -77,10 +71,11 @@
               class="notification-item unread"
               @click="openDetail(notification)"
             >
-              <div class="notification-icon">
+              <div :class="['notification-icon', typeColor(notification.type)]">
                 <el-icon>
                   <component :is="noticeIcon(notification.type)" />
                 </el-icon>
+                <span class="icon-dot"></span>
               </div>
               <div class="notification-content">
                 <div class="notification-header">
@@ -103,9 +98,6 @@
                 </div>
                 <p class="notification-message">{{ notification.content }}</p>
               </div>
-              <el-tag type="danger" size="small" class="unread-badge">
-                未读
-              </el-tag>
             </div>
           </div>
         </el-tab-pane>
@@ -134,7 +126,9 @@
     >
       <div v-if="current" class="notification-detail">
         <div class="detail-header">
-          <el-icon class="detail-icon"><component :is="noticeIcon(current.type)" /></el-icon>
+          <div :class="['detail-icon', typeColor(current.type)]">
+            <el-icon><component :is="noticeIcon(current.type)" /></el-icon>
+          </div>
           <div class="detail-head-text">
             <div class="detail-title">{{ current.title }}</div>
             <div class="detail-meta">
@@ -200,10 +194,18 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Bell, Document, Tickets, Monitor, Box, View, Tools, Setting, Refresh } from '@element-plus/icons-vue'
+import { Bell, Document, Tickets, Monitor, Box, View, Tools, Setting, Refresh, Checked } from '@element-plus/icons-vue'
 import { getNotifications, markAsRead, markAllAsRead } from '@/api/notification'
 
 const router = useRouter()
+
+// 按通知类型着色：订单蓝 / 库存橙 / 维修绿 / 知识紫 / 系统灰
+const typeColorMap = {
+  order: 'c-blue', work_order: 'c-blue', repair: 'c-green', device: 'c-cyan',
+  stock: 'c-orange', maintenance: 'c-orange', inspection: 'c-orange',
+  knowledge: 'c-purple', contract: 'c-purple', system: 'c-gray'
+}
+const typeColor = (type) => typeColorMap[type] || 'c-blue'
 
 const iconMap = {
   order: Tickets,
@@ -390,7 +392,7 @@ onMounted(() => {
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -400,87 +402,140 @@ onMounted(() => {
 
 .notification-page {
   padding: 20px;
-  animation: slideIn 0.5s ease-out;
+  animation: slideIn 0.4s ease-out;
 
   .notification-card {
-    .card-header {
+    :deep(.el-card__header) {
+      padding: 16px 20px;
+    }
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .header-left {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      gap: 12px;
 
-      .header-left {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+      h2 {
+        position: relative;
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--el-text-color-primary);
+        margin: 0;
+        padding-left: 12px;
 
-        h2 {
-          font-size: 18px;
-          font-weight: 600;
-          color: #303133;
-          margin: 0;
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 4px;
+          height: 16px;
+          border-radius: 2px;
+          background: linear-gradient(180deg, #409eff, #67c23a);
         }
       }
 
-      .header-right {
-        display: flex;
-        gap: 10px;
+      .unread-pill {
+        font-size: 12px;
+        color: #f56c6c;
+        background: rgba(245, 108, 108, 0.1);
+        border: 1px solid rgba(245, 108, 108, 0.28);
+        border-radius: 999px;
+        padding: 2px 10px;
+        line-height: 18px;
       }
     }
 
-    .notification-tabs {
-      :deep(.el-tabs__header) {
-        margin-bottom: 20px;
-      }
-
-      .notification-list {
-        min-height: 400px;
-        max-height: 600px;
-        overflow-y: auto;
-      }
-    }
-
-    .pagination-wrapper {
-      margin-top: 20px;
+    .header-right {
       display: flex;
-      justify-content: center;
+      gap: 10px;
     }
+  }
+
+  .notification-tabs {
+    :deep(.el-tabs__header) {
+      margin-bottom: 16px;
+    }
+
+    :deep(.el-tabs__item) {
+      font-weight: 500;
+    }
+
+    .notification-list {
+      min-height: 400px;
+      max-height: 600px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+  }
+
+  .pagination-wrapper {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
   }
 
   .notification-item {
     display: flex;
     align-items: flex-start;
-    padding: 16px;
-    margin-bottom: 12px;
-    background: #fff;
-    border: 1px solid #f0f0f0;
-    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-lighter);
+    border-left: 3px solid transparent;
+    border-radius: 10px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 
     &:hover {
-      background: #f8f9fa;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-      transform: translateX(4px);
+      background: var(--el-fill-color-light);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
     }
 
     &.unread {
-      background: #fffbfb;
-      border-color: #409eff;
+      border-left-color: #409eff;
+      background: rgba(64, 158, 255, 0.04);
+
+      .notification-title {
+        font-weight: 600;
+      }
     }
 
     .notification-icon {
+      position: relative;
       flex-shrink: 0;
       width: 40px;
       height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #ecf5ff;
-      border-radius: 50%;
-      margin-right: 16px;
-      color: #409eff;
-      font-size: 20px;
+      border-radius: 10px;
+      margin-right: 14px;
+      font-size: 19px;
+
+      &.c-blue   { background: rgba(64, 158, 255, 0.12);  color: #409eff; }
+      &.c-green  { background: rgba(103, 194, 58, 0.12);  color: #67c23a; }
+      &.c-orange { background: rgba(230, 162, 60, 0.12);  color: #e6a23c; }
+      &.c-purple { background: rgba(142, 91, 140, 0.12);  color: #9a6ecc; }
+      &.c-cyan   { background: rgba(34, 184, 207, 0.12);  color: #22b8cf; }
+      &.c-gray   { background: rgba(144, 147, 153, 0.14); color: #909399; }
+
+      .icon-dot {
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #f56c6c;
+        border: 2px solid var(--el-bg-color);
+      }
     }
 
     .notification-content {
@@ -492,12 +547,12 @@ onMounted(() => {
         justify-content: space-between;
         align-items: center;
         gap: 12px;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
 
         .notification-title {
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 500;
-          color: #303133;
+          color: var(--el-text-color-primary);
           display: flex;
           align-items: center;
           gap: 6px;
@@ -509,15 +564,15 @@ onMounted(() => {
         }
 
         .notification-time {
-          font-size: 13px;
-          color: #909399;
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
           flex-shrink: 0;
         }
       }
 
       .notification-message {
-        font-size: 14px;
-        color: #606266;
+        font-size: 13px;
+        color: var(--el-text-color-regular);
         line-height: 1.6;
         margin: 0;
         display: -webkit-box;
@@ -525,12 +580,6 @@ onMounted(() => {
         -webkit-box-orient: vertical;
         overflow: hidden;
       }
-    }
-
-    .unread-badge {
-      position: absolute;
-      top: 8px;
-      right: 8px;
     }
   }
 }
@@ -544,15 +593,20 @@ onMounted(() => {
 
     .detail-icon {
       flex-shrink: 0;
-      width: 44px;
-      height: 44px;
+      width: 46px;
+      height: 46px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #ecf5ff;
-      border-radius: 50%;
-      color: #409eff;
+      border-radius: 12px;
       font-size: 22px;
+
+      &.c-blue   { background: rgba(64, 158, 255, 0.12);  color: #409eff; }
+      &.c-green  { background: rgba(103, 194, 58, 0.12);  color: #67c23a; }
+      &.c-orange { background: rgba(230, 162, 60, 0.12);  color: #e6a23c; }
+      &.c-purple { background: rgba(142, 91, 140, 0.12);  color: #9a6ecc; }
+      &.c-cyan   { background: rgba(34, 184, 207, 0.12);  color: #22b8cf; }
+      &.c-gray   { background: rgba(144, 147, 153, 0.14); color: #909399; }
     }
 
     .detail-head-text {
@@ -562,7 +616,7 @@ onMounted(() => {
       .detail-title {
         font-size: 16px;
         font-weight: 600;
-        color: #303133;
+        color: var(--el-text-color-primary);
         margin-bottom: 8px;
         line-height: 1.5;
       }
@@ -581,7 +635,7 @@ onMounted(() => {
       display: flex;
       align-items: flex-start;
       padding: 10px 0;
-      border-bottom: 1px dashed #f0f0f0;
+      border-bottom: 1px dashed var(--el-border-color-lighter);
 
       &:last-child {
         border-bottom: none;
@@ -590,13 +644,13 @@ onMounted(() => {
       .detail-label {
         flex-shrink: 0;
         width: 72px;
-        color: #909399;
+        color: var(--el-text-color-secondary);
         font-size: 13px;
       }
 
       .detail-value {
         flex: 1;
-        color: #303133;
+        color: var(--el-text-color-primary);
         font-size: 14px;
         line-height: 1.7;
         word-break: break-word;
@@ -614,20 +668,18 @@ onMounted(() => {
   .notification-page {
     padding: 15px;
 
-    .notification-card {
-      .card-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
+    .card-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
 
-        .header-right {
-          width: 100%;
-        }
+      .header-right {
+        width: 100%;
       }
+    }
 
-      .notification-list {
-        min-height: 300px;
-      }
+    .notification-list {
+      min-height: 300px;
     }
   }
 }
@@ -636,15 +688,13 @@ onMounted(() => {
   .notification-page {
     padding: 10px;
 
-    .notification-card {
-      .notification-item {
-        flex-direction: column;
-        padding: 12px;
+    .notification-item {
+      flex-direction: column;
+      padding: 12px;
 
-        .notification-icon {
-          margin-right: 0;
-          margin-bottom: 12px;
-        }
+      .notification-icon {
+        margin-right: 0;
+        margin-bottom: 12px;
       }
     }
   }

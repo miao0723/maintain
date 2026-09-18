@@ -223,4 +223,63 @@
   .el-overlay {
     background-color: rgba(0, 0, 0, 0.7);
   }
+
+  // ===== 业务页面自定义容器的暗色兜底 =====
+  // 各视图 scoped 样式里硬编码了浅色背景/近黑文字，此处全局统一覆盖；
+  // 必须加 !important 才能稳定压过组件内的嵌套 scoped 规则。
+  // 白底/浅灰底容器 → 暗色卡片
+  .chart-container,
+  .page,
+  .chat-panel,
+  .message-body,
+  .result-box,
+  .income-container,
+  .reminder-container,
+  .alipay-test-container,
+  .template-card,
+  .create-form,
+  .step-indicator,
+  .step-progress,
+  .mail-preview,
+  .mail-preview-admin,
+  .mail-preview-title,
+  .extracted-text,
+  .chunk-header,
+  .avatar-section,
+  .feature-list,
+  .quote-item,
+  .expand-content,
+  .upload-placeholder,
+  .preview-toolbar,
+  .preview-content,
+  .editor-toolbar,
+  .image-preview-wrapper,
+  .image-preview-container,
+  .bottom-actions,
+  .no-cover,
+  .empty-slot,
+  .loading-content,
+  .table-video-thumb,
+  .source-text {
+    background: #1e1e1e !important;
+    border-color: #3a3a3a !important;
+    color: #d0d3da;
+  }
+
+  // 近黑硬编码文字 → 亮字
+  .h2,
+  .h3,
+  .h4,
+  .stat-value,
+  .stat-info,
+  .gallery-title,
+  .primary-text,
+  .template-name,
+  .toolbar-left,
+  .section-header,
+  .media-header,
+  .card-header,
+  .video-meta {
+    color: #e0e0e0 !important;
+  }
 }

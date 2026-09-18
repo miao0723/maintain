@@ -140,3 +140,64 @@ html.dark {
 .priority-urgent {
   color: #f56c6c;
 }
+
+// ===== 统一设计语言：卡片标题竖条（全局兜底，零改页面） =====
+// 两种常见标题写法都命中：
+//   <el-card><template #header><span>标题</span>...
+//   <el-card><template #header><div class="card-header"><span>标题</span>...
+.card-title {
+  position: relative;
+  font-size: 15px;
+  font-weight: 700;
+  color: #303133;
+  padding-left: 11px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 15px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #409eff, #67c23a);
+  }
+}
+
+// 首页图表卡自带标题样式，用 :not 排除避免双竖条
+.el-card:not(.chart-card) > .el-card__header > span:first-child,
+.el-card:not(.chart-card) > .el-card__header .card-header > span:first-child {
+  position: relative;
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+  padding-left: 11px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 15px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #409eff, #67c23a);
+  }
+}
+
+// tabs 激活下划线与标题竖条同源（蓝→绿渐变），tabs 结构页面同样获得统一锚点
+.el-tabs__active-bar {
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #409eff, #67c23a);
+}
+
+html.dark {
+  .card-title,
+  .el-card:not(.chart-card) > .el-card__header > span:first-child,
+  .el-card:not(.chart-card) > .el-card__header .card-header > span:first-child {
+    color: #e5eaf3;
+  }
+}

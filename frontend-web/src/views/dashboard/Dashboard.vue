@@ -3,47 +3,63 @@
     <!-- 维修 / 回收 快捷跳转入口（带未读消息提醒） -->
     <el-card class="quick-entry-card" shadow="never">
       <div class="quick-entry">
-        <div class="entry-item repair" @click="goRepair" title="进入维修订单管理">
-          <el-badge :value="pendingRepairCount" :hidden="pendingRepairCount === 0" :max="99">
-            <div class="entry-inner">
-              <span class="entry-icon">🔧</span>
-              <div class="entry-text">
-                <div class="entry-title">维修工作台</div>
-                <div class="entry-desc">小程序维修订单 / 进度 / 评价管理</div>
-              </div>
+        <div
+          class="entry-item repair"
+          @click="goRepair"
+          :title="`维修工作台：${repairCountText} 笔小程序维修单待处理`"
+        >
+          <el-badge :value="pendingRepairCount" :hidden="!pendingRepairCount" :max="99">
+            <div class="entry-icon">
+              <el-icon><Tools /></el-icon>
             </div>
           </el-badge>
-        </div>
-        <div class="entry-item recycle" @click="goRecycle" title="新窗口打开回收综合服务平台">
-          <el-badge :value="pendingRecycleCount" :hidden="pendingRecycleCount === 0" :max="99">
-            <div class="entry-inner">
-              <span class="entry-icon">♻️</span>
-              <div class="entry-text">
-                <div class="entry-title">回收管理平台</div>
-                <div class="entry-desc">配价库 / 回收订单管理（独立网页）</div>
-              </div>
+          <div class="entry-text">
+            <div class="entry-title">
+              维修工作台
+              <el-icon class="entry-arrow"><ArrowRight /></el-icon>
             </div>
-          </el-badge>
-        </div>
-        <div class="entry-todos">
-          <div class="todo-chip repair" @click="goPendingRepairOrders" title="查看待处理维修订单">
-            待处理维修 <b>{{ pendingRepairCount }}</b>
-          </div>
-          <div class="todo-chip recycle" @click="goPendingRecycleOrders" title="查看待报价回收订单">
-            待报价回收 <b>{{ pendingRecycleCount }}</b>
+            <div class="entry-desc">小程序维修订单 / 进度 / 评价管理</div>
           </div>
         </div>
         <div
-          class="entry-tip"
-          :class="{ active: unreadCount > 0 }"
-          @click="goNotifications"
-          title="查看通知消息"
+          class="entry-item recycle"
+          @click="goRecycle"
+          :title="`回收管理平台：${recycleCountText} 笔回收单待确认报价（角标为待办数，非未读消息）`"
         >
-          <el-icon><Bell /></el-icon>
-          <span v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }} 条未读消息</span>
-          <span v-else>暂无未读消息</span>
+          <el-badge :value="pendingRecycleCount" :hidden="!pendingRecycleCount" :max="99">
+            <div class="entry-icon">
+              <el-icon><Sell /></el-icon>
+            </div>
+          </el-badge>
+          <div class="entry-text">
+            <div class="entry-title">
+              回收管理平台
+              <el-icon class="entry-arrow"><ArrowRight /></el-icon>
+            </div>
+            <div class="entry-desc">配价库 / 回收订单管理（独立网页）</div>
+          </div>
         </div>
-        <el-button class="refresh-btn" :icon="Refresh" circle :loading="loading" title="刷新数据" @click="refreshAll" />
+        <div class="entry-todos">
+          <div class="todo-chip repair" @click="goPendingRepairOrders" title="查看待处理维修订单">
+            待处理维修 <b>{{ repairCountText }}</b>
+          </div>
+          <div class="todo-chip recycle" @click="goPendingRecycleOrders" title="查看待报价回收订单">
+            待报价回收 <b>{{ recycleCountText }}</b>
+          </div>
+        </div>
+        <div class="entry-actions">
+          <div
+            class="entry-tip"
+            :class="{ active: unreadCount > 0 }"
+            @click="goNotifications"
+            title="查看通知消息"
+          >
+            <el-icon><Bell /></el-icon>
+            <span v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }} 条未读</span>
+            <span v-else>暂无未读</span>
+          </div>
+          <el-button class="refresh-btn" :icon="Refresh" circle :loading="loading" title="刷新数据" @click="refreshAll" />
+        </div>
       </div>
     </el-card>
 
@@ -142,7 +158,7 @@
 
     <el-row :gutter="20">
       <el-col :span="24">
-        <el-card>
+        <el-card class="chart-card">
           <template #header>
             <div class="card-header">
               <span>最新工单</span>
@@ -176,7 +192,7 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { Bell, Refresh } from '@element-plus/icons-vue'
@@ -187,8 +203,9 @@ import { getMiniAdminOrders } from '@/api/miniAdmin'
 const router = useRouter()
 
 const unreadCount = ref(0)
-const pendingRepairCount = ref(0)
-const pendingRecycleCount = ref(0)
+// null = 尚未取到（显示 — 而非误导性的 0）；取数失败保留 null，等待下次刷新
+const pendingRepairCount = ref(null)
+const pendingRecycleCount = ref(null)
 const loading = ref(false)
 // 未读消息与待办订单每 60 秒自动刷新一次
 const UNREAD_REFRESH_INTERVAL = 60000
@@ -204,6 +221,7 @@ const fetchUnreadCount = async () => {
 }
 
 // 小程序订单真实待办数：待处理维修单 / 待报价回收单
+// 失败时不回退为 0 —— “明明有单却显示 0”会造成漏单，保持 null 由模板显示占位符
 const fetchPendingOrders = async () => {
   try {
     const [repairRes, recycleRes] = await Promise.all([
@@ -216,6 +234,10 @@ const fetchPendingOrders = async () => {
     console.warn('[Dashboard] 获取待办订单数失败:', error)
   }
 }
+
+// 模板显示用：null → '—'
+const repairCountText = computed(() => (pendingRepairCount.value === null ? '—' : pendingRepairCount.value))
+const recycleCountText = computed(() => (pendingRecycleCount.value === null ? '—' : pendingRecycleCount.value))
 
 const refreshAll = async () => {
   loading.value = true
@@ -231,7 +253,8 @@ const goRepair = () => {
   router.push('/repair/orders/miniprogram')
 }
 
-// 回收：新标签打开独立的回收综合服务网页（经 443 网关 /recycle-admin/ 子路径）
+// 回收：新标签打开独立的回收综合服务网页（经网关 /recycle-admin/ 子路径）。
+// 两系统同源，回收登录页检测到主系统 token 会自动单点登录，无需重复输密码
 const goRecycle = () => {
   window.open('/recycle-admin/', '_blank')
 }
@@ -509,93 +532,142 @@ onUnmounted(() => {
 .dashboard {
   .quick-entry-card {
     margin-bottom: 20px;
-    border: none;
-    background: linear-gradient(135deg, #f0f7ff 0%, #f6fbf4 100%);
+    // 渐变描边：白底卡片 + 蓝→绿描边，呼应两个入口的主题色
+    background:
+      linear-gradient(#fff, #fff) padding-box,
+      linear-gradient(120deg, rgba(47, 132, 245, 0.85), rgba(45, 190, 100, 0.85)) border-box;
+    border: 1px solid transparent;
+    box-shadow: 0 4px 16px rgba(23, 92, 160, 0.08);
 
     .quick-entry {
       display: flex;
       align-items: center;
-      gap: 24px;
+      gap: 16px;
+      flex-wrap: wrap;
+      row-gap: 12px;
     }
 
     .entry-item {
       display: flex;
       align-items: center;
-      padding: 16px 26px;
-      border-radius: 14px;
+      gap: 14px;
+      flex: 1 1 240px;
+      max-width: 330px;
+      min-height: 74px;
+      padding: 12px 16px;
+      box-sizing: border-box;
+      border-radius: 12px;
+      background: #f7f9fc;
+      border: 1px solid #ebeef5;
       cursor: pointer;
-      border: 1px solid transparent;
-      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-
-      .entry-inner {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-      }
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 
       .entry-icon {
-        font-size: 32px;
-        line-height: 1;
-        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12));
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+
+        .el-icon {
+          font-size: 24px;
+        }
+      }
+
+      .entry-text {
+        flex: 1;
+        min-width: 0;
       }
 
       .entry-title {
-        font-size: 16px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #303133;
+        line-height: 1.3;
+
+        .entry-arrow {
+          font-size: 14px;
+          color: #909399;
+          opacity: 0;
+          transform: translateX(-4px);
+          transition: opacity 0.2s ease, transform 0.2s ease;
+        }
       }
 
       .entry-desc {
         font-size: 12px;
         color: #909399;
         margin-top: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       &.repair {
-        background: linear-gradient(135deg, rgba(64, 158, 255, 0.10), rgba(64, 158, 255, 0.04));
+        .entry-icon {
+          background: linear-gradient(135deg, #409eff, #66b1ff);
+          box-shadow: 0 4px 10px rgba(64, 158, 255, 0.28);
+        }
 
         &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 18px rgba(64, 158, 255, 0.25);
-          border-color: rgba(64, 158, 255, 0.5);
+          background: rgba(64, 158, 255, 0.06);
+          border-color: rgba(64, 158, 255, 0.45);
+          box-shadow: 0 6px 16px rgba(64, 158, 255, 0.16);
+
+          .entry-arrow {
+            opacity: 1;
+            transform: translateX(0);
+          }
         }
       }
 
       &.recycle {
-        background: linear-gradient(135deg, rgba(103, 194, 58, 0.10), rgba(103, 194, 58, 0.04));
+        .entry-icon {
+          background: linear-gradient(135deg, #67c23a, #95d475);
+          box-shadow: 0 4px 10px rgba(103, 194, 58, 0.28);
+        }
 
         &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 18px rgba(103, 194, 58, 0.25);
-          border-color: rgba(103, 194, 58, 0.5);
+          background: rgba(103, 194, 58, 0.06);
+          border-color: rgba(103, 194, 58, 0.45);
+          box-shadow: 0 6px 16px rgba(103, 194, 58, 0.16);
+
+          .entry-arrow {
+            opacity: 1;
+            transform: translateX(0);
+          }
         }
       }
-    }
-
-    .entry-divider {
-      width: 1px;
-      height: 44px;
-      background: #dcdfe6;
     }
 
     .entry-todos {
       display: flex;
       flex-direction: column;
+      justify-content: center;
       gap: 8px;
 
       .todo-chip {
         display: flex;
         align-items: center;
-        gap: 4px;
+        justify-content: space-between;
+        gap: 12px;
         font-size: 13px;
-        padding: 6px 14px;
+        line-height: 1;
+        padding: 8px 14px;
         border-radius: 999px;
         cursor: pointer;
         transition: all 0.2s ease;
         border: 1px solid transparent;
+        white-space: nowrap;
 
         b {
           font-size: 14px;
+          font-weight: 700;
         }
 
         &.repair {
@@ -603,7 +675,7 @@ onUnmounted(() => {
           background: rgba(64, 158, 255, 0.08);
 
           &:hover {
-            background: rgba(64, 158, 255, 0.18);
+            background: rgba(64, 158, 255, 0.16);
             border-color: rgba(64, 158, 255, 0.4);
           }
         }
@@ -613,41 +685,57 @@ onUnmounted(() => {
           background: rgba(103, 194, 58, 0.08);
 
           &:hover {
-            background: rgba(103, 194, 58, 0.18);
+            background: rgba(103, 194, 58, 0.16);
             border-color: rgba(103, 194, 58, 0.4);
           }
         }
       }
     }
 
-    .entry-tip {
+    .entry-actions {
       margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .entry-tip {
       display: flex;
       align-items: center;
       gap: 6px;
       font-size: 13px;
       color: #909399;
       cursor: pointer;
-      padding: 8px 12px;
-      border-radius: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid #ebeef5;
+      background: #f7f9fc;
       transition: all 0.2s ease;
+      white-space: nowrap;
+
+      &:hover {
+        color: #606266;
+        border-color: #dcdfe6;
+      }
 
       &.active {
         color: #f56c6c;
         font-weight: 600;
+        background: rgba(245, 108, 108, 0.08);
+        border-color: rgba(245, 108, 108, 0.35);
 
         .el-icon {
           animation: bell-ring 2s ease-in-out infinite;
         }
 
         &:hover {
-          background: rgba(245, 108, 108, 0.1);
+          background: rgba(245, 108, 108, 0.14);
         }
       }
     }
 
     .refresh-btn {
-      margin-left: 12px;
+      flex-shrink: 0;
     }
 
     @keyframes bell-ring {
@@ -680,10 +768,10 @@ onUnmounted(() => {
     .stat-icon {
       border-radius: 12px;
 
-      &.icon-blue { background: linear-gradient(135deg, #409eff, #66b1ff); }
-      &.icon-orange { background: linear-gradient(135deg, #e6a23c, #f0c78a); }
-      &.icon-green { background: linear-gradient(135deg, #67c23a, #95d475); }
-      &.icon-red { background: linear-gradient(135deg, #f56c6c, #f89898); }
+      &.icon-blue { background: linear-gradient(135deg, #409eff, #66b1ff); box-shadow: 0 6px 14px rgba(64, 158, 255, 0.32); }
+      &.icon-orange { background: linear-gradient(135deg, #e6a23c, #f0c78a); box-shadow: 0 6px 14px rgba(230, 162, 60, 0.32); }
+      &.icon-green { background: linear-gradient(135deg, #67c23a, #95d475); box-shadow: 0 6px 14px rgba(103, 194, 58, 0.32); }
+      &.icon-red { background: linear-gradient(135deg, #f56c6c, #f89898); box-shadow: 0 6px 14px rgba(245, 108, 108, 0.32); }
     }
   }
 
@@ -725,11 +813,65 @@ onUnmounted(() => {
     }
   }
 
+  // 数字跟随图标配色做渐变，一眼区分指标
+  .stat-content .icon-blue + .stat-info .stat-value {
+    background: linear-gradient(135deg, #409eff, #79bbff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .stat-content .icon-orange + .stat-info .stat-value {
+    background: linear-gradient(135deg, #e6a23c, #f3d19e);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .stat-content .icon-green + .stat-info .stat-value {
+    background: linear-gradient(135deg, #67c23a, #b3e19d);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .stat-content .icon-red + .stat-info .stat-value {
+    background: linear-gradient(135deg, #f56c6c, #fab6b6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
   .charts-row {
     margin-bottom: 20px;
   }
 
   .chart-card {
+    :deep(.el-card__header) {
+      padding: 14px 20px;
+    }
+
+    // 标题前的渐变竖条，统一图表卡片的视觉锚点
+    :deep(.el-card__header) span {
+      position: relative;
+      font-size: 15px;
+      font-weight: 600;
+      color: #303133;
+      padding-left: 12px;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 15px;
+        border-radius: 2px;
+        background: linear-gradient(180deg, #409eff, #67c23a);
+      }
+    }
+
     .chart {
       height: 300px;
     }
@@ -742,13 +884,59 @@ onUnmounted(() => {
   }
 }
 
-:global(.dark) {
+// 暗色模式覆盖见文件末尾的非 scoped 样式块。
+// 注意：scoped 样式中 :global(.dark){ 嵌套 } 会被编译器丢弃嵌套选择器，
+// 只剩裸 .dark{...} 作用到 <html> 上，暗色覆盖全部失效，必须用全局扁平写法。
+</style>
+
+<style lang="scss">
+// 暗色模式（全局块，html.dark 扁平选择器才能正确命中组件内部元素）
+html.dark {
   .dashboard {
+    .quick-entry-card {
+      background:
+        linear-gradient(#1d1d1d, #1d1d1d) padding-box,
+        linear-gradient(120deg, rgba(47, 132, 245, 0.6), rgba(45, 190, 100, 0.6)) border-box;
+      box-shadow: none;
+
+      .entry-item {
+        background: #262727;
+        border-color: #414243;
+
+        .entry-title {
+          color: #e0e0e0;
+        }
+
+        &.repair:hover {
+          background: rgba(64, 158, 255, 0.12);
+        }
+
+        &.recycle:hover {
+          background: rgba(103, 194, 58, 0.12);
+        }
+      }
+
+      .entry-tip {
+        background: #262727;
+        border-color: #414243;
+
+        &:hover {
+          color: #c0c4cc;
+        }
+      }
+    }
+
+    .chart-card {
+      .el-card__header span {
+        color: #e0e0e0;
+      }
+    }
+
     .stat-card {
       .stat-content {
         .stat-info {
           .stat-value {
-            color: #e0e0e0;
+            color: #e5eaf3;
           }
 
           .stat-label {
