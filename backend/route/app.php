@@ -264,38 +264,6 @@ Route::group('api', function () {
             Route::put('/:id/pay', 'RepairServiceFeeController/pay');
             Route::delete('/:id', 'RepairServiceFeeController/delete');
         });
-
-        // 质检中心（repair 库，服务小程序回收定级/估价）
-        Route::group('qc', function () {
-            // 质检单
-            Route::get('orders', 'QcController/orders');
-            Route::post('orders', 'QcController/orderCreate');
-            Route::get('orders/:id', 'QcController/orderDetail');
-            Route::get('orders/:id/report', 'QcController/report');
-            Route::put('orders/:id/start', 'QcController/orderStart');
-            Route::put('orders/:id/grade', 'QcController/orderGrade');
-            Route::put('orders/:id/complete', 'QcController/orderComplete');
-            Route::get('orders/:id/price-suggestion', 'QcController/priceSuggestion');
-            // 质检图片/视频
-            Route::post('orders/:id/media', 'QcController/mediaSave');
-            Route::delete('media/:id', 'QcController/mediaDelete');
-            // 复核/争议
-            Route::post('orders/:id/reviews', 'QcController/reviewSave');
-            Route::put('reviews/:id', 'QcController/reviewResolve');
-            // 模板 / 质检项 / 成色标准 / 版本
-            Route::get('templates', 'QcController/templates');
-            Route::post('templates', 'QcController/templateSave');
-            Route::get('templates/:id', 'QcController/templateDetail');
-            Route::put('templates/:id', 'QcController/templateUpdate');
-            Route::delete('templates/:id', 'QcController/templateDelete');
-            Route::post('templates/:id/items', 'QcController/itemSave');
-            Route::put('items/:id', 'QcController/itemUpdate');
-            Route::delete('items/:id', 'QcController/itemDelete');
-            Route::post('templates/:id/grades', 'QcController/gradeSave');
-            Route::put('grades/:id', 'QcController/gradeUpdate');
-            Route::delete('grades/:id', 'QcController/gradeDelete');
-            Route::post('templates/:id/publish', 'QcController/publishVersion');
-        });
         Route::get('statistics/repair/orders', 'RepairStatisticsController/orders');
         Route::get('statistics/repair/finance', 'RepairStatisticsController/finance');
         Route::get('statistics/repair/personnel', 'RepairStatisticsController/personnel');
