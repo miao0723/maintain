@@ -298,6 +298,7 @@ function handleExport() {
   const params = {}
   if (query.keyword) params.keyword = query.keyword
   if (query.status) params.status = query.status
+  if (query.condition) params.condition = query.condition
   if (dateRange.value && dateRange.value.length === 2) {
     params.startDate = dateRange.value[0]
     params.endDate = dateRange.value[1]
