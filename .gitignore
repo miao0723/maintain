@@ -68,6 +68,7 @@ __pycache__/
 # ============================================
 venv/
 .venv/
+_venv/
 env/
 ENV/
 
@@ -78,6 +79,7 @@ ENV/
 **/.claude/settings.json
 **/.workbuddy/
 **/.cursor/
+.zcode/
 .aider*
 
 # ============================================
