@@ -694,19 +694,12 @@ HTML;
 
     /**
      * 生成 RSA2 签名
+     * 按支付宝官方规则：待签名串 = 除 sign、sign_type 外的全部参数（含 biz_content），
+     * 按 key ASCII 升序拼 k=v&k=v，值为原始值（不 URL 编码、不加引号）
      */
     private function generateSign($params, $privateKey)
     {
-        // 排序并拼接参数
-        ksort($params);
-        $signString = '';
-        foreach ($params as $key => $value) {
-            // biz_content 不参与签名计算
-            if ($key !== 'sign' && $key !== 'biz_content' && $value !== '' && $value !== null) {
-                $signString .= $key . '=' . $value . '&';
-            }
-        }
-        $signString = rtrim($signString, '&');
+        $signString = $this->buildSignString($params);
 
         // 处理私钥格式
         $privateKeyPem = $this->formatPrivateKey($privateKey);
@@ -722,7 +715,25 @@ HTML;
     }
 
     /**
-     * 验签方法
+     * 构造验签/签名用的参数串（排除 sign 与 sign_type，其余全部参与）
+     */
+    private function buildSignString($params)
+    {
+        // 移除签名字段（sign_type 按规范不参与签名/验签）
+        unset($params['sign'], $params['sign_type']);
+        ksort($params);
+        $pairs = [];
+        foreach ($params as $key => $value) {
+            if ($value === '' || $value === null) {
+                continue;
+            }
+            $pairs[] = $key . '=' . $value;
+        }
+        return implode('&', $pairs);
+    }
+
+    /**
+     * 验签方法（openssl_verify 返回 1 才是验签通过，0/-1 均为失败）
      */
     private function verifySign($params, $publicKey)
     {
@@ -735,20 +746,10 @@ HTML;
 
         // 从参数中获取签名
         $sign = $params['sign'] ?? '';
-        unset($params['sign']);
-
-        // 排序并拼接参数（biz_content 不参与签名）
-        ksort($params);
-        $signString = '';
-        foreach ($params as $key => $value) {
-            if ($key !== 'sign' && $key !== 'biz_content' && $value !== '' && $value !== null) {
-                $signString .= $key . '=' . $value . '&';
-            }
-        }
-        $signString = rtrim($signString, '&');
+        $signString = $this->buildSignString($params);
 
         // 验签
-        return openssl_verify($signString, base64_decode($sign), $key, OPENSSL_ALGO_SHA256);
+        return openssl_verify($signString, base64_decode($sign), $key, OPENSSL_ALGO_SHA256) === 1;
     }
 
     /**
@@ -801,6 +802,66 @@ HTML;
     }
 
     /**
+     * 同步回跳地址（支付完成后浏览器跳转回本端点）
+     * GET /api/payment/alipay/return
+     * return 是 GET 回跳、参数带签名：验签通过则直接提示成功，
+     * 无论验签与否都引导回前端测试页，由前端调 query 接口获取最终状态（以 notify/查询为准）
+     */
+    public function returnUrl()
+    {
+        $params = request()->get();
+        $outTradeNo = trim((string) ($params['out_trade_no'] ?? ''));
+        $verified = false;
+
+        $config = $this->getAlipayConfig();
+        if (!empty($params['sign']) && !empty($config['alipay_public_key'])) {
+            try {
+                $verified = $this->verifySign($params, $config['alipay_public_key']);
+            } catch (\Throwable $e) {
+                \think\facade\Log::error('支付宝同步回跳验签异常：' . $e->getMessage());
+            }
+        }
+
+        if (!$config['mock_mode'] && $verified) {
+            // 验签通过的同步回跳：顺手把已支付状态落库（真正的入账以 notify 异步通知为准）
+            $payment = OnlinePayment::where('order_no', $outTradeNo)->find();
+            if ($payment && in_array($params['trade_status'] ?? '', ['TRADE_SUCCESS', 'TRADE_FINISHED'], true)) {
+                $payment->status = 'paid';
+                $payment->trade_no = $params['trade_no'] ?? ($payment->trade_no ?: '');
+                $payment->paid_at = $payment->paid_at ?: date('Y-m-d H:i:s');
+                $payment->save();
+            }
+        }
+
+        $query = $outTradeNo !== '' ? ('?out_trade_no=' . urlencode($outTradeNo) . '&from=alipay_return') : '';
+        $html = <<<HTML
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>支付结果</title>
+<style>
+body{font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:#f5f7fb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+.card{background:#fff;border-radius:14px;padding:40px 48px;text-align:center;box-shadow:0 8px 30px rgba(30,60,120,.1)}
+.ok{color:#16a34a;font-size:44px}
+.tip{color:#475569;margin:14px 0 26px;line-height:1.7}
+a.btn{display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;padding:10px 28px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="ok">&#10004;</div>
+  <div class="tip">支付流程已完成，正在返回支付测试页…<br>最终支付状态请以页面查询结果为准。</div>
+  <a class="btn" href="/payment/alipay-test{$query}">立即查看支付结果</a>
+</div>
+<script>setTimeout(function(){location.href='/payment/alipay-test{$query}';},2500);</script>
+</body>
+</html>
+HTML;
+        return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
+    }
+
+    /**
      * 异步通知处理
      * POST /api/payment/alipay/notify
      */
@@ -819,7 +880,7 @@ HTML;
 
             // 验签
             if (!$this->verifySign($data, $config['alipay_public_key'])) {
-                \think\facade\Log::error('支付宝异步通知验签失败');
+                \think\facade\Log::error('支付宝异步通知验签失败：' . json_encode($data));
                 return 'fail';
             }
 
@@ -830,14 +891,26 @@ HTML;
             $payment = OnlinePayment::where('order_no', $outTradeNo)->find();
             if ($payment) {
                 if ($tradeStatus === 'TRADE_SUCCESS' || $tradeStatus === 'TRADE_FINISHED') {
-                    $payment->status = 'paid';
-                    $payment->trade_no = $data['trade_no'] ?? '';
-                    $payment->paid_at = date('Y-m-d H:i:s');
+                    // 金额校验：通知金额必须与本地订单一致，防止篡改
+                    $notifyAmount = (float) ($data['total_amount'] ?? 0);
+                    if ($notifyAmount > 0 && abs($notifyAmount - (float) $payment->amount) > 0.01) {
+                        \think\facade\Log::error("支付宝异步通知金额不符：本地{$payment->amount}，通知{$notifyAmount}，单号{$outTradeNo}");
+                        return 'fail';
+                    }
+                    // 幂等：已支付的订单不重复处理
+                    if ($payment->status !== 'paid') {
+                        $payment->status = 'paid';
+                        $payment->trade_no = $data['trade_no'] ?? '';
+                        $payment->paid_at = date('Y-m-d H:i:s');
+                        $payment->save();
+                    }
                 } elseif ($tradeStatus === 'TRADE_CLOSED') {
-                    $payment->status = 'cancelled';
-                    $payment->cancelled_at = date('Y-m-d H:i:s');
+                    if ($payment->status === 'pending') {
+                        $payment->status = 'cancelled';
+                        $payment->cancelled_at = date('Y-m-d H:i:s');
+                        $payment->save();
+                    }
                 }
-                $payment->save();
             }
 
             return 'success';
@@ -848,8 +921,10 @@ HTML;
     }
 
     /**
-     * 模拟退款
+     * 退款（按模式自动分流）
      * POST /api/payment/alipay/mock-refund
+     * - mock 模式：本地状态流转（原有行为）
+     * - 真实模式：调用支付宝 alipay.trade.refund 统一收单交易退款接口
      */
     public function mockRefund()
     {
@@ -863,10 +938,6 @@ HTML;
             $refundAmount = isset($data['refund_amount']) ? (float) $data['refund_amount'] : null;
             $config = $this->getAlipayConfig();
 
-            if (!$config['mock_mode']) {
-                return Result::error('模拟退款仅在模拟模式下可用', 400);
-            }
-
             // 获取支付记录
             $payment = OnlinePayment::where('order_no', $outTradeNo)->find();
 
@@ -878,54 +949,115 @@ HTML;
                 return Result::error('只有已支付的订单才能退款', 400);
             }
 
-            if ($payment->status === 'refunded') {
-                return Result::error('该订单已退款', 400);
+            $refundAmount = $refundAmount ?: (float) $payment->amount;
+            if ($refundAmount > (float) $payment->amount + 0.001) {
+                return Result::error('退款金额不能超过支付金额', 400);
             }
 
-            if ($refundAmount && $refundAmount > $payment->amount) {
-                return Result::error('退款金额不能超过支付金额', 400);
+            // 真实模式：调用支付宝退款接口
+            if (!$config['mock_mode']) {
+                $refundResult = $this->refundViaAlipay($payment, $refundAmount);
+                if (!$refundResult['ok']) {
+                    return Result::error('支付宝退款失败：' . $refundResult['error'], 500);
+                }
             }
 
             // 更新退款状态
             $payment->status = 'refunded';
-            $payment->refund_amount = $refundAmount ?: $payment->amount;
+            $payment->refund_amount = $refundAmount;
             $payment->refund_at = date('Y-m-d H:i:s');
             $payment->save();
 
             return Result::success([
                 'out_trade_no' => $payment->order_no,
                 'refund_amount' => $payment->refund_amount,
-                'mock_mode' => true,
-            ], '模拟退款成功');
+                'mock_mode' => $config['mock_mode'],
+                'alipay_response' => $config['mock_mode'] ? null : ($refundResult['response'] ?? null),
+            ], $config['mock_mode'] ? '模拟退款成功' : '支付宝退款成功');
         } catch (\Throwable $e) {
-            return Result::error('模拟退款失败：' . $e->getMessage(), 500);
+            return Result::error('退款失败：' . $e->getMessage(), 500);
         }
     }
 
     /**
+     * 调用 alipay.trade.refund（同步退款接口）
+     */
+    private function refundViaAlipay($payment, float $refundAmount)
+    {
+        $config = $this->getAlipayConfig();
+        if (empty($config['app_id']) || empty($config['private_key'])) {
+            return ['ok' => false, 'error' => '请先配置支付宝密钥'];
+        }
+
+        $outRequestNo = 'R' . date('YmdHis') . substr(md5($payment->order_no . $refundAmount), 0, 8);
+        $bizContent = [
+            'out_trade_no' => $payment->order_no,
+            'refund_amount' => number_format($refundAmount, 2, '.', ''),
+            'refund_reason' => '用户申请退款（测试）',
+            'out_request_no' => $outRequestNo,
+        ];
+
+        $params = [
+            'app_id' => $config['app_id'],
+            'method' => 'alipay.trade.refund',
+            'format' => 'JSON',
+            'charset' => 'utf-8',
+            'sign_type' => 'RSA2',
+            'timestamp' => date('Y-m-d H:i:s'),
+            'version' => '1.0',
+            'biz_content' => json_encode($bizContent, JSON_UNESCAPED_UNICODE),
+        ];
+        $params['sign'] = $this->generateSign($params, $config['private_key']);
+
+        $response = $this->httpPost($config['gateway'], $params);
+        $decoded = json_decode($response, true);
+        $body = $decoded['alipay_trade_refund_response'] ?? null;
+        if (!is_array($body)) {
+            return ['ok' => false, 'error' => '返回格式异常：' . substr((string) $response, 0, 300)];
+        }
+        if ((int) ($body['code'] ?? 0) !== 10000) {
+            $msg = $body['sub_msg'] ?? ($body['msg'] ?? '未知错误');
+            return ['ok' => false, 'error' => "{$body['code']}：{$msg}", 'response' => $decoded];
+        }
+        return ['ok' => true, 'response' => $decoded];
+    }
+
+    /**
      * 发送 HTTP POST 请求
+     * 优先启用 SSL 证书校验（Docker/Linux 环境自带 CA）；本地 Windows PHP 常缺 CA 包，
+     * 校验失败时降级为不校验并记录日志，保证可用性
      */
     private function httpPost($url, $params)
     {
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => http_build_query($params),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-        ]);
-        $response = curl_exec($ch);
-        $error = curl_error($ch);
-        curl_close($ch);
+        $lastError = '';
+        foreach ([true, false] as $verify) {
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => http_build_query($params),
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_SSL_VERIFYPEER => $verify,
+                CURLOPT_SSL_VERIFYHOST => $verify ? 2 : 0,
+            ]);
+            $response = curl_exec($ch);
+            $error = curl_error($ch);
+            curl_close($ch);
 
-        if ($error) {
-            throw new \Exception('HTTP 请求失败：' . $error);
+            if ($error === '') {
+                if (!$verify && $lastError !== '') {
+                    \think\facade\Log::warning("支付宝请求 SSL 严格校验失败已降级：{$lastError}");
+                }
+                return $response;
+            }
+            $lastError = $error;
+            // 仅证书链问题才降级；连接类错误直接抛出
+            if (stripos($error, 'certificate') === false) {
+                throw new \Exception('HTTP 请求失败：' . $error);
+            }
         }
-
-        return $response;
+        throw new \Exception('HTTP 请求失败：' . $lastError);
     }
 
     private function buildMockCashierUrl(string $outTradeNo): string

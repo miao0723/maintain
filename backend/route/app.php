@@ -111,6 +111,7 @@ Route::group('api', function () {
     Route::group('payment/alipay', function () {
         Route::post('create', 'AlipayTestController/create');
         Route::get('query', 'AlipayTestController/query');
+        Route::get('return', 'AlipayTestController/returnUrl');
         Route::get('mock-page', 'AlipayTestController/mockPage');
         Route::post('mock', 'AlipayTestController/mockPay');
         Route::post('mock-cancel', 'AlipayTestController/mockCancel');
@@ -424,6 +425,7 @@ Route::group('api', function () {
                 Route::get('/:id/download', 'MarketingDouyinController/download');
                 Route::post('/:id/download', 'MarketingDouyinController/download');
                 Route::post('/:id/optimize', 'MarketingDouyinController/optimize');
+                Route::get('/:id/generate/status', 'MarketingDouyinController/generateStatus');
                 Route::post('/:id/publish', 'MarketingDouyinController/publish');
                 Route::post('publish/callback', 'MarketingDouyinController/publishCallback');
                 Route::get('/:id/publish/status', 'MarketingDouyinController/checkPublishStatus');
