@@ -547,12 +547,21 @@ const formatTime = (time) => {
   return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
 }
 
+const escapeHtml = (text) => text
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+
 const renderMarkdown = (content) => {
   if (!content) return ''
   try {
-    return marked(content)
+    // 先转义再解析：AI 回复按纯文本/Markdown 处理，防止内容里的 HTML 被浏览器执行；
+    // breaks:true 让单换行渲染为 <br>，解决回复换行被折叠不显示的问题
+    marked.setOptions({ gfm: true, breaks: true })
+    return marked(escapeHtml(String(content)))
   } catch {
-    return content
+    return escapeHtml(String(content))
   }
 }
 
