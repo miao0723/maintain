@@ -1,4 +1,5 @@
 import os
+import re
 import socket
 from typing import Any, Dict, List
 from urllib.parse import quote_plus
@@ -73,8 +74,47 @@ def mysql_url(prefix: str) -> str:
             f"@{host}:{port}/{database}?charset=utf8mb4")
 
 
-CMMS_ENGINE = create_engine(mysql_url("DATABASE"), pool_pre_ping=True)
-REPAIR_ENGINE = create_engine(mysql_url("REPAIR_DB"), pool_pre_ping=True)
+def _create_engine(url: str):
+    # 远程库（8.155.24.202）网络抖动时不能无限等待：
+    # 连接 8s / 读 20s 超时，30 分钟回收连接避免长连接被 MySQL wait_timeout 掐断
+    return create_engine(
+        url,
+        pool_pre_ping=True,
+        pool_recycle=1800,
+        pool_size=5,
+        max_overflow=5,
+        connect_args={"connect_timeout": 8, "read_timeout": 20},
+    )
+
+
+CMMS_ENGINE = _create_engine(mysql_url("DATABASE"))
+REPAIR_ENGINE = _create_engine(mysql_url("REPAIR_DB"))
+
+# ---------------------------------------------------------------------------
+# 数据库错误分层：safe_fetch_rows 不再把"连接失败"伪装成"没有数据"。
+# 每次请求开始时 reset_db_errors()，结束时 drain_db_errors() 取走错误明细，
+# 图节点据此区分「库连不上」与「真的没查到」。
+# ---------------------------------------------------------------------------
+_DB_ERRORS: List[Dict[str, str]] = []
+
+
+def reset_db_errors() -> None:
+    _DB_ERRORS.clear()
+
+
+def drain_db_errors() -> List[Dict[str, str]]:
+    errors = list(_DB_ERRORS)
+    _DB_ERRORS.clear()
+    return errors
+
+
+def _record_db_error(engine, sql: str, exc: Exception) -> None:
+    engine_name = "cmms_db" if engine is CMMS_ENGINE else "repair"
+    _DB_ERRORS.append({
+        "database": engine_name,
+        "sql_head": " ".join(sql.split())[:120],
+        "error": f"{type(exc).__name__}: {exc}"[:200],
+    })
 
 
 def fetch_rows(engine, sql: str, params: Dict[str, Any] | None = None) -> List[Dict[str, Any]]:
@@ -91,23 +131,9 @@ def fetch_one(engine, sql: str, params: Dict[str, Any] | None = None) -> Dict[st
 def safe_fetch_rows(engine, sql: str, params: Dict[str, Any] | None = None) -> List[Dict[str, Any]]:
     try:
         return fetch_rows(engine, sql, params)
-    except Exception:
+    except Exception as exc:
+        _record_db_error(engine, sql, exc)
         return []
-
-
-def fetch_rows_with_fallback(
-    primary_engine,
-    sql: str,
-    params: Dict[str, Any] | None = None,
-    *,
-    fallback_engine=None,
-) -> List[Dict[str, Any]]:
-    try:
-        return fetch_rows(primary_engine, sql, params)
-    except Exception:
-        if fallback_engine is None:
-            raise
-        return fetch_rows(fallback_engine, sql, params)
 
 
 def query_user_context(user_id: int) -> Dict[str, Any]:
@@ -151,7 +177,7 @@ def query_user_context(user_id: int) -> Dict[str, Any]:
 
 
 def query_personnel(keyword: str, limit: int = 10) -> List[Dict[str, Any]]:
-    return fetch_rows_with_fallback(
+    return safe_fetch_rows(
         REPAIR_ENGINE,
         """
         SELECT
@@ -175,12 +201,11 @@ def query_personnel(keyword: str, limit: int = 10) -> List[Dict[str, Any]]:
         LIMIT :limit
         """,
         {"kw": f"%{keyword}%", "limit": limit},
-        fallback_engine=CMMS_ENGINE,
     )
 
 
 def query_repair_personnel(keyword: str = "", limit: int = 10) -> List[Dict[str, Any]]:
-    return fetch_rows_with_fallback(
+    return safe_fetch_rows(
         REPAIR_ENGINE,
         """
         SELECT
@@ -211,7 +236,6 @@ def query_repair_personnel(keyword: str = "", limit: int = 10) -> List[Dict[str,
         LIMIT :limit
         """,
         {"kw": keyword, "like_kw": f"%{keyword}%", "limit": limit},
-        fallback_engine=CMMS_ENGINE,
     )
 
 
@@ -331,7 +355,7 @@ def query_work_orders(keyword: str = "", limit: int = 10) -> List[Dict[str, Any]
 
 
 def query_progress(order_id: int) -> List[Dict[str, Any]]:
-    return fetch_rows_with_fallback(
+    return safe_fetch_rows(
         REPAIR_ENGINE,
         """
         SELECT
@@ -351,7 +375,6 @@ def query_progress(order_id: int) -> List[Dict[str, Any]]:
         ORDER BY id ASC
         """,
         {"order_id": order_id},
-        fallback_engine=CMMS_ENGINE,
     )
 
 
@@ -365,7 +388,7 @@ def query_inventory(keyword: str = "", low_stock_only: bool = False, limit: int 
         conditions.append("sp.stock_quantity <= sp.min_stock")
 
     where_sql = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-    return fetch_rows_with_fallback(
+    return safe_fetch_rows(
         REPAIR_ENGINE,
         f"""
         SELECT
@@ -384,12 +407,11 @@ def query_inventory(keyword: str = "", low_stock_only: bool = False, limit: int 
         LIMIT :limit
         """,
         params,
-        fallback_engine=CMMS_ENGINE,
     )
 
 
 def query_suppliers(keyword: str = "", limit: int = 10) -> List[Dict[str, Any]]:
-    return fetch_rows_with_fallback(
+    return safe_fetch_rows(
         REPAIR_ENGINE,
         """
         SELECT id, name, code, contact_person, contact_phone AS phone, contact_email AS email, status
@@ -399,12 +421,11 @@ def query_suppliers(keyword: str = "", limit: int = 10) -> List[Dict[str, Any]]:
         LIMIT :limit
         """,
         {"kw": keyword, "like_kw": f"%{keyword}%", "limit": limit},
-        fallback_engine=CMMS_ENGINE,
     )
 
 
 def query_supplier_inventory_ranking(limit: int = 10) -> List[Dict[str, Any]]:
-    return fetch_rows_with_fallback(
+    return safe_fetch_rows(
         REPAIR_ENGINE,
         """
         SELECT
@@ -422,7 +443,6 @@ def query_supplier_inventory_ranking(limit: int = 10) -> List[Dict[str, Any]]:
         LIMIT :limit
         """,
         {"limit": limit},
-        fallback_engine=CMMS_ENGINE,
     )
 
 
@@ -563,27 +583,54 @@ def query_knowledge_overview(keyword: str = "", limit: int = 10) -> Dict[str, An
     }
 
 
+def _tokenize_search(question: str) -> List[str]:
+    """中文检索分词：英文/数字整词 + 中文 bigram。
+    中文没有空格，question.split() 对中文永远只能得到整句，
+    会导致 LIKE '%整句%' 几乎必不命中——这里用二元切分兜住大多数问法。"""
+    tokens: List[str] = []
+    for word in re.findall(r"[A-Za-z0-9]+", question):
+        if len(word) >= 2:
+            tokens.append(word.lower())
+    for run in re.findall(r"[\u4e00-\u9fff]+", question):
+        if len(run) == 1:
+            tokens.append(run)
+        else:
+            tokens.extend(run[i : i + 2] for i in range(len(run) - 1))
+    # 去重且保持顺序，最多取 6 个词控制查询规模
+    seen: set = set()
+    unique: List[str] = []
+    for token in tokens:
+        if token not in seen:
+            seen.add(token)
+            unique.append(token)
+    return unique[:6]
+
+
 def query_rag(question: str, limit: int = 5) -> List[Dict[str, Any]]:
-    tokens = [token for token in question.split() if len(token) >= 2]
+    tokens = _tokenize_search(question)
     if not tokens:
-        tokens = [question[:20]] if question.strip() else ["知识库"]
+        tokens = ["知识库"]
 
     where_parts = []
+    hit_parts = []
     params: Dict[str, Any] = {"limit": limit}
-    for index, token in enumerate(tokens[:4]):
+    for index, token in enumerate(tokens):
         key = f"kw{index}"
+        like = f"%{token}%"
         where_parts.append(f"(kc.content LIKE :{key} OR kf.original_name LIKE :{key})")
-        params[key] = f"%{token}%"
+        hit_parts.append(f"(CASE WHEN kc.content LIKE :{key} THEN 1 ELSE 0 END)")
+        params[key] = like
 
-    where_sql = " OR ".join(where_parts) if where_parts else "1=1"
+    where_sql = " OR ".join(where_parts)
+    hit_sql = " + ".join(hit_parts)
     return fetch_rows(
         CMMS_ENGINE,
         f"""
-        SELECT kc.content, kf.original_name
+        SELECT kc.content, kf.original_name, {hit_sql} AS hit_count
         FROM kb_chunks kc
         LEFT JOIN kb_files kf ON kf.id = kc.file_id
         WHERE {where_sql}
-        ORDER BY kc.id DESC
+        ORDER BY hit_count DESC, kc.id DESC
         LIMIT :limit
         """,
         params,

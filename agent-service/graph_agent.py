@@ -11,6 +11,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 
 from data_access import (
+    drain_db_errors,
     env,
     query_business_overview,
     query_finance_summary,
@@ -29,6 +30,7 @@ from data_access import (
     query_suppliers,
     query_user_context,
     query_work_orders,
+    reset_db_errors,
 )
 
 
@@ -105,7 +107,8 @@ ENTERPRISE_SYSTEM_PROMPT = """你是企业级维修管理系统的系统智能�
    - 用户下一步可以怎么查
 5. 如果结果不完整，要明确说“当前仅查到部分数据”或“当前结果主要来自某个数据库”。
 6. repair 数据库侧重维修订单、维修进度、库存、供应商、维修用户；cmms_db 侧重系统模块、知识库、CMMS 工单、维修业务配置。
-7. 输出使用简洁中文，但信息密度要高，适合企业管理场景。"""
+7. 输出使用简洁中文，但信息密度要高，适合企业管理场景。
+8. 多条数据一律用 Markdown「- 」列表逐条展示，不要把多条信息用分号拼成一段长句。"""
 
 STATUS_LABELS = {
     "pending": "待处理",
@@ -187,18 +190,26 @@ def cleanup_keyword(text_value: str) -> str:
     value = text_value.strip()
     for token in STOP_WORDS:
         value = value.replace(token, " ")
-    value = re.sub(r"[，。！？；：,.!?;:/\\()（）【】\\[\\]\"'“”‘’]+", " ", value)
+    # 字符类中 [ ] 需各自转义一次；此前 \\[\\] 的双重转义会让类在 ] 处提前闭合，
+    # 中英文引号实际从未被清掉
+    value = re.sub(r"[，。！？；：,.!?;:/\\()（）【】\[\]\"'“”‘’]+", " ", value)
     value = re.sub(r"\s+", " ", value).strip()
     return value if len(value) > 1 else ""
 
 
-def normalize_message(message: str) -> str:
-    normalized = message.strip()
-    compact = cleanup_keyword(normalized)
+def message_enhancements(message: str) -> List[str]:
+    """回答结构提示（由 answer 阶段作为格式要求注入，不再拼进归一化文本污染关键词）"""
+    compact = cleanup_keyword(message)
+    enhancements: List[str] = []
     for tokens, enhancement in SUGGESTION_NORMALIZERS:
-        if all(token in normalized for token in tokens) or all(token in compact for token in tokens):
-            return f"{normalized}\n\n补充要求：{enhancement}"
-    return normalized
+        if all(token in message for token in tokens) or all(token in compact for token in tokens):
+            enhancements.append(enhancement)
+    return enhancements
+
+
+def normalize_message(message: str) -> str:
+    # 归一化只做清洗：追加「补充要求」类文本 historically 会流入关键词提取和 RAG 检索，引入噪声
+    return message.strip()
 
 
 def detect_modules(message: str) -> List[str]:
@@ -507,6 +518,7 @@ def append_module_context_tools(local_state: AgentState, matched_modules: List[s
 
 
 def initialize_state(state: AgentState) -> AgentState:
+    reset_db_errors()  # 每次请求独立的数据库错误上下文
     return {
         "normalized_message": normalize_message(state["message"]),
         "history": sanitize_history(state.get("history", [])),
@@ -732,14 +744,19 @@ def no_data_node(state: AgentState) -> AgentState:
     analysis = state.get("analysis", {})
     scenario = analysis.get("primary_scenario", "general")
     tool_errors = state.get("tool_errors", [])
-    if tool_errors:
-        error_tools = "；".join(f"{item.get('tool')}: {item.get('error')}" for item in tool_errors[:3])
+    db_errors = drain_db_errors()
+
+    # 数据库连接/查询异常：绝不把原始异常（含主机、SQL 细节）透给终端用户
+    if db_errors or tool_errors:
+        failed_dbs = sorted({item.get("database", "?") for item in db_errors})
+        failed_tools = [item.get("tool") for item in tool_errors[:4]]
+        detail = "、".join(filter(None, [*failed_dbs, *failed_tools])) or "相关数据源"
+        log_debug("db-error", {"db_errors": db_errors, "tool_errors": tool_errors})
         return {
             "answer": (
-                "本次查询没有返回可用结果，系统已自动进入无数据处理。\n"
-                f"当前场景：{scenario}。\n"
-                f"异常信息：{error_tools}。\n"
-                "建议下一步：请缩小查询范围、补充更精确的订单号/人员名/模块名，或确认相关业务数据是否已同步入库。"
+                "本次查询未能正常读取业务数据，可能是数据库连接异常或服务暂时不可用。\n"
+                f"- 未可用数据源：{detail}\n"
+                "- 建议下一步：请稍后重试；如果持续出现，请联系管理员检查数据库连接与 agent-service 日志。"
             )
         }
 
@@ -772,11 +789,8 @@ def build_direct_answer(message: str, tool_outputs: List[Dict[str, Any]]) -> str
                 f"关键依据：本月入账 ¥{float(totals.get('month_amount') or 0):.2f}；今日入账 ¥{float(totals.get('today_amount') or 0):.2f}；全额退款 {totals.get('refunded_count', 0)} 笔。",
             ]
             if recent:
-                samples = "；".join(
-                    f"{row.get('order_no') or '-'} ¥{float(row.get('amount') or 0):.2f}（{row.get('paid_at') or '时间未知'}）"
-                    for row in recent[:3]
-                )
-                lines.append(f"最近入账：{samples}。")
+                samples = [f"{row.get('order_no') or '-'} ¥{float(row.get('amount') or 0):.2f}（{row.get('paid_at') or '时间未知'}）" for row in recent[:3]]
+                lines.append("最近入账：\n" + md_list(samples))
             lines.append("下一步建议：可以继续追问退款中的订单、检测费待收情况，或某笔订单的收入明细。")
             return "\n".join(lines)
         return build_empty_result_answer(
@@ -797,7 +811,7 @@ def build_direct_answer(message: str, tool_outputs: List[Dict[str, Any]]) -> str
                 )
             return (
                 f"结论：当前共查到 {len(rows)} 笔退款相关订单。\n"
-                f"关键依据：{'；'.join(parts)}。\n"
+                f"关键依据：\n{md_list(parts)}\n"
                 "下一步建议：可在「支付管理 → 退款管理」页审核退款（同意后进入退款中，等待微信退款到账）。"
             )
         return build_empty_result_answer(
@@ -818,11 +832,8 @@ def build_direct_answer(message: str, tool_outputs: List[Dict[str, Any]]) -> str
             ]
             if rows:
                 fee_status_labels = {"unpaid": "待收款", "paid": "已收款", "waived": "已减免"}
-                samples = "；".join(
-                    f"{row.get('fee_no')} ¥{float(row.get('amount') or 0):.2f}（{fee_status_labels.get(row.get('status'), '未知')}，订单{row.get('order_no') or '-'}）"
-                    for row in rows[:3]
-                )
-                lines.append(f"最近费用单：{samples}。")
+                samples = [f"{row.get('fee_no')} ¥{float(row.get('amount') or 0):.2f}（{fee_status_labels.get(row.get('status'), '未知')}，订单{row.get('order_no') or '-'}）" for row in rows[:3]]
+                lines.append("最近费用单：\n" + md_list(samples))
             lines.append("下一步建议：可在「维修业务 → 检测费用」页面完成收款或减免操作。")
             return "\n".join(lines)
         return build_empty_result_answer(
@@ -864,7 +875,7 @@ def build_direct_answer(message: str, tool_outputs: List[Dict[str, Any]]) -> str
                 parts.append(
                     f"{row.get('order_no') or row.get('id')}(状态{label}, 设备{row.get('machine_name') or '未知'})"
                 )
-            return f"当前查到的维修订单有：{'；'.join(parts)}。"
+            return f"当前查到的维修订单有：\n{md_list(parts)}"
         return build_empty_result_answer(
             "维修订单信息",
             "repair 数据库中的 orders 订单列表",
@@ -875,7 +886,7 @@ def build_direct_answer(message: str, tool_outputs: List[Dict[str, Any]]) -> str
         rows = tool_map["query_repair_personnel"] or []
         if rows:
             parts = [f"{row.get('name')}(角色{row.get('role') or '未知'}, 电话{row.get('phone') or '暂无'})" for row in rows[:5]]
-            return f"当前查到的维修人员有：{'；'.join(parts)}。"
+            return f"当前查到的维修人员有：\n{md_list(parts)}"
         return build_empty_result_answer(
             "维修人员信息",
             "repair 数据库中的 users 维修管理用户",
@@ -886,13 +897,13 @@ def build_direct_answer(message: str, tool_outputs: List[Dict[str, Any]]) -> str
         rows = tool_map["query_personnel"] or []
         if rows:
             parts = [f"{row.get('name')}(角色{row.get('role') or '未知'}, 电话{row.get('phone') or '暂无'})" for row in rows[:5]]
-            return f"当前查到的人员有：{'；'.join(parts)}。"
+            return f"当前查到的人员有：\n{md_list(parts)}"
 
     if "query_suppliers" in tool_map and "供应商" in message and "最高" not in message and "金额" not in message:
         rows = tool_map["query_suppliers"] or []
         if rows:
             parts = [f"{row.get('name')}(编码{row.get('code') or '暂无'}, 电话{row.get('phone') or '暂无'})" for row in rows[:5]]
-            return f"当前查到的供应商有：{'；'.join(parts)}。"
+            return f"当前查到的供应商有：\n{md_list(parts)}"
         return build_empty_result_answer(
             "供应商信息",
             "repair 数据库中的 suppliers 供应商档案",
@@ -903,7 +914,7 @@ def build_direct_answer(message: str, tool_outputs: List[Dict[str, Any]]) -> str
         rows = tool_map["query_work_orders"] or []
         if rows:
             parts = [f"{row.get('order_no')}(状态{row.get('status') or '未知'}, 故障{row.get('fault_type') or '未填写'})" for row in rows[:5]]
-            return f"当前查到的系统工单有：{'；'.join(parts)}。"
+            return f"当前查到的系统工单有：\n{md_list(parts)}"
         return build_empty_result_answer(
             "系统工单",
             "cmms_db 数据库中的 work_orders 工单列表",
@@ -950,7 +961,7 @@ def build_direct_answer(message: str, tool_outputs: List[Dict[str, Any]]) -> str
                 ["改为查看全部配件库存", "查看某个配件名称或编码", "确认最低库存阈值是否已维护"],
             )
         parts = [f"{row.get('part_name') or row.get('part_code')}(库存{row.get('stock_quantity', 0)}, 最低{row.get('min_stock', 0)})" for row in rows[:5]]
-        return f"当前低库存配件已按紧急程度优先列出：{'；'.join(parts)}。"
+        return f"当前低库存配件已按紧急程度优先列出：\n{md_list(parts)}"
 
     if "query_repair_order_detail" in tool_map:
         rows = tool_map["query_repair_order_detail"] or []
@@ -970,8 +981,7 @@ def build_direct_answer(message: str, tool_outputs: List[Dict[str, Any]]) -> str
                 parts.append(f"{row.get('order_no') or row.get('id')}(状态{format_status_label(row.get('repair_status'))})")
             return (
                 f"当前未查到 ID 为 {detect_order_id(message) or '该编号'} 的精确维修订单。"
-                f" 但在 repair 订单库中查到了与该编号相关的候选订单：{'；'.join(parts)}。"
-                " 你可以继续指定准确订单号，或直接让我查看其中某一张订单的状态、进度和负责人。"
+                f" 但在 repair 订单库中查到了与该编号相关的候选订单：\n{md_list(parts)}"
             )
         return build_empty_result_answer(
             "该维修订单明细",
@@ -983,22 +993,25 @@ def build_direct_answer(message: str, tool_outputs: List[Dict[str, Any]]) -> str
         rows = tool_map["query_repair_order_workload"] or []
         if rows:
             top = rows[0]
-            ranking = "；".join(f"{row.get('technician_name', '未知人员')} {row.get('order_count', 0)} 单" for row in rows[:5])
-            return f"当前订单量最高的人员是 {top.get('technician_name', '未知人员')}，共 {top.get('order_count', 0)} 单。排行参考：{ranking}。"
+            ranking = [f"{row.get('technician_name', '未知人员')} {row.get('order_count', 0)} 单" for row in rows[:5]]
+            return (
+                f"**结论：当前订单量最高的人员是 {top.get('technician_name', '未知人员')}，共 {top.get('order_count', 0)} 单。**\n"
+                f"排行参考：\n{md_list(ranking)}"
+            )
 
     if "query_supplier_inventory_ranking" in tool_map:
         rows = tool_map["query_supplier_inventory_ranking"] or []
         if rows:
             parts = [f"{row.get('name')}(库存金额{float(row.get('inventory_value', 0)):.2f}元, 配件{row.get('part_count', 0)}种)" for row in rows[:5]]
-            return f"最近库存金额最高的供应商如下：{'；'.join(parts)}。"
+            return f"最近库存金额最高的供应商如下：\n{md_list(parts)}"
 
     if "query_system_features" in tool_map and any(token in message for token in ["模块", "菜单", "功能", "入口", "侧边栏", "页面"]):
         data = tool_map["query_system_features"] or {}
         if data:
-            parts = [f"{module}：{'、'.join(features[:6])}" for module, features in list(data.items())[:4]]
+            parts = [f"**{module}**：{'、'.join(features[:6])}" for module, features in list(data.items())[:4]]
             return (
                 "结论：当前问题已命中系统侧边栏模块定义。\n"
-                f"关键依据：{'；'.join(parts)}。\n"
+                f"关键依据：\n{md_list(parts)}\n"
                 "下一步建议：如果你要看某个模块的真实业务数据，我可以继续展开对应模块的明细，例如维修业务、进销存或知识库。"
             )
         return build_empty_result_answer(
@@ -1030,40 +1043,69 @@ def build_direct_answer(message: str, tool_outputs: List[Dict[str, Any]]) -> str
     return None
 
 
+def resolve_reference(message: str, history: List[Dict[str, str]]) -> str:
+    """追问场景（"它呢""继续""第二条"）下，直答模板只看当前句会答非所问；
+    这里把上一条用户问题拼回上下文，仅用于直答分支。"""
+    referential = ["它", "他", "她", "这个", "那个", "该", "继续", "再", "第二", "上一", "还有呢", "呢？", "呢?"]
+    if len(message) > 12 or not any(token in message for token in referential):
+        return message
+    prev_users = [item["content"] for item in history if item.get("role") == "user"]
+    if not prev_users:
+        return message
+    return f"{prev_users[-1]}（用户追问：{message}）"
+
+
+def md_list(parts: List[str]) -> str:
+    return "\n".join(f"- {part}" for part in parts)
+
+
 def answer_node(state: AgentState) -> AgentState:
     tool_outputs = state.get("tool_outputs", [])
     message = state["message"]
-    direct_answer = build_direct_answer(state["normalized_message"], tool_outputs)
+    history = state.get("history", [])
+    message_with_context = resolve_reference(state["normalized_message"], history)
+    direct_answer = build_direct_answer(message_with_context, tool_outputs)
     if direct_answer:
+        # 直答也尊重回答结构提示
+        enhancements = message_enhancements(state["normalized_message"])
+        if enhancements:
+            direct_answer += "\n补充说明：" + "；".join(enhancements)
         return {"answer": direct_answer}
 
-    llm = build_llm()
     scenario = state["analysis"]["primary_scenario"]
     system_prompt = (
         f"{ENTERPRISE_SYSTEM_PROMPT}\n"
-        f"当前场景要求：{SCENARIO_PROMPTS.get(scenario, SCENARIO_PROMPTS['general'])}"
+        f"当前场景要求：{SCENARIO_PROMPTS.get(scenario, SCENARIO_PROMPTS['general'])}\n"
+        "输出格式要求：使用简洁 Markdown；结论单独一行，依据用「- 」列表逐条给出，最后单独一行给建议。"
     )
+    # 控制送入 LLM 的体量：每组结果截断，避免 overview 类宽查询撑爆 prompt
+    truncated_outputs = []
+    for item in tool_outputs:
+        dump = json.dumps(item.get("data"), ensure_ascii=False, default=str)
+        truncated_outputs.append({"tool": item.get("tool"), "data": dump[:1500]})
+    enhancement_text = "\n".join(f"- {text}" for text in message_enhancements(state["normalized_message"]))
     prompt = [
         SystemMessage(content=system_prompt),
-        *convert_history(state.get("history", [])),
+        *convert_history(history),
         HumanMessage(
             content=(
                 f"当前用户ID：{state.get('user_id')}\n"
-                f"用户上下文：{json.dumps(state.get('user_profile', {}), ensure_ascii=False, default=str)}\n"
+                f"用户上下文：{json.dumps(state.get('user_profile', {}), ensure_ascii=False, default=str)[:800]}\n"
                 f"用户原始问题：{message}\n"
-                f"归一化问题：{state['normalized_message']}\n"
                 f"场景分析：{json.dumps(state['analysis'], ensure_ascii=False)}\n"
-                f"数据库查询结果：{json.dumps(tool_outputs, ensure_ascii=False, default=str)}\n\n"
+                f"数据库查询结果：{json.dumps(truncated_outputs, ensure_ascii=False, default=str)}\n"
+                f"{'回答需满足：' + chr(10) + enhancement_text if enhancement_text else ''}\n"
                 "请基于这些结果直接作答。如果多组数据冲突，优先说明差异，不要自行杜撰。"
             )
         ),
     ]
     try:
+        llm = build_llm()  # 在 try 内构建：缺 DEEPSEEK_API_KEY 时走降级而不是 500
         response = llm.invoke(prompt)
         answer = response.content if isinstance(response, AIMessage) else str(response)
     except Exception as exc:
         log_debug("llm-failed", {"error": str(exc)})
-        # LLM 不可用时降级：直接输出本次查到的真实数据摘要，而不是整个请求失败
+        # LLM 不可用/未配置时降级：直接输出本次查到的真实数据摘要，而不是整个请求失败
         data_summary = summarize_tool_outputs(tool_outputs)
         answer = (
             "大模型服务暂时不可用，以下是基于数据库真实查询结果的摘要：\n"

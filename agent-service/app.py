@@ -4,7 +4,9 @@ from typing import Any, Dict, List
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy import text
 
+from data_access import CMMS_ENGINE, REPAIR_ENGINE
 from graph_agent import invoke_agent, log_debug
 
 
@@ -51,8 +53,18 @@ def normalize_history(history: List[Dict[str, str]]) -> List[Dict[str, str]]:
 
 
 @app.get("/health")
-def health() -> Dict[str, str]:
-    return {"status": "ok"}
+def health() -> Dict[str, Any]:
+    # 带数据库连通性的健康检查：DB 挂掉时不再返回"假绿"
+    db_status: Dict[str, str] = {}
+    for name, engine in (("cmms_db", CMMS_ENGINE), ("repair", REPAIR_ENGINE)):
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            db_status[name] = "ok"
+        except Exception as exc:
+            db_status[name] = f"error: {type(exc).__name__}"
+    overall = "ok" if all(v == "ok" for v in db_status.values()) else "degraded"
+    return {"status": overall, "databases": db_status}
 
 
 @app.post("/chat")
@@ -93,7 +105,9 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        # 内部异常原文（主机/密钥/堆栈）不透给前端，完整信息只进日志
+        log_debug("chat-failed", {"request_id": request_id, "error": f"{type(exc).__name__}: {exc}"})
+        raise HTTPException(status_code=500, detail="智能体服务内部错误，请稍后重试") from exc
 
 
 if __name__ == "__main__":
