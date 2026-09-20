@@ -1,0 +1,44 @@
+{
+  "checks": [
+    {
+      "id": "name_len",
+      "label": "软件全称 ≤50 字",
+      "status": "PASS",
+      "value": 20,
+      "detail": "全称共 20 字，符合 ≤50 字要求。"
+    },
+    {
+      "id": "func_len",
+      "label": "主要功能 500–1300 字",
+      "status": "PASS",
+      "value": 586,
+      "detail": "功能描述 586 字，符合 500–1300 字区间。"
+    },
+    {
+      "id": "secret_mask",
+      "label": "密钥脱敏(*遮蔽)",
+      "status": "PASS",
+      "value": 0,
+      "detail": "未检测到未脱敏密钥或教学式占位符。"
+    },
+    {
+      "id": "ai_marker",
+      "label": "零 AI 标记(教程式标注)",
+      "status": "PASS",
+      "value": 0,
+      "detail": "未发现'对齐说明书/§/参见说明书'等教程式标注。"
+    },
+    {
+      "id": "date_order",
+      "label": "日期勾稽",
+      "status": "PASS",
+      "value": 1,
+      "detail": "开发完成日期 2026-07-20，未发表，无发表日期冲突，勾稽成立。"
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "WARN": 0,
+    "FAIL": 0
+  }
+}

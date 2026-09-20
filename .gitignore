@@ -143,3 +143,10 @@ coverage/
 
 # publisher-service 运行时数据（SQLite、浏览器登录态、截图、日志），容器实时写入不进 git
 publisher-service/data/
+
+# Office 临时锁文件
+~$*
+
+# 软著申报材料生成过程的页面预览图（中间产物，不进库）
+软著申报材料/回收综合服务平台V1.0/_gen/cover_png/
+软著申报材料/回收综合服务平台V1.0/_gen/manual_png/

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>众云信息科技维修回收综合服务平台V1.0 — 软件说明书</title>
+<style>
+  :root{ --brand:#00479C; --brand2:#0EA5E9; --ink:#1E293B; --sub:#475569; --line:#E2E8F0; --bg:#F8FAFC; }
+  *{ box-sizing:border-box; }
+  body{ font-family:"Microsoft YaHei","PingFang SC",sans-serif; color:var(--ink); margin:0; background:#fff; line-height:1.75; }
+  .page{ max-width:900px; margin:0 auto; padding:48px 56px; }
+  header.cover{ text-align:center; padding:60px 0 40px; border-bottom:3px solid var(--brand); margin-bottom:8px; }
+  header.cover h1{ font-size:30px; color:var(--brand); margin:0 0 12px; letter-spacing:1px; }
+  header.cover .sub{ color:var(--sub); font-size:15px; }
+  header.cover .meta{ margin-top:24px; font-size:13px; color:#64748B; }
+  h2{ color:var(--brand); font-size:21px; border-left:5px solid var(--brand2); padding-left:12px; margin-top:42px; }
+  h3{ color:var(--ink); font-size:16px; margin-top:24px; }
+  p,li{ font-size:14px; color:var(--ink); }
+  table{ width:100%; border-collapse:collapse; margin:14px 0; font-size:13px; }
+  th,td{ border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+  th{ background:var(--bg); color:var(--brand); }
+  .fig{ margin:22px 0; text-align:center; }
+  .fig svg{ max-width:100%; height:auto; border:1px solid var(--line); border-radius:8px; background:#fff; }
+  .fig .cap{ font-size:12px; color:#64748B; margin-top:6px; }
+  .note{ background:var(--bg); border-left:4px solid var(--brand2); padding:10px 14px; font-size:13px; color:var(--sub); margin:14px 0; border-radius:0 6px 6px 0; }
+  code{ background:var(--bg); padding:1px 6px; border-radius:4px; font-size:12.5px; }
+  .toc{ background:var(--bg); padding:18px 26px; border-radius:8px; margin:24px 0; }
+  .toc ol{ margin:0; padding-left:20px; }
+  .toc li{ font-size:14px; margin:4px 0; }
+  footer{ text-align:center; color:#94A3B8; font-size:12px; margin-top:40px; padding-top:16px; border-top:1px solid var(--line); }
+  @media print{ body{ font-size:12px; } .page{ padding:24px 28px; } h2{ page-break-after:avoid; } .fig{ page-break-inside:avoid; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="cover">
+  <h1>众云信息科技维修回收综合服务平台V1.0</h1>
+  <div class="sub">软件说明书（用户操作与系统设计手册）</div>
+  <div class="meta">版本：V1.0 ｜ 开发完成：2026-07-20 ｜ 首次发表：未发表（内部部署）<br>申请人：（申请人公司/个人全称）｜ 密级：公开</div>
+</header>
+
+<div class="toc">
+  <strong>目　录</strong>
+  <ol>
+    <li>引言</li>
+    <li>总体概述</li>
+    <li>系统架构设计</li>
+    <li>核心业务流程</li>
+    <li>功能模块设计</li>
+    <li>数据库设计</li>
+    <li>接口设计</li>
+    <li>安全设计</li>
+    <li>部署与运行</li>
+    <li>操作使用手册</li>
+    <li>测试与验收</li>
+    <li>未来扩展规划</li>
+    <li>修订记录</li>
+  </ol>
+</div>
+
+<!-- 第一章 引言 -->
+<h2>第一章　引言</h2>
+<p>《众云信息科技维修回收综合服务平台V1.0》是一款面向维修服务企业的全流程数字化管理软件，支持 Web 管理后台与微信小程序（用户端 / 工程师端）双端协同。系统覆盖从客户引流、报修下单、维修作业、支付结算到库存管理与数据分析的完整业务链条，帮助企业实现服务过程可追溯、经营数据可量化。</p>
+<p>本说明书用于说明软件的功能、架构、部署与操作方法，供著作权登记审查及最终用户参考。软件全称：<b>众云信息科技维修回收综合服务平台V1.0</b>；内部代号 CMMS（Computerized Maintenance Management System）。</p>
+
+<!-- 第二章 总体概述 -->
+<h2>第二章　总体概述</h2>
+<p>系统采用前后端分离架构：后端基于 ThinkPHP 8.1（PHP 8.1+）提供 RESTful API，数据层使用 MySQL 8.0 与 Redis 7.0；Web 管理后台基于 Vue 3 + Vite 5 + Element Plus 构建；微信小程序端提供扫码报修、进度查看与验收评价。AI 客服采用"路由智能体 + 领域智能体"的分层多智能体架构。</p>
+<table>
+  <tr><th>维度</th><th>说明</th></tr>
+  <tr><td>适用对象</td><td>家电 / 手机电脑 / 汽车等各类维修服务企业</td></tr>
+  <tr><td>用户角色</td><td>超级管理员、后台管理员、工程师、普通客户</td></tr>
+  <tr><td>终端形态</td><td>Web 管理后台（PC 浏览器）+ 微信小程序（用户端 / 工程师端）</td></tr>
+  <tr><td>部署形态</td><td>Docker 容器化一键部署，亦支持传统 LAMP/WAMP 部署</td></tr>
+</table>
+
+<!-- 第三章 架构设计 -->
+<h2>第三章　系统架构设计</h2>
+<p>系统分为前端层、API 网关层、应用层与数据层四个层次，通过 HTTPS + JWT 进行安全通信。</p>
+<div class="fig">
+<svg viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" font-family="Microsoft YaHei,sans-serif">
+  <rect x="0" y="0" width="680" height="320" fill="#fff"/>
+  <rect x="20" y="24" width="640" height="56" rx="8" fill="#EFF6FF" stroke="#0EA5E9"/>
+  <text x="340" y="48" text-anchor="middle" fill="#00479C" font-size="15">前端层</text>
+  <text x="340" y="70" text-anchor="middle" fill="#475569" font-size="12">Web 管理后台（Vue3+ElementPlus）　|　微信小程序（用户端 / 工程师端）</text>
+  <rect x="20" y="104" width="640" height="40" rx="8" fill="#F0FDFA" stroke="#10B981"/>
+  <text x="340" y="129" text-anchor="middle" fill="#047857" font-size="13">API 网关层　Nginx 反向代理　+　HTTPS / JWT 鉴权</text>
+  <rect x="20" y="164" width="640" height="56" rx="8" fill="#FEF9C3" stroke="#EAB308"/>
+  <text x="340" y="188" text-anchor="middle" fill="#854D0E" font-size="15">应用层　ThinkPHP 8.1 应用服务</text>
+  <text x="340" y="210" text-anchor="middle" fill="#475569" font-size="12">业务管理｜维修业务｜支付模块｜进销存｜统计分析｜引流模块｜通知系统</text>
+  <rect x="20" y="244" width="640" height="52" rx="8" fill="#F5F3FF" stroke="#8B5CF6"/>
+  <text x="340" y="268" text-anchor="middle" fill="#5B21B6" font-size="15">数据层</text>
+  <text x="340" y="288" text-anchor="middle" fill="#475569" font-size="12">MySQL 8.0（业务数据）　|　Redis 7.0（缓存 / 会话 / 队列）</text>
+  <line x1="340" y1="80" x2="340" y2="104" stroke="#94A3B8" stroke-width="1.5"/>
+  <line x1="340" y1="144" x2="340" y2="164" stroke="#94A3B8" stroke-width="1.5"/>
+  <line x1="340" y1="220" x2="340" y2="244" stroke="#94A3B8" stroke-width="1.5"/>
+</svg>
+<div class="cap">图 3-1　系统总体分层架构</div>
+</div>
+
+<!-- 第四章 核心业务流程 -->
+<h2>第四章　核心业务流程</h2>
+<p>系统以"报修—派单—维修—验收—结算"为主线，贯通业务闭环。</p>
+<div class="fig">
+<svg viewBox="0 0 680 150" xmlns="http://www.w3.org/2000/svg" font-family="Microsoft YaHei,sans-serif">
+  <rect x="0" y="0" width="680" height="150" fill="#fff"/>
+  <g font-size="12" text-anchor="middle">
+    <rect x="10" y="55" width="92" height="40" rx="6" fill="#EFF6FF" stroke="#0EA5E9"/><text x="56" y="80" fill="#00479C">客户报修/下单</text>
+    <rect x="122" y="55" width="92" height="40" rx="6" fill="#EFF6FF" stroke="#0EA5E9"/><text x="168" y="80" fill="#00479C">创建/分配订单</text>
+    <rect x="234" y="55" width="92" height="40" rx="6" fill="#FEF9C3" stroke="#EAB308"/><text x="280" y="80" fill="#854D0E">工程师接单</text>
+    <rect x="346" y="55" width="92" height="40" rx="6" fill="#FEF9C3" stroke="#EAB308"/><text x="392" y="80" fill="#854D0E">维修/进度留痕</text>
+    <rect x="458" y="55" width="92" height="40" rx="6" fill="#F0FDFA" stroke="#10B981"/><text x="504" y="80" fill="#047857">验收评价</text>
+    <rect x="570" y="55" width="100" height="40" rx="6" fill="#F5F3FF" stroke="#8B5CF6"/><text x="620" y="80" fill="#5B21B6">支付/结算</text>
+  </g>
+  <g stroke="#64748B" stroke-width="1.5" fill="none">
+    <path d="M102 75 H122"/><path d="M214 75 H234"/><path d="M326 75 H346"/><path d="M438 75 H458"/><path d="M550 75 H570"/>
+  </g>
+  <text x="56" y="120" text-anchor="middle" fill="#94A3B8" font-size="11">小程序扫码报修</text>
+  <text x="620" y="120" text-anchor="middle" fill="#94A3B8" font-size="11">在线/转账支付+发票</text>
+</svg>
+<div class="cap">图 4-1　维修业务主流程</div>
+</div>
+
+<!-- 第五章 功能模块设计 -->
+<h2>第五章　功能模块设计</h2>
+<p>系统包含八大核心模块，以下为关键子功能。</p>
+<table>
+  <tr><th>模块</th><th>主要子功能</th></tr>
+  <tr><td>基础管理</td><td>用户、角色、权限、人员、单位、日志、参数管理（RBAC 权限树）</td></tr>
+  <tr><td>业务管理</td><td>免责协议、维修内容、客户绑定 / 解绑</td></tr>
+  <tr><td>引流模块</td><td>成功案例、人工客服、抖音获客、合作企业</td></tr>
+  <tr><td>维修业务</td><td>机械种类/名称、小程序订单、手动创建订单、报价单、检测费、测试/维修报告、维修合同、维修提醒、联动维修、进度申请/照片/视频</td></tr>
+  <tr><td>支付模块</td><td>转账支付、在线支付、发票管理</td></tr>
+  <tr><td>进销存</td><td>配件管理、供应商管理、出入库、盘点</td></tr>
+  <tr><td>查询统计</td><td>收入统计、开支统计、订单统计、超时统计</td></tr>
+  <tr><td>AI 客服</td><td>路由智能体 + 领域智能体（FAQ / 订单查询 / 维修回收咨询）</td></tr>
+</table>
+
+<!-- 第六章 数据库设计 -->
+<h2>第六章　数据库设计</h2>
+<p>系统数据库（cmms_db）包含约 38 张数据表，核心表如下。</p>
+<table>
+  <tr><th>表名</th><th>说明</th></tr>
+  <tr><td>users / roles / permissions</td><td>用户、角色、权限（RBAC）</td></tr>
+  <tr><td>machine_categories / machines</td><td>机械分类、机械名称（设备档案）</td></tr>
+  <tr><td>orders / repair_progress</td><td>订单、维修进度</td></tr>
+  <tr><td>payments</td><td>支付与结算记录</td></tr>
+  <tr><td>parts / suppliers</td><td>配件、供应商（进销存）</td></tr>
+  <tr><td>statistics</td><td>统计汇总数据</td></tr>
+</table>
+
+<!-- 第七章 接口设计 -->
+<h2>第七章　接口设计</h2>
+<p>后端以 RESTful 风格暴露接口，统一返回 <code>{code, message, data}</code> 结构；主要接口分组：</p>
+<table>
+  <tr><th>分组</th><th>示例端点</th><th>说明</th></tr>
+  <tr><td>认证</td><td>POST /api/auth/login</td><td>登录获取 JWT，refresh 刷新令牌</td></tr>
+  <tr><td>用户/角色</td><td>GET /api/users, /api/roles</td><td>用户与角色权限管理</td></tr>
+  <tr><td>维修业务</td><td>/api/orders, /api/repair/*</td><td>订单与维修进度管理</td></tr>
+  <tr><td>支付</td><td>/api/pay/*</td><td>转账/在线支付与回调验签</td></tr>
+  <tr><td>AI 客服</td><td>/api/chat/*</td><td>多智能体对话接口</td></tr>
+</table>
+<div class="note">接口路径兼容 <code>/api</code> 与 <code>/mp-api</code> 双前缀；小程序通过 <code>/mp-api</code> 由 Nginx 反代至后端。</div>
+
+<!-- 第八章 安全设计 -->
+<h2>第八章　安全设计</h2>
+<ul>
+  <li><b>身份认证</b>：JWT 无状态令牌鉴权，密码经 bcrypt 加盐哈希存储，杜绝明文。</li>
+  <li><b>权限隔离</b>：基于 RBAC 的角色权限校验，客户端与管理端逻辑隔离。</li>
+  <li><b>密钥管理</b>：数据库密码、微信 AppSecret、支付密钥等统一存放于 <code>.env</code>，源码零硬编码。</li>
+  <li><b>传输安全</b>：全程 HTTPS，Nginx 终止 TLS；支付回调报文经证书验签。</li>
+  <li><b>文件安全</b>：上传文件类型与大小受限，图片自动压缩，防范恶意文件。</li>
+  <li><b>审计留痕</b>：订单状态流转、报价、审批等关键操作全程记录，可追溯。</li>
+</ul>
+
+<!-- 第九章 部署与运行 -->
+<h2>第九章　部署与运行</h2>
+<p>推荐采用 Docker Compose 一键部署，亦支持本地 LAMP/WAMP 部署。</p>
+<table>
+  <tr><th>组件</th><th>版本 / 说明</th></tr>
+  <tr><td>PHP</td><td>≥ 8.1（ThinkPHP 8.1）</td></tr>
+  <tr><td>MySQL</td><td>≥ 8.0</td></tr>
+  <tr><td>Redis</td><td>≥ 7.0</td></tr>
+  <tr><td>Nginx</td><td>反向代理 + TLS 终止</td></tr>
+  <tr><td>Node.js</td><td>≥ 18（前端构建）</td></tr>
+</table>
+<p>默认访问地址：Web 管理后台 <code>http://localhost:3000</code>，后端 API <code>http://localhost/api</code>；默认管理员账号 admin / admin123。</p>
+
+<!-- 第十章 操作使用手册 -->
+<h2>第十章　操作使用手册</h2>
+<h3>10.1　管理员（Web 后台）</h3>
+<ol>
+  <li>使用管理员账号登录 Web 管理后台；</li>
+  <li>在"基础管理"维护用户、角色与权限树；</li>
+  <li>在"维修业务"创建机械种类、录入订单、审核报价单与维修报告；</li>
+  <li>在"支付模块"核对转账/在线支付并开具发票；</li>
+  <li>在"查询统计"查看收入、开支、订单与超时报表。</li>
+</ol>
+<h3>10.2　客户（微信小程序）</h3>
+<ol>
+  <li>扫码或搜索进入小程序，填写报修信息提交订单；</li>
+  <li>在"我的订单"查看维修进度照片/视频；</li>
+  <li>维修完成后进行验收与评价。</li>
+</ol>
+<h3>10.3　工程师（微信小程序）</h3>
+<ol>
+  <li>接收派单，接单或拒单；</li>
+  <li>录入维修记录、上传现场照片/视频；</li>
+  <li>提交进度申请，等待客户验收。</li>
+</ol>
+
+<!-- 第十一章 测试与验收 -->
+<h2>第十一章　测试与验收</h2>
+<p>系统通过接口测试、业务流转测试与压力验证：</p>
+<ul>
+  <li>认证接口：登录 / 刷新令牌 / 鉴权拦截全部通过；</li>
+  <li>业务闭环：报修→派单→维修→验收→支付 全流程贯通；</li>
+  <li>数据与缓存：MySQL 与 Redis 连接稳定，看板响应及时；</li>
+  <li>健康检查：<code>/health</code> 与 <code>/db-health</code> 接口实时可用。</li>
+</ul>
+
+<!-- 第十二章 未来扩展 -->
+<h2>第十二章　未来扩展规划</h2>
+<ul>
+  <li>多租户 SaaS 化，支持连锁维修企业统一管理；</li>
+  <li>AI 客服增强：引入更多领域智能体与工单自动派发；</li>
+  <li>对接主流电商平台与地图服务，拓展上门维修调度；</li>
+  <li>移动端 App 与小程序能力对齐，提升现场作业体验。</li>
+</ul>
+
+<!-- 修订记录 -->
+<h2>修订记录</h2>
+<table>
+  <tr><th>版本</th><th>日期</th><th>修订说明</th><th>修订人</th></tr>
+  <tr><td>V0.1</td><td>2026-03-28</td><td>完成 8 大核心模块；Web 后台与微信小程序双端；JWT 鉴权与 Docker 部署</td><td>（开发团队）</td></tr>
+  <tr><td>V0.2</td><td>2026-05-15</td><td>AI 多智能体客服上线；统计看板增强；进销存盘点优化</td><td>（开发团队）</td></tr>
+  <tr><td>V1.0</td><td>2026-07-20</td><td>维修报告模板自定义；支付对账；性能与安全防护加固（最终确定登记版本）</td><td>（开发团队）</td></tr>
+</table>
+
+<footer>众云信息科技维修回收综合服务平台V1.0 软件说明书　·　（申请人公司/个人全称）　·　第 1 版</footer>
+</div>
+</body>
+</html>
