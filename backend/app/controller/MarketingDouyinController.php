@@ -5,6 +5,7 @@ namespace app\controller;
 use app\common\Result;
 use app\service\PublishDispatcher;
 use app\service\PublisherService;
+use app\service\VideoGenerateService;
 use think\facade\Db;
 
 class MarketingDouyinController
@@ -19,31 +20,18 @@ class MarketingDouyinController
 
     public function testCozeConnection()
     {
-        try {
-            $token = env('coze_API', '') ?: getenv('coze_API');
-            if (empty($token)) return Result::error('未配置 Coze Token', 500);
-
-            $testPayload = [
-                'test' => true,
-                'prompt' => 'test connection',
-            ];
-
-            $response = $this->postJson('https://njgbwq9tmx.coze.site/stream_run', $testPayload, [
-                'Authorization: Bearer ' . $token,
-                'Content-Type: application/json',
-            ]);
-
-            return Result::success([
-                'status' => $response['status'],
-                'error' => $response['error'],
-                'errno' => $response['errno'] ?? 0,
-                'body' => substr($response['body'], 0, 1000),
-                'token_present' => !empty($token),
-                'token_length' => strlen($token),
-            ]);
-        } catch (\Exception $e) {
-            return Result::error('测试失败：' . $e->getMessage(), 500);
-        }
+        // 2026-09 起视频生成已切换为阿里云百炼（通义万相文生视频）；
+        // 保留原路由用于前端连通性检查，实际检查 DASHSCOPE_API_KEY 配置
+        $service = new VideoGenerateService();
+        $key = env('DASHSCOPE_API_KEY', '') ?: getenv('DASHSCOPE_API_KEY');
+        return Result::success([
+            'provider' => 'dashscope',
+            'model' => $service->model(),
+            'status' => !empty($key) ? 200 : 500,
+            'error' => empty($key) ? '未配置 DASHSCOPE_API_KEY' : '',
+            'token_present' => !empty($key),
+            'token_length' => strlen((string)$key),
+        ]);
     }
 
     public function index()
@@ -66,161 +54,243 @@ class MarketingDouyinController
         }
     }
 
+    /**
+     * 生成视频：阿里云百炼·通义万相文生视频（异步任务）
+     * 提交后立即返回任务 ID，前端通过 /:id/generate/status 轮询进度
+     */
     public function generate()
     {
         $data = request()->post();
         $prompt = trim((string)($data['prompt'] ?? ''));
         $title = trim((string)($data['douyin_title'] ?? ''));
-        $saveToLibrary = array_key_exists('save_to_library', $data) ? (bool)$data['save_to_library'] : true;
 
         if ($prompt === '') return Result::error('视频创意描述不能为空', 400);
         if ($title === '') return Result::error('抖音标题不能为空', 400);
 
-        $token = env('coze_API', '') ?: getenv('coze_API');
-        if (empty($token)) return Result::error('未配置 Coze Token', 500);
-
-        $payload = [
-            'prompt' => $prompt,
-            'resolution' => (string)($data['resolution'] ?? '1080p'),
-            'ratio' => (string)($data['ratio'] ?? '9:16'),
-            'duration' => (int)($data['duration'] ?? 30),
-            'watermark' => (bool)($data['watermark'] ?? false),
-            'douyin_title' => $title,
-            'douyin_desc' => (string)($data['douyin_desc'] ?? ''),
-            'douyin_tags' => (string)($data['douyin_tags'] ?? ''),
-            'video_config' => $this->normalizeVideoConfig($data['video_config'] ?? []),
-        ];
+        $service = new VideoGenerateService();
+        if (!$service->enabled()) {
+            return Result::error('未配置 DASHSCOPE_API_KEY，无法使用通义万相文生视频', 500);
+        }
 
         try {
-            $response = $this->postJson('https://njgbwq9tmx.coze.site/stream_run', $payload, [
-                'Authorization: Bearer ' . $token,
-                'Content-Type: application/json',
+            VideoGenerateService::ensureColumns();
+
+            // 将营销要素并入提示词（万相只吃一段文本，提示词越具体画面越可控）
+            $videoConfig = $this->normalizeVideoConfig($data['video_config'] ?? []);
+            $promptParts = [$prompt];
+            if (!empty($videoConfig['visual_style'])) $promptParts[] = '画面风格：' . $videoConfig['visual_style'];
+            if (!empty($videoConfig['selling_points'])) $promptParts[] = '突出卖点：' . implode('、', (array)$videoConfig['selling_points']);
+            if (!empty($videoConfig['hook_text'])) $promptParts[] = '开头钩子：' . $videoConfig['hook_text'];
+            if (!empty($videoConfig['cta_text'])) $promptParts[] = '结尾引导：' . $videoConfig['cta_text'];
+            $finalPrompt = implode('；', $promptParts);
+
+            $parameters = $service->buildParameters([
+                'ratio' => (string)($data['ratio'] ?? '9:16'),
+                'size' => (string)($data['size'] ?? ''),
+                'duration' => (int)($data['duration'] ?? 5),
+                'seed' => (int)($data['seed'] ?? 0),
             ]);
 
-            if ($response['error']) {
-                return Result::error($this->buildCozeErrorMessage($response['error']), 500);
-            }
-
-            if ($response['status'] >= 400) {
-                $rawMessage = $response['body'] ?: ('HTTP ' . $response['status']);
-                return Result::error($this->buildCozeErrorMessage($rawMessage), 500);
-            }
-
-            $decoded = json_decode($response['body'], true);
-            if ($decoded === null && !empty($response['body'])) {
-                return Result::error('Coze 工作流返回了无效的 JSON 响应：' . substr($response['body'], 0, 500), 500);
-            }
-
-            $decoded = json_decode($response['body'], true);
-            $videoUrl = $this->extractFirstValue($decoded, ['video_url', 'videoUrl', 'url', 'output_url', 'result_url', 'file_url']);
-            $cover = $this->extractFirstValue($decoded, ['cover', 'cover_url', 'poster', 'thumbnail', 'image_url']);
-            $views = (int)$this->extractFirstValue($decoded, ['views', 'play_count', 'view_count'], 0);
-            $likes = (int)$this->extractFirstValue($decoded, ['likes', 'like_count'], 0);
-            $comments = (int)$this->extractFirstValue($decoded, ['comments', 'comment_count'], 0);
-            $shares = (int)$this->extractFirstValue($decoded, ['shares', 'share_count'], 0);
-
-            $record = [
-                'title' => $payload['douyin_title'],
-                'video_url' => is_string($videoUrl) ? $videoUrl : '',
-                'cover' => is_string($cover) ? $cover : '',
-                'description' => $payload['douyin_desc'] ?: '',
-                'tags' => $payload['douyin_tags'],
-                'views' => $views,
-                'likes' => $likes,
-                'comments' => $comments,
-                'shares' => $shares,
-                'generate_config' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                'workflow_result' => json_encode($decoded !== null ? $decoded : $response['body'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                'status' => 0,
-                'publish_time' => date('Y-m-d H:i:s'),
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
+            $payload = [
+                'provider' => 'dashscope',
+                'model' => $service->model(),
+                'prompt' => $prompt,
+                'final_prompt' => $finalPrompt,
+                'negative_prompt' => (string)($data['negative_prompt'] ?? ''),
+                'ratio' => (string)($data['ratio'] ?? '9:16'),
+                'parameters' => $parameters,
+                'douyin_title' => $title,
+                'douyin_desc' => (string)($data['douyin_desc'] ?? ''),
+                'douyin_tags' => (string)($data['douyin_tags'] ?? ''),
+                'video_config' => $videoConfig,
+                'auto_publish' => !empty($data['auto_publish']),
+                'auto_publish_platform' => (string)($data['auto_publish_platform'] ?? 'douyin'),
             ];
 
-            $saved = null;
-            if ($saveToLibrary) {
-                $id = Db::name('marketing_douyin_content')->insertGetId($record);
-                $saved = Db::name('marketing_douyin_content')->find($id);
+            $task = $service->createTask($finalPrompt, $payload['negative_prompt'], $parameters);
+            if (!$task['ok']) {
+                return Result::error($task['error'], 500);
             }
 
+            $now = date('Y-m-d H:i:s');
+            $record = [
+                'title' => $title,
+                'video_url' => '',
+                'cover' => '',
+                'description' => $payload['douyin_desc'],
+                'tags' => $payload['douyin_tags'],
+                'generate_config' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'workflow_result' => json_encode($task['raw'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'gen_task_id' => $task['task_id'],
+                'gen_status' => 'running',
+                'gen_error' => null,
+                'status' => 0,
+                'publish_time' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+            $id = Db::name('marketing_douyin_content')->insertGetId($record);
+
             return Result::success([
-                'saved' => $saved,
-                'can_publish' => !empty($videoUrl),
-                'save_to_library' => $saveToLibrary,
-                'draft_material' => $record,
-                'workflow_status' => $response['status'],
-                'workflow_result' => $decoded !== null ? $decoded : $response['body'],
-            ], $saveToLibrary ? '视频创建成功，已保存到素材库' : '视频创建成功');
+                'id' => $id,
+                'gen_task_id' => $task['task_id'],
+                'gen_status' => 'running',
+                'model' => $service->model(),
+                'parameters' => $parameters,
+                'poll_url' => '/api/marketing/douyin/' . $id . '/generate/status',
+            ], '视频生成任务已提交（通义万相），生成约需 1~3 分钟，请稍候查看进度');
         } catch (\Exception $e) {
             return Result::error($e->getMessage(), 500);
         }
     }
 
+    /**
+     * 轮询视频生成进度：成功时回写 video_url 并尽量预下载（万相地址 24 小时有效）；
+     * 生成参数带 auto_publish 时自动触发发布编排
+     */
+    public function generateStatus($id)
+    {
+        try {
+            VideoGenerateService::ensureColumns();
+            $content = Db::name('marketing_douyin_content')->find($id);
+            if (!$content) return Result::error('内容不存在', 404);
+
+            $taskId = (string)($content['gen_task_id'] ?? '');
+            if ($taskId === '') {
+                // 兼容旧素材（非异步生成）：有视频即视为完成
+                return Result::success([
+                    'id' => $id,
+                    'gen_status' => !empty($content['video_url']) ? 'succeeded' : 'none',
+                    'video_url' => (string)($content['video_url'] ?? ''),
+                    'gen_error' => '',
+                    'material' => $content,
+                    'auto_publish' => null,
+                ]);
+            }
+
+            $service = new VideoGenerateService();
+            $task = $service->queryTask($taskId);
+            if (!$task['ok']) return Result::error($task['error'], 500);
+
+            $update = [
+                'gen_status' => $task['status'],
+                'workflow_result' => json_encode($task['raw'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+            if ($task['status'] === 'succeeded') {
+                $update['video_url'] = $task['video_url'];
+                $update['gen_error'] = null;
+            } elseif ($task['status'] === 'failed') {
+                $update['gen_error'] = mb_substr($task['error'], 0, 480);
+            }
+            Db::name('marketing_douyin_content')->where('id', $id)->update($update);
+            $content = Db::name('marketing_douyin_content')->find($id);
+
+            $autoPublishResult = null;
+            if ($task['status'] === 'succeeded') {
+                // 视频地址 24 小时过期：共享目录环境（docker）下预下载落地
+                try {
+                    $this->tryDownloadGeneratedVideo($content);
+                    $content = Db::name('marketing_douyin_content')->find($id);
+                } catch (\Exception $e) {
+                    // 预下载失败不阻塞：发布链路 PublishDispatcher 发布前仍会下载
+                }
+
+                $config = json_decode((string)($content['generate_config'] ?? '{}'), true) ?: [];
+                if (!empty($config['auto_publish']) && (int)$content['status'] !== 1) {
+                    $platform = (string)($config['auto_publish_platform'] ?? 'douyin');
+                    if (PublisherService::enabled()) {
+                        try {
+                            $autoPublishResult = $this->dispatcher($platform)->publish($id);
+                        } catch (\Exception $e) {
+                            $autoPublishResult = ['error' => $e->getMessage()];
+                        }
+                    }
+                }
+            }
+
+            return Result::success([
+                'id' => $id,
+                'gen_status' => $task['status'],
+                'video_url' => (string)($content['video_url'] ?? ''),
+                'gen_error' => (string)($content['gen_error'] ?? ''),
+                'material' => $content,
+                'auto_publish' => $autoPublishResult,
+            ]);
+        } catch (\Exception $e) {
+            return Result::error($e->getMessage(), 500);
+        }
+    }
+
+    private function tryDownloadGeneratedVideo(array $content)
+    {
+        if (!empty($content['local_path'])) return;
+        $dir = (string)(env('PUBLISHER_SHARED_VIDEO_DIR', ''));
+        if ($dir === '' || !is_dir($dir)) return; // 本地开发等无共享目录环境跳过
+        $this->downloadVideoToSharedLibrary($content['id'], $content, $dir);
+    }
+
+    /**
+     * 视频二次优化：基于原生成参数 + 优化要求，重新提交通义万相生成任务
+     */
     public function optimize($id)
     {
         $data = request()->post();
         $editConfig = $this->normalizeOptimizeConfig($data['edit_config'] ?? []);
 
         try {
+            VideoGenerateService::ensureColumns();
             $content = Db::name('marketing_douyin_content')->find($id);
             if (!$content) return Result::error('内容不存在', 404);
 
-            $token = env('coze_API', '') ?: getenv('coze_API');
-            if (empty($token)) return Result::error('未配置 Coze Token', 500);
+            $service = new VideoGenerateService();
+            if (!$service->enabled()) {
+                return Result::error('未配置 DASHSCOPE_API_KEY，无法使用通义万相文生视频', 500);
+            }
 
-            $sourceVideoUrl = (string)($content['video_url'] ?? '');
-            if ($sourceVideoUrl === '') return Result::error('当前素材缺少视频地址，无法优化', 400);
+            $oldConfig = json_decode((string)($content['generate_config'] ?? '{}'), true) ?: [];
+            $basePrompt = trim((string)($oldConfig['prompt'] ?? ''));
+            if ($basePrompt === '') {
+                $basePrompt = trim((string)($content['title'] . ' ' . $content['description']));
+            }
 
-            $payload = [
-                'mode' => 'optimize',
-                'source_video_url' => $sourceVideoUrl,
-                'title' => (string)($content['title'] ?? ''),
-                'description' => (string)($content['description'] ?? ''),
-                'tags' => (string)($content['tags'] ?? ''),
-                'edit_config' => $editConfig,
-            ];
+            $optimizeHints = [];
+            if (!empty($editConfig['optimize_prompt'])) $optimizeHints[] = (string)$editConfig['optimize_prompt'];
+            if (!empty($editConfig['title_style'])) $optimizeHints[] = '标题风格：' . $editConfig['title_style'];
+            if (!empty($editConfig['subtitle_style']) && $editConfig['subtitle_style'] !== '保持原样') $optimizeHints[] = '字幕风格：' . $editConfig['subtitle_style'];
+            if (!empty($editConfig['visual_style'])) $optimizeHints[] = '画面风格：' . $editConfig['visual_style'];
+            $prompt = $basePrompt . '。优化要求：' . implode('；', array_filter($optimizeHints));
 
-            $response = $this->postJson('https://njgbwq9tmx.coze.site/stream_run', $payload, [
-                'Authorization: Bearer ' . $token,
-                'Content-Type: application/json',
+            $parameters = $service->buildParameters(array_merge(
+                ['ratio' => (string)($oldConfig['ratio'] ?? '9:16')],
+                is_array($oldConfig['parameters'] ?? null) ? $oldConfig['parameters'] : []
+            ));
+
+            $task = $service->createTask($prompt, (string)($oldConfig['negative_prompt'] ?? ''), $parameters);
+            if (!$task['ok']) {
+                return Result::error($task['error'], 500);
+            }
+
+            $newConfig = array_merge($oldConfig, [
+                'prompt' => $prompt,
+                'parameters' => $parameters,
+                'optimize_mode' => true,
+            ]);
+            Db::name('marketing_douyin_content')->where('id', $id)->update([
+                'edit_config' => json_encode($editConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'generate_config' => json_encode($newConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'gen_task_id' => $task['task_id'],
+                'gen_status' => 'running',
+                'gen_error' => null,
+                'updated_at' => date('Y-m-d H:i:s'),
             ]);
 
-            if ($response['error']) {
-                return Result::error($this->buildCozeErrorMessage($response['error']), 500);
-            }
-
-            if ($response['status'] >= 400) {
-                $rawMessage = $response['body'] ?: ('HTTP ' . $response['status']);
-                return Result::error($this->buildCozeErrorMessage($rawMessage), 500);
-            }
-
-            $decoded = json_decode($response['body'], true);
-            $optimizedVideoUrl = $this->extractFirstValue($decoded, ['optimized_video_url', 'video_url', 'videoUrl', 'url', 'output_url', 'result_url', 'file_url'], $sourceVideoUrl);
-            $optimizedCover = $this->extractFirstValue($decoded, ['optimized_cover', 'cover', 'cover_url', 'poster', 'thumbnail', 'image_url'], (string)($content['cover'] ?? ''));
-            $optimizedTitle = $this->extractFirstValue($decoded, ['title', 'optimized_title'], (string)($content['title'] ?? ''));
-            $optimizedDescription = $this->extractFirstValue($decoded, ['description', 'optimized_description'], (string)($content['description'] ?? ''));
-            $optimizedTags = $this->extractFirstValue($decoded, ['tags', 'optimized_tags'], (string)($content['tags'] ?? ''));
-
-            $updateData = [
-                'video_url' => is_string($optimizedVideoUrl) ? $optimizedVideoUrl : $sourceVideoUrl,
-                'cover' => is_string($optimizedCover) ? $optimizedCover : (string)($content['cover'] ?? ''),
-                'title' => is_string($optimizedTitle) ? $optimizedTitle : (string)($content['title'] ?? ''),
-                'description' => is_string($optimizedDescription) ? $optimizedDescription : (string)($content['description'] ?? ''),
-                'tags' => is_string($optimizedTags) ? $optimizedTags : (string)($content['tags'] ?? ''),
-                'edit_config' => json_encode($editConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                'workflow_result' => json_encode($decoded !== null ? $decoded : $response['body'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ];
-
-            Db::name('marketing_douyin_content')->where('id', $id)->update($updateData);
-            $updated = Db::name('marketing_douyin_content')->find($id);
-
             return Result::success([
-                'material' => $updated,
-                'updated_material' => $updated,
-                'workflow_status' => $response['status'],
-                'workflow_result' => $decoded !== null ? $decoded : $response['body'],
-            ], '视频优化成功');
+                'id' => $id,
+                'gen_task_id' => $task['task_id'],
+                'gen_status' => 'running',
+                'poll_url' => '/api/marketing/douyin/' . $id . '/generate/status',
+            ], '视频优化任务已提交，正在通过通义万相重新生成');
         } catch (\Exception $e) {
             return Result::error($e->getMessage(), 500);
         }

@@ -41,7 +41,16 @@ export function generateDouyinVideo(data) {
     url: '/marketing/douyin/generate',
     method: 'post',
     data,
-    timeout: 180000
+    timeout: 60000
+  })
+}
+
+// 轮询通义万相文生视频任务进度（生成约需 1~3 分钟）
+export function getDouyinGenerateStatus(id) {
+  return request({
+    url: `/marketing/douyin/${id}/generate/status`,
+    method: 'get',
+    timeout: 30000
   })
 }
 
