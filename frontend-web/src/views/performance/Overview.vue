@@ -138,6 +138,7 @@ const statusRef = ref(null)
 const teamRef = ref(null)
 const topRef = ref(null)
 let charts = []
+let destroyed = false
 
 const statusColor = { pending: '#909399', processing: '#E6A23C', waiting: '#409EFF', completed: '#67C23A', timeout: '#F56C6C' }
 
@@ -188,6 +189,10 @@ const fetchData = async () => {
 }
 
 const renderCharts = () => {
+  // 组件已卸载（如退出登录、快速切换路由）时，DOM ref 已为 null，
+  // 此时 echarts.init(null) 会抛 "Cannot read properties of null (reading 'getAttribute')"
+  if (destroyed) return
+  if (!trendRef.value || !statusRef.value || !teamRef.value || !topRef.value) return
   charts.forEach(c => c?.dispose())
   charts = []
 
@@ -283,6 +288,7 @@ onMounted(async () => {
   window.addEventListener('resize', resize)
 })
 onBeforeUnmount(() => {
+  destroyed = true
   window.removeEventListener('resize', resize)
   charts.forEach(c => c?.dispose())
 })

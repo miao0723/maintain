@@ -10,6 +10,9 @@ const apiBase = (runtimeBase || import.meta.env.VITE_API_BASE || '/api').replace
 
 const isDev = import.meta.env.DEV
 
+// 防止 401 触发登出/跳转的连锁反应（退出登录瞬间可能仍有并发请求在飞）
+let authRedirecting = false
+
 // 创建 axios 实例
 const request = axios.create({
     baseURL: apiBase,
@@ -94,13 +97,22 @@ request.interceptors.response.use(
         // 处理 HTTP 错误状态码
         if (error.response) {
             const { status, data } = error.response
+            const authStore = useAuthStore()
 
             switch (status) {
                 case 401:
-                    ElMessage.error('登录已过期，请重新登录')
-                    const authStore = useAuthStore()
+                    // 已处于登录页或正在跳转中：避免重复弹窗与重复 logout 造成死循环
+                    if (authRedirecting) break
+                    authRedirecting = true
+                    if (router.currentRoute.value.name !== 'Login') {
+                        ElMessage.error('登录已过期，请重新登录')
+                    }
                     authStore.logout()
-                    router.push({ name: 'Login', query: { redirect: router.currentRoute.value.fullPath } })
+                    if (router.currentRoute.value.name !== 'Login') {
+                        router.push({ name: 'Login', query: { redirect: router.currentRoute.value.fullPath } })
+                    }
+                    // 锁定 1 秒，给登录页跳转与重定向留足时间，避免并发 401 连环触发
+                    setTimeout(() => { authRedirecting = false }, 1000)
                     break
                 case 403:
                     ElMessage.error('没有权限访问')

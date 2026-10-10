@@ -285,6 +285,8 @@ const iconMap = {
 const noticeIcon = (type) => iconMap[type] || Bell
 
 const fetchUnreadCount = async () => {
+  // 未登录（含退出登录过程中）时不发请求，避免触发 401 连环弹窗
+  if (!authStore.isLoggedIn) return
   try {
     const res = await getUnreadCount()
     if (res.code === 200 || res.code === 0 || (res.code >= 200 && res.code < 300)) {
@@ -386,9 +388,14 @@ const menuRoutes = computed(() => {
     (r.name === 'Dashboard' || r.children?.length > 0)
   ) || []
 
-  // 角色过滤：管理员可见全部模块；工人等非管理员仅可见标记为 worker 的模块，
-  // 避免点开管理菜单触发 403。判定统一走 authStore.isAdmin（与后端 PermissionCheck 一致）
-  const allowedRoutes = authStore.isAdmin ? mainRoutes : mainRoutes.filter(r => r.meta?.worker)
+  // 角色过滤：
+  // - 管理员：显示全部模块，但排除标记为 hideForAdmin 的模块（如「维修作业」，
+  //   管理员只保留绩效考核来查看/评定维修人员工单）
+  // - 工人等非管理员：仅可见标记为 worker 的模块，避免点开管理菜单触发 403
+  // 判定统一走 authStore.isAdmin（与后端 PermissionCheck 一致）
+  const allowedRoutes = mainRoutes.filter(r =>
+    authStore.isAdmin ? !r.meta?.hideForAdmin : r.meta?.worker
+  )
 
   return allowedRoutes.map(route => ({
     ...route,

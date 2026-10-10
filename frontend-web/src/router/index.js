@@ -584,7 +584,7 @@ const routes = [
     path: 'repair-tasks',
     name: 'RepairTasks',
     component: () => import('@/modules/RepairTasksModule.vue'),
-    meta: { title: '维修作业', icon: 'Tools', worker: true },
+    meta: { title: '维修作业', icon: 'Tools', worker: true, hideForAdmin: true },
     redirect: '/repair-tasks/my-tasks',
     children: [
     {
