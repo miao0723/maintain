@@ -275,6 +275,40 @@ Route::group('api', function () {
         Route::post('statistics/timeout/summary', 'StatisticsController/generateSummary');
         Route::post('statistics/timeout/send-email', 'StatisticsController/sendEmail');
 
+        // ===== 绩效考核模块 =====
+        Route::group('performance', function () {
+            Route::get('overview', 'PerformanceController/overview');
+            Route::get('trend', 'PerformanceController/trend');
+            Route::get('ranking', 'PerformanceController/ranking');
+            Route::get('work-orders', 'PerformanceController/workOrders');
+            Route::get('work-order/:id/detail', 'PerformanceController/workOrderDetail');
+            Route::get('engineers', 'PerformanceController/engineers');
+            Route::get('teams', 'PerformanceController/teams');
+            Route::get('score-rules', 'PerformanceController/scoreRules');
+            Route::post('score-rules', 'PerformanceController/updateScoreRules');
+            Route::post('score-rules/reset', 'PerformanceController/resetScoreRules');
+            Route::post('snapshot/generate', 'PerformanceController/generateSnapshot');
+            Route::get('snapshots', 'PerformanceController/snapshots');
+            Route::get('config', 'PerformanceController/config');
+            Route::post('config', 'PerformanceController/saveConfig');
+
+            // ===== 工人端：自建工单 / 交付 / 判定 =====
+            Route::get('context', 'PerformanceController/context');
+            Route::get('devices', 'PerformanceController/devices');
+            Route::post('devices', 'PerformanceController/createDevice');
+            Route::put('devices/:id', 'PerformanceController/updateDevice');
+            Route::delete('devices/:id', 'PerformanceController/deleteDevice');
+            Route::get('estimate', 'PerformanceController/estimate');
+            Route::post('work-orders/self', 'PerformanceController/createWorkOrder');
+            Route::put('work-orders/self/:id', 'PerformanceController/updateWorkOrder');
+            Route::delete('work-orders/self/:id', 'PerformanceController/deleteWorkOrder');
+            Route::get('my-work-orders', 'PerformanceController/myWorkOrders');
+            Route::post('work-order/:id/deliver', 'PerformanceController/deliver');
+
+            // 管理员/老板验收评分（工人不可自验，由 service 层校验）
+            Route::post('work-order/:id/review', 'PerformanceController/review');
+        });
+
         // 设备分类管理（必须在设备管理之前定义，避免路由冲突）
         Route::get('devices/categories', 'DeviceCategoryController/index');
         Route::post('devices/categories', 'DeviceCategoryController/save');
@@ -729,6 +763,9 @@ Route::group('api', function () {
         })->middleware([\app\middleware\PermissionCheck::class]);
 
         // 通知中心
+        // 说明：以下「个人」接口仅返回/操作当前登录用户自己的通知（控制器按 userId 隔离），
+        // 属于自助服务，任意已登录用户均可访问，不再经过 PermissionCheck，避免工人等无角色用户 403。
+        // 仅 create / create-batch / check-stock-alerts / check-maintenance 为管理员广播与系统告警，保留权限校验。
         Route::group('notifications', function () {
             Route::get('/', 'NotificationController/index');
             Route::get('unread-count', 'NotificationController/unreadCount');
@@ -736,14 +773,13 @@ Route::group('api', function () {
 
             Route::post('mark-all-read', 'NotificationController/markAllAsRead');
             Route::delete('clear-read', 'NotificationController/clearRead');
-            Route::post('create', 'NotificationController/create');
-            Route::post('create-batch', 'NotificationController/createBatch');
-            Route::post('check-stock-alerts', 'NotificationController/checkStockAlerts');
-            Route::post('check-maintenance', 'NotificationController/checkMaintenanceDue');
-
+            Route::post('create', 'NotificationController/create')->middleware([\app\middleware\PermissionCheck::class]);
+            Route::post('create-batch', 'NotificationController/createBatch')->middleware([\app\middleware\PermissionCheck::class]);
+            Route::post('check-stock-alerts', 'NotificationController/checkStockAlerts')->middleware([\app\middleware\PermissionCheck::class]);
+            Route::post('check-maintenance', 'NotificationController/checkMaintenanceDue')->middleware([\app\middleware\PermissionCheck::class]);
             Route::post('mark-read/:id', 'NotificationController/markAsRead');
             Route::delete(':id', 'NotificationController/delete');
-        })->middleware([\app\middleware\PermissionCheck::class]);
+        });
 
         // 系统智能体
         Route::group('agent', function () {

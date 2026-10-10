@@ -23,7 +23,7 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const router = useRouter()
 const errorMessage = ref('')

@@ -44,8 +44,23 @@ export const useAuthStore = defineStore('auth', {
       return roleMap[state.userInfo?.role_type] || '未知'
     },
 
-    hasPermission: (state) => (module, action) => {
-      if (state.userInfo?.role_type === 1) return true // 管理员拥有所有权限
+    /**
+     * 管理员判定 —— 必须与后端 PermissionCheck 中间件规则保持一致，
+     * 否则会出现「后端放行、前端却把管理菜单过滤掉」的功能丢失问题。
+     * 后端规则：role_type = 1 或 role_code = 'admin' 或 id ∈ {1, 2}
+     * 额外兜底：用户名含 admin（兼容库中 role_type 未正确设置为 1 的历史账号）
+     */
+    isAdmin: (state) => {
+      const u = state.userInfo || {}
+      if (u.role_type === 1) return true
+      if (u.role_code === 'admin') return true
+      if (u.id === 1 || u.id === 2) return true
+      if (typeof u.username === 'string' && /admin/i.test(u.username)) return true
+      return false
+    },
+
+    hasPermission: (state, getters) => (module, action) => {
+      if (getters.isAdmin) return true // 管理员拥有所有权限
       const modulePerms = state.permissions.find(p => p.module === module)
       return modulePerms?.actions?.includes(action) || false
     }

@@ -386,7 +386,11 @@ const menuRoutes = computed(() => {
     (r.name === 'Dashboard' || r.children?.length > 0)
   ) || []
 
-  return mainRoutes.map(route => ({
+  // 角色过滤：管理员可见全部模块；工人等非管理员仅可见标记为 worker 的模块，
+  // 避免点开管理菜单触发 403。判定统一走 authStore.isAdmin（与后端 PermissionCheck 一致）
+  const allowedRoutes = authStore.isAdmin ? mainRoutes : mainRoutes.filter(r => r.meta?.worker)
+
+  return allowedRoutes.map(route => ({
     ...route,
     fullPath: `/${route.path}`
   }))

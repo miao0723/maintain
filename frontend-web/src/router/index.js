@@ -135,7 +135,7 @@ const routes = [
     path: 'dashboard',
     name: 'Dashboard',
     component: () => import('@/views/dashboard/Dashboard.vue'),
-    meta: { title: '首页', icon: 'Odometer' }
+    meta: { title: '首页', icon: 'Odometer', worker: true }
   },
   // 个人中心（隐藏菜单，经右上角用户下拉进入）
   {
@@ -545,7 +545,63 @@ const routes = [
     }
     ]
   },
-  // 8. 知识库模块
+  // 8. 绩效考核模块
+  {
+    path: 'performance',
+    name: 'Performance',
+    component: () => import('@/modules/PerformanceModule.vue'),
+    meta: { title: '绩效考核', icon: 'Medal', worker: true },
+    redirect: '/performance/overview',
+    children: [
+    {
+      path: 'overview',
+      name: 'PerfOverview',
+      component: () => import('@/views/performance/Overview.vue'),
+      meta: { title: '绩效总览', icon: 'DataBoard' }
+    },
+    {
+      path: 'ranking',
+      name: 'PerfRanking',
+      component: () => import('@/views/performance/Ranking.vue'),
+      meta: { title: '绩效排行', icon: 'Trophy' }
+    },
+    {
+      path: 'work-orders',
+      name: 'PerfWorkOrders',
+      component: () => import('@/views/performance/WorkOrders.vue'),
+      meta: { title: '工单明细', icon: 'Tickets' }
+    },
+    {
+      path: 'score-rules',
+      name: 'PerfScoreRules',
+      component: () => import('@/views/performance/ScoreRules.vue'),
+      meta: { title: '评分规则', icon: 'SetUp' }
+    }
+    ]
+  },
+  // 8.5 维修作业模块（工人端：设备台账 + 我的工单）
+  {
+    path: 'repair-tasks',
+    name: 'RepairTasks',
+    component: () => import('@/modules/RepairTasksModule.vue'),
+    meta: { title: '维修作业', icon: 'Tools', worker: true },
+    redirect: '/repair-tasks/my-tasks',
+    children: [
+    {
+      path: 'my-tasks',
+      name: 'RepairMyTasks',
+      component: () => import('@/views/repair-tasks/MyTasks.vue'),
+      meta: { title: '我的工单', icon: 'Tickets' }
+    },
+    {
+      path: 'devices',
+      name: 'RepairDevices',
+      component: () => import('@/views/repair-tasks/DeviceLedger.vue'),
+      meta: { title: '设备台账', icon: 'Cpu' }
+    }
+    ]
+  },
+  // 9. 知识库模块
   {
     path: 'knowledge',
     name: 'Knowledge',
@@ -573,7 +629,7 @@ const routes = [
     }
     ]
   },
-  // 9. 系统智能体
+  // 10. 系统智能体
   {
     path: 'agent',
     name: 'Agent',
