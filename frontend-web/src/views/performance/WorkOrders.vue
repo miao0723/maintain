@@ -43,6 +43,10 @@
           <el-tag v-if="!isWorker && waitingCount > 0" type="warning" effect="light" class="waiting-tag" @click="filterWaiting" style="cursor:pointer">
             待验收 {{ waitingCount }} 单 · 点击筛选
           </el-tag>
+          <div class="export-btns" v-if="!isWorker">
+            <el-button :loading="exporting" @click="exportDoc"><el-icon><Document /></el-icon>导出考核报告</el-button>
+            <el-button type="primary" :loading="exporting" @click="exportXlsx"><el-icon><Download /></el-icon>导出工单(xlsx)</el-button>
+          </div>
         </div>
       </template>
       <el-table :data="tableData" v-loading="loading" border stripe @row-click="openDetail" class="click-row">
@@ -185,6 +189,8 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import * as XLSX from 'xlsx'
+import dayjs from 'dayjs'
 import { getPerformanceWorkOrders, getPerformanceWorkOrderDetail, getPerformanceTeams, getPerformanceEngineers, getPerformanceContext, reviewWorkOrder } from '@/api/performance'
 
 const loading = ref(false)
@@ -288,6 +294,164 @@ const filterWaiting = () => {
   fetchData()
 }
 
+// ===================== 导出功能（管理员/老板） =====================
+const exporting = ref(false)
+
+// 当前筛选条件下取全部工单（不分页），供导出使用
+const buildExportParams = () => ({
+  start_date: filters.date_range?.[0] || '',
+  end_date: filters.date_range?.[1] || '',
+  status: filters.status,
+  team: isWorker.value ? '' : filters.team,
+  engineer_id: isWorker.value && myContext.value.engineer ? myContext.value.engineer.id : filters.engineer_id,
+  keyword: filters.keyword,
+  page: 1,
+  page_size: 100000
+})
+
+const fetchAllRows = async () => {
+  const res = await getPerformanceWorkOrders(buildExportParams())
+  return res.data?.list || []
+}
+
+const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
+const statusText = (s) => statusMap[s] || s
+const qualifiedText = (q) => (q === 1 ? '符合' : (q === 0 ? '不符合' : '待判定'))
+
+// 聚合指标
+const aggregate = (rows) => {
+  let completed = 0, waiting = 0, open = 0, overdue = 0, qualified = 0, unqualified = 0, scoreSum = 0, scoreCnt = 0
+  rows.forEach((o) => {
+    if (o.status === 'completed') completed++
+    else if (o.status === 'waiting') waiting++
+    else open++
+    if (o.is_overdue_open) overdue++
+    if (o.is_qualified === 1) qualified++
+    else if (o.is_qualified === 0) unqualified++
+    if (o.review_score) { scoreSum += Number(o.review_score); scoreCnt++ }
+  })
+  const judged = qualified + unqualified
+  const passRate = judged ? (qualified / judged * 100).toFixed(1) + '%' : '—'
+  const avgScore = scoreCnt ? (scoreSum / scoreCnt).toFixed(1) : '—'
+  return { total: rows.length, completed, waiting, open, overdue, qualified, unqualified, passRate, avgScore }
+}
+
+// 导出工单为 xlsx
+const exportXlsx = async () => {
+  exporting.value = true
+  try {
+    const list = await fetchAllRows()
+    if (!list.length) { ElMessage.warning('当前筛选条件下没有工单可导出'); return }
+    const rows = list.map((o) => ({
+      '工单编号': o.order_no,
+      '状态': statusText(o.status),
+      '设备名称': o.device_name || '',
+      '所属区域': o.device_area || '',
+      '维修人员': o.engineer_name || '—',
+      '班组': o.engineer_team || '—',
+      '报修时间': o.report_time || '',
+      '接单时间': o.accept_time || '',
+      '完成时间': o.complete_time || '',
+      '预计天数': o.est_days ?? '',
+      '实际天数': o.actual_days ?? '',
+      '返修次数': o.repair_count ?? 0,
+      '验收评分': o.review_score ?? '',
+      '工人自评': o.self_score ?? '',
+      '是否符合': qualifiedText(o.is_qualified),
+      '验收评价': o.review_comment || '',
+      '故障描述': o.fault_desc || ''
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, '维修工单')
+    XLSX.writeFile(wb, `维修工单_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`)
+    ElMessage.success(`已导出 ${list.length} 条工单`)
+  } catch (e) {
+    ElMessage.error('导出失败：' + (e.message || e))
+  } finally {
+    exporting.value = false
+  }
+}
+
+// 构建考核报告 HTML（Word 兼容）
+const buildReportHtml = (list) => {
+  const now = dayjs().format('YYYY-MM-DD HH:mm')
+  const overall = aggregate(list)
+  const groups = {}
+  list.forEach((o) => {
+    const key = o.engineer_name || '未分配'
+    if (!groups[key]) groups[key] = { name: o.engineer_name || '未分配', team: o.engineer_team || '—', level: o.engineer_level || '—', rows: [] }
+    groups[key].rows.push(o)
+  })
+  const groupHtml = Object.values(groups).map((g) => {
+    const m = aggregate(g.rows)
+    const rows = g.rows.map((o) => `<tr>
+      <td>${esc(o.order_no)}</td>
+      <td>${statusText(o.status)}</td>
+      <td>${esc(o.device_name)}</td>
+      <td>${o.report_time || ''}</td>
+      <td>${o.complete_time || '—'}</td>
+      <td>${o.est_days ?? '—'} / ${o.actual_days ?? '—'}</td>
+      <td>${o.repair_count ?? 0}</td>
+      <td>${o.review_score ?? '—'}</td>
+      <td>${qualifiedText(o.is_qualified)}</td>
+    </tr>`).join('')
+    return `<h3>${esc(g.name)}（班组：${esc(g.team)} · 等级：${esc(g.level)}）</h3>
+    <p class="sub">工单总数 ${m.total} ｜ 已完成 ${m.completed} ｜ 待验收 ${m.waiting} ｜ 进行中 ${m.open} ｜ 超期 ${m.overdue} ｜ 合格率 ${m.passRate} ｜ 平均验收分 ${m.avgScore}</p>
+    <table border="1" cellspacing="0" cellpadding="5">
+      <thead><tr><th>工单编号</th><th>状态</th><th>设备</th><th>报修时间</th><th>完成时间</th><th>预计/实际(天)</th><th>返修</th><th>验收分</th><th>是否符合</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`
+  }).join('<br/>')
+
+  return `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>维修人员绩效考核报告</title>
+<style>
+  body{font-family:"Microsoft YaHei","SimSun",sans-serif;font-size:13px;color:#222;line-height:1.6;}
+  h1{text-align:center;font-size:20px;margin:12px 0;}
+  h2{font-size:16px;border-left:4px solid #409EFF;padding-left:8px;margin:18px 0 8px;}
+  h3{font-size:14px;margin:14px 0 4px;}
+  .sub{color:#555;margin:2px 0 8px;}
+  table{border-collapse:collapse;width:100%;margin-bottom:6px;}
+  th,td{border:1px solid #bbb;padding:4px 6px;text-align:center;font-size:12px;}
+  th{background:#f2f6fc;}
+</style></head>
+<body>
+  <h1>维修人员绩效考核报告</h1>
+  <p style="text-align:center;color:#888">生成时间：${now}</p>
+  <h2>一、整体概况</h2>
+  <p class="sub">工单总数 ${overall.total} ｜ 已完成 ${overall.completed} ｜ 待验收 ${overall.waiting} ｜ 进行中 ${overall.open} ｜ 超期 ${overall.overdue} ｜ 合格率 ${overall.passRate} ｜ 平均验收分 ${overall.avgScore}</p>
+  <h2>二、各维修人员进度与考核结果</h2>
+  ${groupHtml}
+  <p style="margin-top:24px;color:#999;font-size:12px">本报告由系统自动生成，统计范围以当前筛选条件为准。</p>
+</body></html>`
+}
+
+// 导出考核报告为 Word 文档（.doc）
+const exportDoc = async () => {
+  exporting.value = true
+  try {
+    const list = await fetchAllRows()
+    if (!list.length) { ElMessage.warning('当前筛选条件下没有数据可导出'); return }
+    const html = buildReportHtml(list)
+    const blob = new Blob(['﻿' + html], { type: 'application/msword' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `维修绩效考核报告_${dayjs().format('YYYYMMDD_HHmmss')}.doc`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    ElMessage.success('考核报告已导出')
+  } catch (e) {
+    ElMessage.error('导出失败：' + (e.message || e))
+  } finally {
+    exporting.value = false
+  }
+}
+
 onMounted(async () => {
   try {
     const ctx = await getPerformanceContext().then(r => r.data || { is_worker: false, engineer: null })
@@ -308,6 +472,7 @@ onMounted(async () => {
   .filter-form { margin-bottom: -10px; }
   .card-title { font-weight: 600; color: #303133; }
   .table-head { display: flex; align-items: center; gap: 12px; }
+  .export-btns { margin-left: auto; display: flex; gap: 8px; }
   .waiting-tag { font-weight: 600; }
   .pager { margin-top: 16px; justify-content: flex-end; }
   .click-row :deep(.el-table__row) { cursor: pointer; }
