@@ -23,7 +23,7 @@
       description="管理员账号未关联维修人员档案，因此不提供「新建工单 / 编辑 / 提交完成」等工人操作；验收评分与合格判定请到「绩效考核 → 工单明细」。" />
 
     <el-card shadow="never" class="list-card">
-      <el-table :data="orders" v-loading="loading" border stripe :empty-text="adminView ? '暂无工单' : '暂无工单，点击右上角新建'">
+      <el-table :data="orders" v-loading="loading" border stripe :row-class-name="rowClassName" :empty-text="adminView ? '暂无工单' : '暂无工单，点击右上角新建'">
         <el-table-column prop="order_no" label="工单编号" width="150" />
         <el-table-column v-if="adminView" label="维修人员" width="110">
           <template #default="{ row }">
@@ -243,6 +243,7 @@ import {
   deliverWorkOrder, updateSelfWorkOrder, deleteSelfWorkOrder,
   estimateRepair
 } from '@/api/performance'
+import { useMenuBadgeStore } from '@/stores/menuBadge'
 
 const orders = ref([])
 const loading = ref(false)
@@ -256,6 +257,21 @@ const pageSize = ref(10)
 
 const route = useRoute()
 const router = useRouter()
+const menuBadgeStore = useMenuBadgeStore()
+
+// 从提醒徽标「前往处理」带 order_id 跳来时，高亮并自动打开该工单详情
+const highlightId = ref(null)
+const rowClassName = ({ row }) => (row.id === highlightId.value ? 'badge-target-row' : '')
+const focusOrderFromQuery = () => {
+  const qid = route.query.order_id
+  if (qid == null) return
+  const id = Number(qid)
+  const row = orders.value.find(o => o.id === id)
+  if (row) {
+    highlightId.value = id
+    openDetail(row)
+  }
+}
 
 const deviceOptions = ref([])
 const createVisible = ref(false)
@@ -335,6 +351,8 @@ const loadOrders = async () => {
     // 后端对未关联档案的账号返回全量工单 + admin_view 标记（管理视角，不再抛异常）
     noProfile.value = !!res.data.no_profile
     adminView.value = !!res.data.admin_view
+    // 带 order_id 跳来时，定位并高亮目标工单
+    focusOrderFromQuery()
   } catch (e) {
     const msg = e?.response?.data?.message || e?.message || ''
     // 兜底：若后端仍以异常形式返回"未关联档案"，同样按管理视角处理，不弹报错
@@ -374,6 +392,11 @@ watch(() => route.query.create, (v) => {
   }
 }, { immediate: true })
 
+// 从提醒「前往处理」带 order_id 跳来（组件已挂载、query 变化）时，重新定位
+watch(() => route.query.order_id, () => {
+  if (orders.value.length) focusOrderFromQuery()
+})
+
 const onToggleNewDevice = (val) => {
   if (val) cForm.value.device_id = ''
 }
@@ -402,6 +425,7 @@ const submitCreate = async () => {
     ElMessage.success(cForm.value.status === 'to_repair' ? '工单已创建（待维修）' : '工单已创建并接单（维修中）')
     createVisible.value = false
     await loadOrders()
+    menuBadgeStore.fetch() // 工单状态变化后即时刷新侧边栏提醒徽标
   } catch (e) {
     ElMessage.error(e.response?.data?.message || '创建失败')
   } finally {
@@ -429,6 +453,7 @@ const submitEdit = async () => {
     ElMessage.success('工单已更新')
     editVisible.value = false
     await loadOrders()
+    menuBadgeStore.fetch() // 工单状态变化后即时刷新侧边栏提醒徽标
   } catch (e) {
     ElMessage.error(e.response?.data?.message || '保存失败')
   } finally {
@@ -444,6 +469,7 @@ const doDelete = async (row) => {
     await deleteSelfWorkOrder(row.id)
     ElMessage.success('工单已删除')
     await loadOrders()
+    menuBadgeStore.fetch() // 工单状态变化后即时刷新侧边栏提醒徽标
   } catch (e) {
     ElMessage.error(e.response?.data?.message || '删除失败')
   }
@@ -462,6 +488,7 @@ const submitDeliver = async () => {
     ElMessage.success('已提交完成，待管理员验收评分')
     deliverVisible.value = false
     await loadOrders()
+    menuBadgeStore.fetch() // 提交完成后该工单进入待验收，即时刷新徽标（不再计入待办提醒）
   } catch (e) {
     ElMessage.error(e.response?.data?.message || '提交失败')
   } finally {
@@ -492,6 +519,10 @@ onMounted(() => {
 .pager { margin-top: 14px; text-align: right; }
 .over { color: #f56c6c; }
 .muted { color: #aaa; }
+// 从提醒「前往处理」跳来时高亮目标工单行
+:deep(.badge-target-row) > td {
+  background-color: #fff7e6 !important;
+}
 .hint { margin-left: 10px; color: #aaa; font-size: 12px; }
 .est-box {
   margin-top: 10px; padding: 12px 14px; border: 1px solid #ebeef5; border-radius: 8px; background: #fafafa;

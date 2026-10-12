@@ -149,6 +149,25 @@ class NotificationController extends BaseController
     }
 
     /**
+     * 获取侧边栏菜单徽标（各导航模块的新内容/待办数量）
+     *
+     * 个人自助接口：按 userId / engineer_id 隔离，不挂 PermissionCheck。
+     * 工人 => 「维修作业-我的工单」即将超时/已超时工单；
+     * 管理员/老板（未绑维修档案）=> 「绩效考核-工单明细」全员工单超时汇总。
+     */
+    public function menuBadges()
+    {
+        try {
+            $userId = $this->getCurrentUserId();
+            $result = $this->service->getMenuBadges($userId);
+
+            return $this->success($result);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), 400);
+        }
+    }
+
+    /**
      * 手动创建通知（管理员功能）
      */
     public function create()

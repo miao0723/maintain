@@ -49,7 +49,7 @@
           </div>
         </div>
       </template>
-      <el-table :data="tableData" v-loading="loading" border stripe @row-click="openDetail" class="click-row">
+      <el-table :data="tableData" v-loading="loading" border stripe @row-click="openDetail" :row-class-name="rowClassName" class="click-row">
         <el-table-column prop="order_no" label="工单编号" width="150" fixed="left" />
         <el-table-column label="状态" width="100">
           <template #default="{ row }"><el-tag :type="statusTag(row.status)" effect="light">{{ statusMap[row.status] }}</el-tag></template>
@@ -187,11 +187,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import * as XLSX from 'xlsx'
 import dayjs from 'dayjs'
 import { getPerformanceWorkOrders, getPerformanceWorkOrderDetail, getPerformanceTeams, getPerformanceEngineers, getPerformanceContext, reviewWorkOrder } from '@/api/performance'
+import { useMenuBadgeStore } from '@/stores/menuBadge'
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -205,6 +207,23 @@ const pagination = reactive({ page: 1, pageSize: 10, total: 0 })
 // 工人视角：自动收敛到本人工单
 const myContext = ref({ is_worker: false, engineer: null })
 const isWorker = ref(false)
+
+const route = useRoute()
+const menuBadgeStore = useMenuBadgeStore()
+
+// 从提醒徽标「前往处理」带 order_id 跳来时，高亮并自动打开该工单详情
+const highlightId = ref(null)
+const rowClassName = ({ row }) => (row.id === highlightId.value ? 'badge-target-row' : '')
+const focusOrderFromQuery = () => {
+  const qid = route.query.order_id
+  if (qid == null) return
+  const id = Number(qid)
+  const row = tableData.value.find(o => o.id === id)
+  if (row) {
+    highlightId.value = id
+    openDetail(row)
+  }
+}
 
 const statusMap = { pending: '待接单', to_repair: '待维修', processing: '维修中', waiting: '待验收', completed: '已完成', timeout: '已超时' }
 const priorityMap = { low: '低', normal: '普通', high: '高', urgent: '紧急' }
@@ -233,6 +252,8 @@ const fetchData = async () => {
     })
     tableData.value = res.data.list
     pagination.total = res.data.pagination.total
+    // 带 order_id 跳来时，定位并高亮目标工单
+    focusOrderFromQuery()
   } finally {
     loading.value = false
   }
@@ -265,6 +286,7 @@ const submitReview = async () => {
     reviewVisible.value = false
     await fetchData()
     loadWaitingCount()
+    menuBadgeStore.fetch() // 验收后工单进入终态，即时刷新侧边栏提醒徽标
   } catch (e) {
     ElMessage.error(e.response?.data?.message || '验收失败')
   } finally {
@@ -463,6 +485,11 @@ onMounted(async () => {
   fetchData()
   loadWaitingCount()
 })
+
+// 从提醒「前往处理」带 order_id 跳来（组件已挂载、query 变化）时，重新定位
+watch(() => route.query.order_id, () => {
+  if (tableData.value.length) focusOrderFromQuery()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -476,6 +503,10 @@ onMounted(async () => {
   .waiting-tag { font-weight: 600; }
   .pager { margin-top: 16px; justify-content: flex-end; }
   .click-row :deep(.el-table__row) { cursor: pointer; }
+  // 从提醒「前往处理」跳来时高亮目标工单行
+  :deep(.badge-target-row) > td {
+    background-color: #fff7e6 !important;
+  }
   .arrow { color: #c0c4cc; }
   .muted { color: #aaa; }
   .over { color: #F56C6C; font-weight: 600; }

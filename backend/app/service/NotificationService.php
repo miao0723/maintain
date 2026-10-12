@@ -9,6 +9,22 @@ use app\model\SparePart;
 class NotificationService
 {
     /**
+     * 菜单徽标服务（懒加载，避免与通知主流程相互引用）
+     */
+    private $menuBadgeService;
+
+    /**
+     * 获取侧边栏菜单徽标数据（委托 MenuBadgeService）
+     */
+    public function getMenuBadges($userId)
+    {
+        if ($this->menuBadgeService === null) {
+            $this->menuBadgeService = new MenuBadgeService();
+        }
+        return $this->menuBadgeService->getBadges($userId);
+    }
+
+    /**
      * 创建通知
      */
     public function create($userId, $type, $title, $content, $relatedType = null, $relatedId = null, $priority = Notification::PRIORITY_NORMAL, $extraData = [])

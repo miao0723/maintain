@@ -112,13 +112,22 @@ export const useAuthStore = defineStore('auth', {
       } catch (error) {
         console.error('登出失败', error)
       } finally {
-        this.token = ''
-        this.userInfo = null
-        this.permissions = []
-        localStorage.removeItem('token')
-        localStorage.removeItem('userInfo')
-        localStorage.removeItem('permissions')
+        // 无论后端调用成败，立即清空本地凭证并跳转登录页（无提示）
+        this.clearAuth()
       }
+    },
+
+    /**
+     * 仅清空本地 Token / 用户信息 / 权限，不调用后端。
+     * 用于「未认证 / Token 失效」场景下的静默清理，避免残留失效凭证。
+     */
+    clearAuth() {
+      this.token = ''
+      this.userInfo = null
+      this.permissions = []
+      localStorage.removeItem('token')
+      localStorage.removeItem('userInfo')
+      localStorage.removeItem('permissions')
     },
 
     async fetchUserInfo() {

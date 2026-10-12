@@ -25,7 +25,66 @@
             <el-icon v-if="route.meta?.icon">
               <component :is="route.meta.icon" />
             </el-icon>
-            <template #title>{{ route.meta?.title }}</template>
+            <template #title>
+              <span class="menu-title-wrap">
+                <span class="menu-title-text">{{ route.meta?.title }}</span>
+                <!-- 待办徽标：该模块有待办/新内容时在标题右侧显示，悬停查看明细 -->
+                <el-popover
+                  v-if="getMenuBadge(route.name)"
+                  placement="right-start"
+                  :width="340"
+                  trigger="hover"
+                  :show-arrow="false"
+                  :offset="6"
+                  popper-class="menu-badge-popper"
+                >
+                  <template #reference>
+                    <span
+                      class="menu-badge"
+                      :class="getMenuBadge(route.name).overdue_count > 0 ? 'is-danger' : 'is-warning'"
+                    >{{ getMenuBadge(route.name).count > 99 ? '99+' : getMenuBadge(route.name).count }}</span>
+                  </template>
+
+                  <div class="badge-panel">
+                    <div class="badge-panel-header">
+                      <span class="badge-panel-title">{{ getMenuBadge(route.name).title || '待办提醒' }}</span>
+                      <span v-if="getMenuBadge(route.name).count > 0" class="badge-panel-count">
+                        {{ getMenuBadge(route.name).count }} 项待处理
+                      </span>
+                    </div>
+                    <div class="badge-panel-list">
+                      <div
+                        v-for="item in getMenuBadge(route.name).items"
+                        :key="item.key"
+                        class="badge-item"
+                        @click="goBadgeRoute(item)"
+                      >
+                        <div class="badge-item-head">
+                          <el-tag
+                            size="small"
+                            :type="item.severity === 'overdue' ? 'danger' : 'warning'"
+                            effect="light"
+                            round
+                          >
+                            {{ item.severity === 'overdue' ? '已超时' : '即将超时' }}
+                          </el-tag>
+                          <span class="badge-item-remain">{{ item.remain_text }}</span>
+                        </div>
+                        <div class="badge-item-title">{{ item.title }}</div>
+                        <div v-if="item.desc" class="badge-item-desc">{{ item.desc }}</div>
+                        <div class="badge-item-deadline">截止：{{ item.deadline }}</div>
+                      </div>
+                    </div>
+                    <div class="badge-panel-footer">
+                      <el-button link type="primary" size="small" @click="goBadgeRoute(getMenuBadge(route.name))">
+                        前往处理
+                        <el-icon><ArrowRight /></el-icon>
+                      </el-button>
+                    </div>
+                  </div>
+                </el-popover>
+              </span>
+            </template>
           </el-menu-item>
         </template>
       </el-menu>
@@ -222,7 +281,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { ElMessageBox, ElMessage, ElNotification } from 'element-plus'
 import {
   Tools,
   User,
@@ -250,11 +309,13 @@ import {
 } from '@element-plus/icons-vue'
 import { changePassword } from '@/api/auth'
 import { getUnreadCount, getNotifications, markAsRead, markAllAsRead } from '@/api/notification'
+import { useMenuBadgeStore } from '@/stores/menuBadge'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
+const badgeStore = useMenuBadgeStore()
 
 const isCollapse = ref(false)
 const unreadCount = ref(0)
@@ -267,6 +328,7 @@ const noticeTab = ref('unread')
 const recentNotifications = ref([])
 const noticeLoading = ref(false)
 let unreadTimer = null
+let badgeTimer = null
 
 const unreadList = computed(() => recentNotifications.value.filter(n => !n.is_read))
 const historyList = computed(() => recentNotifications.value.filter(n => n.is_read))
@@ -359,19 +421,128 @@ const formatNoticeTime = (time) => {
   return `${date.getMonth() + 1}月${date.getDate()}日 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
+// ===================== 菜单徽标（新内容 / 待办提醒） =====================
+
+// 路由 name => 徽标 key（snake_case，如 RepairTasks => repair_tasks）
+const badgeKeyOf = (name) =>
+  (name || '').replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase()
+
+const getMenuBadge = (name) => badgeStore.badges[badgeKeyOf(name)] || null
+
+// 跳转到徽标对应的处理页面，并带 order_id 定位到具体工单；
+// 同时把该事项标记为「已点击前往处理」（本机不再重复弹窗，徽标红点保留到真正处理完）
+const goBadgeRoute = (target) => {
+  if (!target) return
+  const path = target.route
+  const id = target.id != null
+    ? target.id
+    : (target.items && target.items[0] ? target.items[0].id : null)
+  const key = target.key || (target.items && target.items[0] ? target.items[0].key : null)
+  if (!path) return
+  let full = path
+  if (id != null) full += (full.includes('?') ? '&' : '?') + 'order_id=' + id
+  router.push(full)
+  if (key) ackBadge(key)
+}
+
+// 本次浏览器会话内已弹过的提醒 key，避免同一事项反复骚扰
+const NOTIFIED_KEY = 'menu_badge_notified'
+const notifiedKeys = new Set()
+try {
+  const saved = JSON.parse(sessionStorage.getItem(NOTIFIED_KEY) || '[]')
+  if (Array.isArray(saved)) saved.forEach(k => notifiedKeys.add(k))
+} catch (e) {
+  // 忽略解析失败
+}
+const persistNotified = () => {
+  try {
+    // 仅保留最近 200 条，避免 sessionStorage 无限增长
+    sessionStorage.setItem(NOTIFIED_KEY, JSON.stringify(Array.from(notifiedKeys).slice(-200)))
+  } catch (e) {
+    // 忽略写入失败（隐私模式等）
+  }
+}
+
+// 用户「点击前往处理」后，本机持久化标记该事项「已读」：
+// 徽标红点仍保留（直到真正处理完后端不再返回），但弹窗不再重复弹出，避免反复打扰。
+const ACK_KEY = 'menu_badge_ack'
+const ackKeys = new Set()
+try {
+  const saved = JSON.parse(localStorage.getItem(ACK_KEY) || '[]')
+  if (Array.isArray(saved)) saved.forEach(k => ackKeys.add(k))
+} catch (e) {
+  // 忽略解析失败
+}
+const ackBadge = (key) => {
+  if (!key) return
+  ackKeys.add(key)
+  try { localStorage.setItem(ACK_KEY, JSON.stringify(Array.from(ackKeys).slice(-200))) } catch (e) {}
+}
+
+// 对「即将超时 / 已超时」的工单弹一次性提醒，点击通知可直达处理页面
+const notifyDueItems = () => {
+  if (!authStore.isLoggedIn) return
+  const items = []
+  Object.values(badgeStore.badges).forEach(b => {
+    (b.items || []).forEach(it => items.push(it))
+  })
+  // 已超时优先，每次最多弹 3 条，避免轰炸
+  items
+    .sort((a, b) => (a.severity === b.severity ? 0 : (a.severity === 'overdue' ? -1 : 1)))
+    .slice(0, 3)
+    .forEach(it => {
+      // 已弹过、或用户已点击前往处理（本机已读）的，均不再弹
+      if (!it.key || notifiedKeys.has(it.key) || ackKeys.has(it.key)) return
+      notifiedKeys.add(it.key)
+      persistNotified()
+      const overdue = it.severity === 'overdue'
+      ElNotification({
+        title: overdue ? '维修工单已超时' : '维修工单即将超时',
+        message: `${it.title}${it.remain_text ? `（${it.remain_text}）` : ''}${it.desc ? `，${it.desc}` : ''}`,
+        type: overdue ? 'error' : 'warning',
+        duration: overdue ? 0 : 10000, // 已超时不自动消失，需手动关闭
+        position: 'bottom-right',
+        showClose: true,
+        onClick: () => goBadgeRoute(it)
+      })
+    })
+  // 清理已处理完（不再出现在徽标中）的「已读」标记，避免无限增长
+  const liveKeys = new Set(items.map(i => i.key))
+  let changed = false
+  Array.from(ackKeys).forEach(k => {
+    if (!liveKeys.has(k)) { ackKeys.delete(k); changed = true }
+  })
+  if (changed) {
+    try { localStorage.setItem(ACK_KEY, JSON.stringify(Array.from(ackKeys))) } catch (e) {}
+  }
+}
+
+// 徽标数据变化（含首次拉取）时触发一次性弹窗
+watch(() => badgeStore.badges, notifyDueItems, { deep: true })
+
+const fetchBadges = async () => {
+  // 未登录（含退出登录过程中）时不发请求，避免触发 401 连环弹窗
+  if (!authStore.isLoggedIn) return
+  await badgeStore.fetch()
+}
+
 onMounted(() => {
   fetchUnreadCount()
   unreadTimer = setInterval(fetchUnreadCount, 30000)
+  fetchBadges()
+  badgeTimer = setInterval(fetchBadges, 60000)
 })
 
 onBeforeUnmount(() => {
   if (unreadTimer) clearInterval(unreadTimer)
+  if (badgeTimer) clearInterval(badgeTimer)
   document.documentElement.classList.remove(NOTICE_OPEN_CLASS)
 })
 
-// 路由切换后刷新未读角标（如从通知详情页返回）
+// 路由切换后刷新未读角标与菜单徽标（如处理完工单返回）
 watch(() => route.fullPath, () => {
   fetchUnreadCount()
+  fetchBadges()
 })
 
 const userInfo = computed(() => authStore.userInfo || {})
@@ -562,6 +733,62 @@ const handlePasswordSubmit = async () => {
       background: #409eff !important;
       color: #fff !important;
     }
+  }
+
+  // 菜单标题 + 徽标（红点数字）同行排列
+  .menu-title-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .menu-title-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // 自定义徽标（替代 el-badge 的绝对定位，避免偏下）：
+  // 用 inline-flex 药丸 + 父级 align-items:center 实现精确垂直居中
+  .menu-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    margin-left: auto; // 推到标题右侧
+    box-sizing: border-box;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    color: #fff;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.15s ease;
+
+    &:hover {
+      transform: scale(1.08);
+    }
+
+    &.is-danger {
+      background: #f56c6c;
+    }
+
+    &.is-warning {
+      background: #e6a23c;
+    }
+  }
+
+  // 让 popover 触发包裹层不撑高、与徽标一起垂直居中
+  :deep(.el-popover__reference) {
+    display: inline-flex;
+    align-items: center;
   }
 }
 
@@ -967,6 +1194,117 @@ html.notice-panel-open {
   }
 }
 
+// 菜单徽标明细弹层（悬停菜单红点显示）
+.el-popper.menu-badge-popper {
+  padding: 0 !important;
+  border-radius: 10px;
+  overflow: hidden;
+
+  .badge-panel {
+    display: flex;
+    flex-direction: column;
+    max-height: min(420px, calc(100vh - 160px));
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .badge-panel-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fff;
+
+    .badge-panel-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #303133;
+    }
+
+    .badge-panel-count {
+      font-size: 12px;
+      color: #f56c6c;
+      background: #fef0f0;
+      border-radius: 10px;
+      padding: 1px 8px;
+      line-height: 18px;
+    }
+  }
+
+  .badge-panel-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 6px 10px;
+  }
+
+  .badge-item {
+    padding: 8px 8px 8px 6px;
+    border-bottom: 1px solid #f5f5f5;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background: #f5f7fa;
+    }
+
+    .badge-item-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .badge-item-remain {
+      font-size: 12px;
+      font-weight: 600;
+      color: #e6a23c;
+      white-space: nowrap;
+    }
+
+    .badge-item-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #303133;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge-item-desc {
+      font-size: 12px;
+      color: #606266;
+      line-height: 1.5;
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge-item-deadline {
+      font-size: 12px;
+      color: #909399;
+      margin-top: 2px;
+    }
+  }
+
+  .badge-panel-footer {
+    flex: 0 0 auto;
+    border-top: 1px solid #f0f0f0;
+    text-align: center;
+    background: #fff;
+    padding: 4px 0;
+  }
+}
+
 // 暗色模式下的通知面板
 html.dark {
   // 框架暗色（侧边栏/顶栏/内容区）。
@@ -1032,6 +1370,51 @@ html.dark {
   .el-popper.notice-popper {
     background: #1f1f1f;
     border-color: #2c2c2c;
+  }
+
+  // 暗色下的菜单徽标弹层
+  .el-popper.menu-badge-popper {
+    background: #1f1f1f;
+    border-color: #2c2c2c;
+
+    .badge-panel-header {
+      background: #1f1f1f;
+      border-bottom-color: #2c2c2c;
+
+      .badge-panel-title {
+        color: #e5eaf3;
+      }
+
+      .badge-panel-count {
+        color: #f78989;
+        background: rgba(245, 108, 108, 0.16);
+      }
+    }
+
+    .badge-item {
+      border-bottom-color: #2c2c2c;
+
+      &:hover {
+        background: #262626;
+      }
+
+      .badge-item-title {
+        color: #e5eaf3;
+      }
+
+      .badge-item-desc {
+        color: #a3a6ad;
+      }
+
+      .badge-item-deadline {
+        color: #7b7f87;
+      }
+    }
+
+    .badge-panel-footer {
+      background: #1f1f1f;
+      border-top-color: #2c2c2c;
+    }
   }
 
   .notice-popper {

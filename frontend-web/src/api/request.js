@@ -13,6 +13,30 @@ const isDev = import.meta.env.DEV
 // 防止 401 触发登出/跳转的连锁反应（退出登录瞬间可能仍有并发请求在飞）
 let authRedirecting = false
 
+/**
+ * 统一的未认证处理：
+ * - 立即清空本地 Token / 用户信息（clearAuth），避免残留失效凭证；
+ * - 仅当调用方“已登录”时才弹「登录已过期」提示；未登录（无 token）场景下静默跳转登录页，不弹任何 Toast/Alert；
+ * - 用 authRedirecting 锁避免并发 401 连环触发与重定向死循环。
+ */
+function handleUnauthorized(showToast) {
+  if (authRedirecting) return
+  authRedirecting = true
+
+  const authStore = useAuthStore()
+  authStore.clearAuth()
+
+  if (showToast && router.currentRoute.value.name !== 'Login') {
+    ElMessage.error('登录已过期，请重新登录')
+  }
+  if (router.currentRoute.value.name !== 'Login') {
+    router.push({ name: 'Login', query: { redirect: router.currentRoute.value.fullPath } })
+  }
+
+  // 锁定 1 秒，给登录页跳转与重定向留足时间
+  setTimeout(() => { authRedirecting = false }, 1000)
+}
+
 // 创建 axios 实例
 const request = axios.create({
     baseURL: apiBase,
@@ -83,6 +107,14 @@ request.interceptors.response.use(
             return res
         }
 
+        // 未认证（Token 缺失 / 过期 / 无效）：后端以 HTTP 200 + code 401 返回。
+        // 已登录用户 → 提示「登录已过期」；未登录用户 → 静默跳转登录页，不弹任何提示。
+        if (code === 401) {
+            const authStore = useAuthStore()
+            handleUnauthorized(authStore.isLoggedIn)
+            return Promise.reject(new Error(res.message || '未认证'))
+        }
+
         // 处理业务错误
         let businessMessage = res.message || '请求失败'
         if (typeof businessMessage === 'string' && businessMessage.includes('Coze 当前触发限流')) {
@@ -97,22 +129,11 @@ request.interceptors.response.use(
         // 处理 HTTP 错误状态码
         if (error.response) {
             const { status, data } = error.response
-            const authStore = useAuthStore()
 
             switch (status) {
                 case 401:
-                    // 已处于登录页或正在跳转中：避免重复弹窗与重复 logout 造成死循环
-                    if (authRedirecting) break
-                    authRedirecting = true
-                    if (router.currentRoute.value.name !== 'Login') {
-                        ElMessage.error('登录已过期，请重新登录')
-                    }
-                    authStore.logout()
-                    if (router.currentRoute.value.name !== 'Login') {
-                        router.push({ name: 'Login', query: { redirect: router.currentRoute.value.fullPath } })
-                    }
-                    // 锁定 1 秒，给登录页跳转与重定向留足时间，避免并发 401 连环触发
-                    setTimeout(() => { authRedirecting = false }, 1000)
+                    // HTTP 401：已发送过 token 却被拒（Token 失效），提示登录过期后静默清理并跳转
+                    handleUnauthorized(true)
                     break
                 case 403:
                     ElMessage.error('没有权限访问')

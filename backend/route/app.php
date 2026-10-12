@@ -770,6 +770,7 @@ Route::group('api', function () {
             Route::get('/', 'NotificationController/index');
             Route::get('unread-count', 'NotificationController/unreadCount');
             Route::get('statistics', 'NotificationController/statistics');
+            Route::get('menu-badges', 'NotificationController/menuBadges');
 
             Route::post('mark-all-read', 'NotificationController/markAllAsRead');
             Route::delete('clear-read', 'NotificationController/clearRead');
