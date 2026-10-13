@@ -66,11 +66,11 @@
         <el-table-column prop="complete_time" label="完成时间" width="150">
           <template #default="{ row }">{{ row.complete_time || '—' }}</template>
         </el-table-column>
-        <el-table-column label="预计/实际(天)" width="130" align="center">
+        <el-table-column label="预计/实际工时" width="150" align="center">
           <template #default="{ row }">
-            <span>{{ row.est_days ?? '-' }}</span>
+            <span>{{ fmtDuration(row.est_hours) }}</span>
             <span class="arrow"> → </span>
-            <span :class="row.actual_days > (row.est_days||0) ? 'over' : 'ok'">{{ row.actual_days ?? '-' }}</span>
+            <span :class="row.actual_hours != null && row.est_hours != null && row.actual_hours > row.est_hours ? 'over' : 'ok'">{{ fmtDuration(row.actual_hours) }}</span>
             <el-tag v-if="row.is_overdue_open" type="danger" size="small" effect="plain" class="overdue-tag">超期</el-tag>
           </template>
         </el-table-column>
@@ -78,6 +78,13 @@
           <template #default="{ row }">
             <el-tag v-if="row.repair_count > 0" type="danger" size="small" effect="plain">{{ row.repair_count }}</el-tag>
             <span v-else>0</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="图片" width="70" align="center">
+          <template #default="{ row }">
+            <el-image v-if="toImgList(row.images).length" :src="toImgList(row.images)[0]" fit="cover"
+              class="row-thumb" :preview-src-list="toImgList(row.images)" preview-teleported />
+            <span v-else class="muted">—</span>
           </template>
         </el-table-column>
         <el-table-column label="验收评分" width="130" align="center">
@@ -99,10 +106,11 @@
             <span v-else class="muted">待判定</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="170" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click.stop="openDetail(row)">详情</el-button>
-            <el-button link type="warning" v-if="row.status === 'waiting' && !isWorker" @click.stop="openReview(row)">验收评分</el-button>
+            <el-button link type="warning" v-if="row.status === 'waiting' && canReview" @click.stop="openReview(row, 'create')">验收评分</el-button>
+            <el-button link type="success" v-if="row.status === 'completed' && row.review_score && canReview" @click.stop="openReview(row, 'modify')">修改评分</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -126,7 +134,7 @@
           <el-descriptions-item label="报修时间">{{ current.report_time }}</el-descriptions-item>
           <el-descriptions-item label="接单时间">{{ current.accept_time || '—' }}</el-descriptions-item>
           <el-descriptions-item label="完成时间">{{ current.complete_time || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="预计/实际天数">{{ current.est_days ?? '-' }} / {{ current.actual_days ?? '-' }} 天</el-descriptions-item>
+          <el-descriptions-item label="预计/实际工时">{{ fmtDuration(current.est_hours) }} / {{ fmtDuration(current.actual_hours) }}</el-descriptions-item>
           <el-descriptions-item label="返修次数">{{ current.repair_count }}</el-descriptions-item>
           <el-descriptions-item label="验收评分" :span="2">
             <el-rate v-if="current.review_score" :model-value="current.review_score" disabled />
@@ -137,6 +145,13 @@
             <span v-else>未自评</span>
           </el-descriptions-item>
           <el-descriptions-item label="完成说明" :span="2">{{ current.completion_note || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="维修图片" :span="2">
+            <div v-if="toImgList(current.images).length" class="detail-imgs">
+              <el-image v-for="(u, i) in toImgList(current.images)" :key="i" :src="u" fit="cover"
+                class="detail-img" :preview-src-list="toImgList(current.images)" :initial-index="i" preview-teleported />
+            </div>
+            <span v-else class="muted">未上传图片</span>
+          </el-descriptions-item>
           <el-descriptions-item label="故障描述" :span="2">{{ current.fault_desc || '—' }}</el-descriptions-item>
           <el-descriptions-item label="延期原因" :span="2">{{ current.delay_reason || '—' }}</el-descriptions-item>
           <el-descriptions-item label="验收评价" :span="2">{{ current.review_comment || '—' }}</el-descriptions-item>
@@ -158,11 +173,13 @@
       </template>
     </el-drawer>
 
-    <!-- 验收评分弹窗（管理员/老板） -->
-    <el-dialog v-model="reviewVisible" title="验收评分" width="480px">
-      <el-alert type="warning" :closable="false" class="mb12"
+    <!-- 验收评分 / 修改评分弹窗（管理员/老板） -->
+    <el-dialog v-model="reviewVisible" :title="reviewMode === 'modify' ? '修改验收评分' : '验收评分'" width="480px">
+      <el-alert :type="reviewMode === 'modify' ? 'warning' : 'warning'" :closable="false" class="mb12"
         :title="`工单 ${rRow?.order_no || ''} · 维修人员 ${rRow?.engineer_name || ''}`"
-        description="验收后工单置为「已完成」，并计入该维修人员的绩效（合格率 / 验收评分）。" />
+        :description="reviewMode === 'modify'
+          ? '该工单已验收完成，此处仅修正评分与判定结果，不改变工单状态；修改后即时生效并计入绩效统计。'
+          : '验收后工单置为「已完成」，并计入该维修人员的绩效（合格率 / 验收评分）。'" />
       <el-form :model="rForm" label-width="90px" ref="rFormRef">
         <el-form-item label="判定结果" prop="is_qualified">
           <el-radio-group v-model="rForm.is_qualified">
@@ -180,20 +197,35 @@
       </el-form>
       <template #footer>
         <el-button @click="reviewVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="submitReview">保存验收</el-button>
+        <el-button type="primary" :loading="submitting" @click="submitReview">{{ reviewMode === 'modify' ? '保存修改' : '保存验收' }}</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import * as XLSX from 'xlsx'
 import dayjs from 'dayjs'
-import { getPerformanceWorkOrders, getPerformanceWorkOrderDetail, getPerformanceTeams, getPerformanceEngineers, getPerformanceContext, reviewWorkOrder } from '@/api/performance'
+import { getPerformanceWorkOrders, getPerformanceWorkOrderDetail, getPerformanceTeams, getPerformanceEngineers, getPerformanceContext, reviewWorkOrder, updateWorkOrderReview } from '@/api/performance'
+import { fmtDuration } from '@/utils/duration'
 import { useMenuBadgeStore } from '@/stores/menuBadge'
+import { usePermStore } from '@/stores/permission'
+import { useAuthStore } from '@/stores/auth'
+
+// 维修图片字段兜底解析：后端模型读出为数组，异常时按 JSON 字符串兜底
+const toImgList = (v) => {
+  if (Array.isArray(v)) return v.filter((u) => typeof u === 'string' && u)
+  if (typeof v === 'string' && v) {
+    try {
+      const arr = JSON.parse(v)
+      return Array.isArray(arr) ? arr.filter((u) => typeof u === 'string' && u) : []
+    } catch { return [] }
+  }
+  return []
+}
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -210,6 +242,10 @@ const isWorker = ref(false)
 
 const route = useRoute()
 const menuBadgeStore = useMenuBadgeStore()
+const permStore = usePermStore()
+const authStore = useAuthStore()
+// 验收/改评分仅老板/超管（HR 等只读账号不可见；工人本人在此页也无操作）
+const canReview = computed(() => permStore.isBoss || authStore.isAdmin)
 
 // 从提醒徽标「前往处理」带 order_id 跳来时，高亮并自动打开该工单详情
 const highlightId = ref(null)
@@ -265,30 +301,45 @@ const openDetail = async (row) => {
   detailVisible.value = true
 }
 
-// 验收评分（管理员/老板）
+// 验收评分 / 修改评分（管理员/老板）
 const reviewVisible = ref(false)
+// 模式：create=首次验收（waiting→completed）；modify=修改已验收工单评分
+const reviewMode = ref('create')
 const rRow = ref(null)
 const rFormRef = ref()
 const rForm = reactive({ is_qualified: 1, review_score: 5, review_comment: '' })
 
-const openReview = (row) => {
+const openReview = (row, mode = 'create') => {
   rRow.value = row
-  rForm.is_qualified = 1
-  rForm.review_score = 5
-  rForm.review_comment = ''
+  reviewMode.value = mode
+  if (mode === 'modify') {
+    // 修改模式：回填当前评分，方便在原有基础上修正
+    rForm.is_qualified = row.is_qualified === 0 ? 0 : 1
+    rForm.review_score = row.review_score || 5
+    rForm.review_comment = row.review_comment || ''
+  } else {
+    rForm.is_qualified = 1
+    rForm.review_score = 5
+    rForm.review_comment = ''
+  }
   reviewVisible.value = true
 }
 const submitReview = async () => {
   submitting.value = true
   try {
-    await reviewWorkOrder(rRow.value.id, { ...rForm })
-    ElMessage.success('验收评分已保存')
+    if (reviewMode.value === 'modify') {
+      await updateWorkOrderReview(rRow.value.id, { ...rForm })
+      ElMessage.success('评分已修改')
+    } else {
+      await reviewWorkOrder(rRow.value.id, { ...rForm })
+      ElMessage.success('验收评分已保存')
+    }
     reviewVisible.value = false
     await fetchData()
     loadWaitingCount()
-    menuBadgeStore.fetch() // 验收后工单进入终态，即时刷新侧边栏提醒徽标
+    menuBadgeStore.fetch() // 验收/改分后即时刷新侧边栏提醒徽标
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '验收失败')
+    ElMessage.error(e.response?.data?.message || '保存失败')
   } finally {
     submitting.value = false
   }
@@ -374,8 +425,8 @@ const exportXlsx = async () => {
       '报修时间': o.report_time || '',
       '接单时间': o.accept_time || '',
       '完成时间': o.complete_time || '',
-      '预计天数': o.est_days ?? '',
-      '实际天数': o.actual_days ?? '',
+      '预计工时(小时)': o.est_hours ?? '',
+      '实际工时(小时)': o.actual_hours ?? '',
       '返修次数': o.repair_count ?? 0,
       '验收评分': o.review_score ?? '',
       '工人自评': o.self_score ?? '',
@@ -413,7 +464,7 @@ const buildReportHtml = (list) => {
       <td>${esc(o.device_name)}</td>
       <td>${o.report_time || ''}</td>
       <td>${o.complete_time || '—'}</td>
-      <td>${o.est_days ?? '—'} / ${o.actual_days ?? '—'}</td>
+      <td>${fmtDuration(o.est_hours)} / ${fmtDuration(o.actual_hours)}</td>
       <td>${o.repair_count ?? 0}</td>
       <td>${o.review_score ?? '—'}</td>
       <td>${qualifiedText(o.is_qualified)}</td>
@@ -421,7 +472,7 @@ const buildReportHtml = (list) => {
     return `<h3>${esc(g.name)}（班组：${esc(g.team)} · 等级：${esc(g.level)}）</h3>
     <p class="sub">工单总数 ${m.total} ｜ 已完成 ${m.completed} ｜ 待验收 ${m.waiting} ｜ 进行中 ${m.open} ｜ 超期 ${m.overdue} ｜ 合格率 ${m.passRate} ｜ 平均验收分 ${m.avgScore}</p>
     <table border="1" cellspacing="0" cellpadding="5">
-      <thead><tr><th>工单编号</th><th>状态</th><th>设备</th><th>报修时间</th><th>完成时间</th><th>预计/实际(天)</th><th>返修</th><th>验收分</th><th>是否符合</th></tr></thead>
+      <thead><tr><th>工单编号</th><th>状态</th><th>设备</th><th>报修时间</th><th>完成时间</th><th>预计/实际工时</th><th>返修</th><th>验收分</th><th>是否符合</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`
   }).join('<br/>')
@@ -512,6 +563,9 @@ watch(() => route.query.order_id, () => {
   .over { color: #F56C6C; font-weight: 600; }
   .ok { color: #67C23A; font-weight: 600; }
   .overdue-tag { margin-left: 4px; vertical-align: middle; }
+  .row-thumb { width: 32px; height: 32px; border-radius: 4px; cursor: zoom-in; vertical-align: middle; }
+  .detail-imgs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .detail-img { width: 96px; height: 96px; border-radius: 6px; border: 1px solid #ebeef5; cursor: zoom-in; }
   .progress-title { font-weight: 600; color: #303133; margin: 24px 0 12px; }
   .progress-steps { padding: 8px 0 0; }
 }

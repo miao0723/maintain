@@ -133,3 +133,8 @@ export function deliverWorkOrder(id, data) {
 export function reviewWorkOrder(id, data) {
   return request({ url: `/performance/work-order/${id}/review`, method: 'post', data })
 }
+
+/** 管理员/老板修改已验收工单的评分（验收完成后修正打分/判定） */
+export function updateWorkOrderReview(id, data) {
+  return request({ url: `/performance/work-order/${id}/review`, method: 'put', data })
+}

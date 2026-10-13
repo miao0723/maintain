@@ -3,6 +3,7 @@
 namespace app\controller;
 
 use app\service\JwtService;
+use app\service\PermissionService;
 use app\validate\LoginValidate;
 use app\model\User;
 use app\common\Result;
@@ -58,6 +59,7 @@ class AuthController
         $user->save();
 
         // 返回 Token 和用户信息
+        $userArr = $user->toArray();
         return Result::success([
             'access_token' => $accessToken,
             'refresh_token' => $refreshToken,
@@ -68,8 +70,10 @@ class AuthController
                 'username' => $user->username,
                 'real_name' => $user->real_name,
                 'role_type' => $user->role_type,
+                'role_id' => $user->role_id,
                 'department_id' => $user->department_id,
             ],
+            'permissions' => PermissionService::forUser($userArr),
         ], '登录成功');
     }
 
@@ -133,9 +137,24 @@ class AuthController
             'phone' => $user->phone,
             'email' => $user->email,
             'role_type' => $user->role_type,
+            'role_id' => $user->role_id,
             'department_id' => $user->department_id,
             'department_name' => $user->department ? $user->department->name : null,
             'last_login_at' => $user->last_login_at,
         ]);
+    }
+
+    /**
+     * 获取当前用户的权限载荷（菜单树 + 按钮/接口权限码 + 是否老板）
+     * GET /auth/my-permissions
+     */
+    public function myPermissions()
+    {
+        $userId = request()->userId;
+        $user = User::find($userId);
+        if (!$user) {
+            return Result::error('用户不存在', 404);
+        }
+        return Result::success(PermissionService::forUser($user->toArray()));
     }
 }

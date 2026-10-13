@@ -70,7 +70,8 @@ class PerformanceService
 
     /**
      * 从工单集合计算绩效指标
-     * @param array $orders 工单数组（含 status/est_days/actual_days/repair_count/review_score）
+     * @param array $orders 工单数组（含 status/est_hours/actual_hours/repair_count/review_score）
+     * 时长口径：est_hours/actual_hours/avg_duration 均为「小时」（2 位小数）
      */
     public function computeMetrics(array $orders)
     {
@@ -88,10 +89,11 @@ class PerformanceService
         $reviewSum = 0.0;
         $reviewCnt = 0;
         $qualifiedCnt = 0;
+        $qualifiedJudged = 0;
 
         foreach ($closed as $o) {
-            $est = isset($o['est_days']) ? (float)$o['est_days'] : 0;
-            $act = isset($o['actual_days']) ? (float)$o['actual_days'] : 0;
+            $est = isset($o['est_hours']) ? (float)$o['est_hours'] : 0;
+            $act = isset($o['actual_hours']) ? (float)$o['actual_hours'] : 0;
             if ($act > 0 && ($act <= $est || $est <= 0)) {
                 $onTime++;
             }
@@ -107,8 +109,11 @@ class PerformanceService
                 $reviewSum += (int)$o['review_score'];
                 $reviewCnt++;
             }
-            if ((int)($o['is_qualified'] ?? 0) === 1) {
-                $qualifiedCnt++;
+            if (array_key_exists('is_qualified', $o) && $o['is_qualified'] !== null && $o['is_qualified'] !== '') {
+                $qualifiedJudged++;
+                if ((int)$o['is_qualified'] === 1) {
+                    $qualifiedCnt++;
+                }
             }
         }
 
@@ -121,9 +126,11 @@ class PerformanceService
             'rework_rate'      => $closedCount > 0 ? round($reworkSum / $closedCount * 100, 2) : 0,
             'first_fix_rate'   => $closedCount > 0 ? round($firstFix / $closedCount * 100, 2) : 0,
             'avg_review'       => $reviewCnt > 0 ? round($reviewSum / $reviewCnt, 2) : 0,
-            'qualified_rate'   => $closedCount > 0 ? round($qualifiedCnt / $closedCount * 100, 2) : 0,
+            'qualified_rate'   => $qualifiedJudged > 0 ? round($qualifiedCnt / $qualifiedJudged * 100, 2) : 0,
             'on_time_count'    => $onTime,
             'sample_count'     => $closedCount,
+            'review_count'     => $reviewCnt,        // 已验收评分条数（用于判断评分指标是否有数据）
+            'qualified_judged' => $qualifiedJudged,  // 已判定合格与否条数
             'overdue_open'     => $this->countOverdueOpen($orders),
         ];
     }
@@ -140,7 +147,7 @@ class PerformanceService
             if (in_array($o['status'], self::CLOSED_STATUSES)) {
                 continue;
             }
-            $est = isset($o['est_days']) ? (float)$o['est_days'] : 0;
+            $est = isset($o['est_hours']) ? (float)$o['est_hours'] : 0;
             if ($est <= 0 || empty($o['report_time'])) {
                 continue;
             }
@@ -148,7 +155,7 @@ class PerformanceService
             if ($reportTs === false) {
                 continue;
             }
-            if (($now - $reportTs) / 86400 > $est) {
+            if (($now - $reportTs) / 3600 > $est) {
                 $cnt++;
             }
         }
@@ -160,8 +167,9 @@ class PerformanceService
      * 规则：
      *   1) 样本充足：闭环工单数量 >= 最低样本量(min_orders)，否则"样本不足，暂不评级"；
      *   2) 综合得分 >= 达标分数线(pass_score)；
-     *   3) 关键指标一票否决：合格率(qualified_rate)任一不符合即不达标（qualified_rate 达标基准通常=100）。
-     * 返回：是否达标、是否样本不足、单项达标清单（红绿灯）、关键项是否失败。
+     *   3) 不再设"一票否决"——质量由权重体现（验收评分/合格率/一次修复率合计占比高），
+     *      避免小样本下个别不符合项造成误判；单项是否达标以红绿灯逐项展示，供老板判断。
+     * 返回：是否达标、是否样本不足、单项达标清单（红绿灯）。
      *
      * @param array $metrics computeMetrics 的输出
      * @param array $rules   评分规则（含 direction/pass_value）
@@ -178,14 +186,31 @@ class PerformanceService
 
         // 单项达标清单
         $indicators = [];
-        $criticalKeys = ['qualified_rate']; // 关键指标（一票否决）
+        $criticalKeys = []; // 不再一票否决
         $criticalFail = false;
         $ruleList = is_array($rules) ? $rules : $rules->toArray();
+
+        // 复用"无数据不计入"的判定，避免把未验收/未判定项算成未达标
+        $reviewCnt = (int)($metrics['review_count'] ?? 0);
+        $qualifiedJudged = (int)($metrics['qualified_judged'] ?? 0);
+        $hasData = [
+            'avg_review'      => $reviewCnt > 0,
+            'qualified_rate'  => $qualifiedJudged > 0,
+            'on_time_rate'    => $closed > 0,
+            'first_fix_rate'  => $closed > 0,
+            'rework_rate'     => $closed > 0,
+            'completed_count' => $closed > 0,
+            'avg_duration'    => $closed > 0,
+        ];
+
         foreach ($ruleList as $rule) {
             if (empty($rule['enabled'])) {
                 continue;
             }
             $key = $rule['indicator_key'];
+            if (array_key_exists($key, $hasData) && !$hasData[$key]) {
+                continue; // 无数据项不参与达标判定
+            }
             $actual = (float)($metrics[$key] ?? 0);
             $passVal = (float)($rule['pass_value'] ?? ($rule['target_value'] ?? 0));
             $direction = $rule['direction'] ?? 'higher';
@@ -226,7 +251,9 @@ class PerformanceService
     }
 
     /**
-     * 按启用的评分规则把指标换算为综合得分（0-100）
+     * 按启用的评分规则把指标换算为综合得分（0-100）。
+     * 合理性处理：某项指标无数据（如尚无验收评分/尚未判定合格）时不计入，权重按有数据项重新归一化，
+     * 避免"没被验收"被当成"做得差"而拉低总分。
      */
     public function scoreMetrics(array $metrics, $rules = null)
     {
@@ -237,6 +264,19 @@ class PerformanceService
         if (empty($ruleList)) {
             return 0;
         }
+
+        // 各指标"是否有有效数据"的判定
+        $closed = (int)($metrics['closed_count'] ?? 0);
+        $hasData = [
+            'avg_review'      => (int)($metrics['review_count'] ?? 0) > 0,
+            'qualified_rate'  => (int)($metrics['qualified_judged'] ?? 0) > 0,
+            'on_time_rate'    => $closed > 0,
+            'first_fix_rate'  => $closed > 0,
+            'rework_rate'     => $closed > 0,
+            'completed_count' => $closed > 0,
+            'avg_duration'    => $closed > 0,
+        ];
+
         $totalWeight = 0;
         $weighted = 0;
         foreach ($ruleList as $rule) {
@@ -245,8 +285,13 @@ class PerformanceService
             if (!$enabled || $w <= 0) {
                 continue;
             }
+            $key = $rule['indicator_key'];
+            // 无数据的指标跳过（权重让给有数据项）
+            if (array_key_exists($key, $hasData) && !$hasData[$key]) {
+                continue;
+            }
             $target = (float)($rule['target_value'] ?? 100);
-            $actual = (float)($metrics[$rule['indicator_key']] ?? 0);
+            $actual = (float)($metrics[$key] ?? 0);
             $score = $this->normalize($actual, $target, $rule['direction']);
 
             $weighted += $score * $w;
@@ -383,8 +428,8 @@ class PerformanceService
             ->field("DATE_FORMAT(o.report_time, '%Y-%m') as period")
             ->field('COUNT(*) as total')
             ->field('SUM(CASE WHEN o.status IN (\'completed\',\'timeout\') THEN 1 ELSE 0 END) as closed')
-            ->field('SUM(CASE WHEN o.status IN (\'completed\',\'timeout\') AND (o.actual_days <= o.est_days OR o.est_days <= 0) THEN 1 ELSE 0 END) as on_time')
-            ->field('AVG(CASE WHEN o.status IN (\'completed\',\'timeout\') AND o.actual_days > 0 THEN o.actual_days END) as avg_duration')
+                ->field('SUM(CASE WHEN o.status IN (\'completed\',\'timeout\') AND (o.actual_hours <= o.est_hours OR o.est_hours <= 0) THEN 1 ELSE 0 END) as on_time')
+                ->field('AVG(CASE WHEN o.status IN (\'completed\',\'timeout\') AND o.actual_hours > 0 THEN o.actual_hours END) as avg_duration')
             ->group('period')
             ->order('period', 'asc');
         if (!empty($filters['team'])) {
@@ -540,16 +585,16 @@ class PerformanceService
     }
 
     /**
-     * 给工单数组附加"超期未交付"标记
+     * 给工单数组附加"超期未交付"标记（est_hours 为小时口径）
      */
     private function appendOverdueFlag(array $order)
     {
         $order['is_overdue_open'] = 0;
         if (!in_array($order['status'], self::CLOSED_STATUSES)) {
-            $est = isset($order['est_days']) ? (float)$order['est_days'] : 0;
+            $est = isset($order['est_hours']) ? (float)$order['est_hours'] : 0;
             if ($est > 0 && !empty($order['report_time'])) {
                 $reportTs = strtotime($order['report_time']);
-                if ($reportTs !== false && (time() - $reportTs) / 86400 > $est) {
+                if ($reportTs !== false && (time() - $reportTs) / 3600 > $est) {
                     $order['is_overdue_open'] = 1;
                 }
             }
@@ -602,8 +647,9 @@ class PerformanceService
      * 更新评分规则（按 id 批量更新权重/启用）
      * @param array $rules [['id'=>1,'weight'=>30,'enabled'=>1], ...]
      */
-    public function updateScoreRules(array $rules)
+    public function updateScoreRules(array $rules, $userId = null)
     {
+        $this->assertBoss($userId);
         Db::startTrans();
         try {
             foreach ($rules as $r) {
@@ -634,17 +680,28 @@ class PerformanceService
 
     /**
      * 重置评分规则为默认权重（合计 100%，方向/目标/达标基准完整写回，避免"恢复默认"丢失定义）
+     *
+     * 设计思路（质量主导、时效其次、工作量适度，去除冗余与误判）：
+     *  - 验收评分 30%：验收人综合评判，是最贴近"做得好不好"的权威信号；
+     *  - 按时完成率 25%：时效（相对预计工期，跨设备复杂度公平）；
+     *  - 合格率 20%：交付是否一次合格；
+     *  - 一次修复率 15%：稳定性；
+     *  - 工单完成量 10%：工作量（适度，避免只拼量忽视质）；
+     *  - 返修率 / 平均维修时长 停用：返修率与一次修复率重复；平均时长按"天"横向不可比（不同设备工期不同），
+     *    时效已由按时完成率覆盖。保留行仅作停用，可随时在规则页重新启用。
+     *  - 取消"一票否决"，改为加权得分 + 最低样本量门槛，避免小样本误判（见 evaluateStandard）。
      */
-    public function resetScoreRules()
+    public function resetScoreRules($userId = null)
     {
+        $this->assertBoss($userId);
         $defaults = [
-            ['indicator_key' => 'on_time_rate',   'weight' => 25, 'direction' => 'higher', 'target_value' => 95,  'pass_value' => 95,  'unit' => '%',   'enabled' => 1, 'sort' => 1],
-            ['indicator_key' => 'avg_duration',   'weight' => 10, 'direction' => 'lower',  'target_value' => 3,   'pass_value' => 3,   'unit' => '天',  'enabled' => 1, 'sort' => 2],
-            ['indicator_key' => 'completed_count','weight' => 10, 'direction' => 'higher', 'target_value' => 8,   'pass_value' => 8,   'unit' => '单',  'enabled' => 1, 'sort' => 3],
-            ['indicator_key' => 'rework_rate',    'weight' => 10, 'direction' => 'lower',  'target_value' => 10,  'pass_value' => 10,  'unit' => '%',   'enabled' => 1, 'sort' => 4],
-            ['indicator_key' => 'first_fix_rate', 'weight' => 15, 'direction' => 'higher', 'target_value' => 95,  'pass_value' => 95,  'unit' => '%',   'enabled' => 1, 'sort' => 5],
-            ['indicator_key' => 'avg_review',     'weight' => 15, 'direction' => 'higher', 'target_value' => 4.5, 'pass_value' => 4.5, 'unit' => '分',  'enabled' => 1, 'sort' => 6],
-            ['indicator_key' => 'qualified_rate', 'weight' => 15, 'direction' => 'higher', 'target_value' => 100, 'pass_value' => 100, 'unit' => '%',   'enabled' => 1, 'sort' => 7],
+            ['indicator_key' => 'avg_review',      'weight' => 30, 'direction' => 'higher', 'target_value' => 4.5, 'pass_value' => 4.0, 'unit' => '分',  'enabled' => 1, 'sort' => 1],
+            ['indicator_key' => 'on_time_rate',    'weight' => 25, 'direction' => 'higher', 'target_value' => 95,  'pass_value' => 90,  'unit' => '%',   'enabled' => 1, 'sort' => 2],
+            ['indicator_key' => 'qualified_rate',  'weight' => 20, 'direction' => 'higher', 'target_value' => 100, 'pass_value' => 95,  'unit' => '%',   'enabled' => 1, 'sort' => 3],
+            ['indicator_key' => 'first_fix_rate',  'weight' => 15, 'direction' => 'higher', 'target_value' => 95,  'pass_value' => 90,  'unit' => '%',   'enabled' => 1, 'sort' => 4],
+            ['indicator_key' => 'completed_count', 'weight' => 10, 'direction' => 'higher', 'target_value' => 8,   'pass_value' => 5,   'unit' => '单',  'enabled' => 1, 'sort' => 5],
+            ['indicator_key' => 'rework_rate',     'weight' => 0,  'direction' => 'lower',  'target_value' => 5,   'pass_value' => 10,  'unit' => '%',   'enabled' => 0, 'sort' => 6],
+            ['indicator_key' => 'avg_duration',    'weight' => 0,  'direction' => 'lower',  'target_value' => 72,  'pass_value' => 72,  'unit' => '小时', 'enabled' => 0, 'sort' => 7],
         ];
         foreach ($defaults as $d) {
             PerfScoreRule::where('indicator_key', $d['indicator_key'])->update([
@@ -687,8 +744,9 @@ class PerformanceService
      * 批量保存配置
      * @param array $data ['pass_score'=>80, 'min_orders'=>3]
      */
-    public function saveConfig(array $data)
+    public function saveConfig(array $data, $userId = null)
     {
+        $this->assertBoss($userId);
         Db::startTrans();
         try {
             foreach (['pass_score', 'min_orders'] as $k) {
@@ -712,8 +770,9 @@ class PerformanceService
     /**
      * 生成并保存绩效得分快照（按时间段，人员 + 班组维度）
      */
-    public function generateSnapshot($filters = [], $periodLabel = '')
+    public function generateSnapshot($filters = [], $periodLabel = '', $userId = null)
     {
+        $this->assertBoss($userId);
         if (empty($periodLabel)) {
             $periodLabel = (!empty($filters['start_date']) ? $filters['start_date'] : 'all')
                 . '~' . (!empty($filters['end_date']) ? $filters['end_date'] : 'now');
@@ -813,6 +872,60 @@ class PerformanceService
     }
 
     /**
+     * 判断用户是否为老板/超管（与 PermissionCheck::isBoss 同规则）：
+     * role_type=1（或 admin/super_admin）｜ id∈{1,2} ｜ 角色码∈{admin,boss,super_admin}
+     */
+    private function isBossUser($userId): bool
+    {
+        if (empty($userId)) {
+            return false;
+        }
+        $user = Db::name('users')
+            ->alias('u')
+            ->leftJoin('roles r', 'u.role_id = r.id')
+            ->field('u.id, u.role_type, r.code as role_code')
+            ->where('u.id', (int)$userId)
+            ->find();
+        if (!$user) {
+            return false;
+        }
+        $roleType = $user['role_type'] ?? null;
+        if ($roleType === 'admin' || $roleType === 'super_admin' || (int)$roleType === 1) {
+            return true;
+        }
+        if (in_array((int)$user['id'], [1, 2], true)) {
+            return true;
+        }
+        return in_array($user['role_code'] ?? '', ['admin', 'boss', 'super_admin'], true);
+    }
+
+    /**
+     * 断言老板/超管（验收评分、评分规则、绩效配置、快照等管理操作）
+     */
+    private function assertBoss($userId): void
+    {
+        if (!$this->isBossUser($userId)) {
+            throw new \Exception('仅管理员/老板可执行该操作');
+        }
+    }
+
+    /**
+     * 断言维修人员身份（工人自助操作：建单/编辑/交付/删除）
+     * 老板保留通揽能力（历史行为），HR/普通员工等无档案账号禁止操作他人工单
+     */
+    private function assertWorker($userId): int
+    {
+        $engineerId = $this->resolveEngineerId($userId);
+        if ($engineerId === null) {
+            if ($this->isBossUser($userId)) {
+                return 0; // 老板：不限
+            }
+            throw new \Exception('该操作仅限维修人员账号');
+        }
+        return (int)$engineerId;
+    }
+
+    /**
      * 当前用户的绩效上下文（前端判断是否工人视角）
      */
     public function getMyContext($userId)
@@ -830,7 +943,7 @@ class PerformanceService
      */
     public function getDevices($keyword = '')
     {
-        $query = PerfDevice::where('status', 1)->field('id,device_no,name,type,area,fault_desc,engineer_id,est_days');
+        $query = PerfDevice::where('status', 1)->field('id,device_no,name,type,area,fault_desc,engineer_id,est_hours');
         if (!empty($keyword)) {
             $kw = $keyword;
             $query->where(function ($q) use ($kw) {
@@ -859,7 +972,7 @@ class PerformanceService
             'fault_desc' => $input['fault_desc'] ?? '',
             'status'     => 1,
             'engineer_id' => $engineerId ?: 0,
-            'est_days'   => isset($input['est_days']) ? (float)$input['est_days'] : null,
+            'est_hours'  => isset($input['est_hours']) ? (float)$input['est_hours'] : null,
         ]);
         return $this->getDeviceDetail($device->id);
     }
@@ -869,7 +982,7 @@ class PerformanceService
      */
     public function getDeviceDetail($id)
     {
-        $device = PerfDevice::field('id,device_no,name,type,area,fault_desc,status,engineer_id,est_days,created_at')->find($id);
+        $device = PerfDevice::field('id,device_no,name,type,area,fault_desc,status,engineer_id,est_hours,created_at')->find($id);
         return $device ? $device->toArray() : null;
     }
 
@@ -884,11 +997,11 @@ class PerformanceService
         }
         $this->assertDeviceManage($device, $userId);
 
-        $allow = ['name', 'type', 'area', 'fault_desc', 'est_days'];
+        $allow = ['name', 'type', 'area', 'fault_desc', 'est_hours'];
         $data = [];
         foreach ($allow as $k) {
             if (array_key_exists($k, $input)) {
-                $data[$k] = $k === 'est_days' ? (strlen($input[$k]) ? (float)$input[$k] : null) : $input[$k];
+                $data[$k] = $k === 'est_hours' ? (strlen($input[$k]) ? (float)$input[$k] : null) : $input[$k];
             }
         }
         if (!empty($data)) {
@@ -965,7 +1078,10 @@ class PerformanceService
             }
         }
 
-        $estDays = isset($input['est_days']) ? (float)$input['est_days'] : 3;
+        // 预计工时（小时）：未传默认 8 小时（半个工作日）；非法值按默认处理
+        $estHours = isset($input['est_hours']) && (float)$input['est_hours'] > 0
+            ? round((float)$input['est_hours'], 2)
+            : 8;
         $now = date('Y-m-d H:i:s');
         $orderNo = $this->genOrderNo();
 
@@ -983,13 +1099,47 @@ class PerformanceService
             // 仅「维修中」自动接单并记录接单时间；「待维修」尚未开始，接单时间留空
             'accept_time' => $initStatus === PerfWorkOrder::STATUS_PROCESSING ? $now : null,
             'status'      => $initStatus,
-            'est_days'    => $estDays,
+            'est_hours'   => $estHours,
             'fault_desc'  => $input['fault_desc'] ?? $device->fault_desc ?? '',
             'priority'    => $input['priority'] ?? 'normal',
             'remark'      => $input['remark'] ?? '',
+            // 维修图片（选填）：创建时可不带，维修中可随时补充
+            'images'      => $this->normalizeImages($input['images'] ?? null),
         ]);
 
         return $this->getWorkOrderDetail($order->id);
+    }
+
+    /**
+     * 维修图片归一化：仅接受 /uploads/ 相对路径数组，最多 9 张
+     * @param mixed $images 数组或 JSON 字符串（前端 FormData 场景兜底）
+     * @return array|null 空值返回 null（不占位，避免落空数组）
+     */
+    private function normalizeImages($images)
+    {
+        if (is_string($images)) {
+            $decoded = json_decode($images, true);
+            $images = is_array($decoded) ? $decoded : [];
+        }
+        if (!is_array($images)) {
+            return null;
+        }
+        $list = [];
+        foreach ($images as $url) {
+            if (!is_string($url)) {
+                continue;
+            }
+            $url = trim($url);
+            // 安全约束：只允许本站上传目录下的相对路径，拒绝外链/绝对路径/脚本地址
+            if ($url === '' || strpos($url, '/uploads/') !== 0) {
+                continue;
+            }
+            $list[] = $url;
+            if (count($list) >= 9) {
+                break;
+            }
+        }
+        return $list ?: null;
     }
 
     /**
@@ -1021,11 +1171,12 @@ class PerformanceService
 
         $now = date('Y-m-d H:i:s');
         $report = $order->report_time ?: $now;
-        $actualDays = round((strtotime($now) - strtotime($report)) / 86400, 1);
-        $actualDays = max($actualDays, 0);
+        // 实际工时（小时，2 位小数）：分钟级维修也能精确体现，不再四舍五入成 0 天
+        $actualHours = round((strtotime($now) - strtotime($report)) / 3600, 2);
+        $actualHours = max($actualHours, 0);
 
         $order->complete_time    = $now;
-        $order->actual_days      = $actualDays;
+        $order->actual_hours     = $actualHours;
         $order->status           = PerfWorkOrder::STATUS_WAITING; // 待验收
         $order->completion_note  = $input['completion_note'] ?? $order->completion_note;
         $order->self_score       = isset($input['self_score']) && $input['self_score'] !== ''
@@ -1040,7 +1191,7 @@ class PerformanceService
 
     /**
      * 管理员/老板验收评分（交付后由管理员判定合格并打分 → 已完成）
-     * 仅非维修人员（无绩效档案的管理员/老板）可操作，工人不能自己验收自己。
+     * 仅老板/超管可操作（HR 等只读账号被拒），工人不能自己验收自己。
      * @param int $isQualified 1 符合 / 0 不符合
      * @param int $reviewScore 验收评分 1-5
      */
@@ -1050,10 +1201,8 @@ class PerformanceService
         if (!$order) {
             throw new \Exception('工单不存在');
         }
-        // 仅管理员/老板可验收：有绩效档案的维修人员禁止自验
-        if ($this->resolveEngineerId($userId) !== null) {
-            throw new \Exception('仅管理员/老板可进行验收评分，维修人员不能自行验收');
-        }
+        // 仅老板/超管可验收：维修人员禁止自验，HR/普通员工等只读账号同样禁止
+        $this->assertBoss($userId);
         if ($order->status !== PerfWorkOrder::STATUS_WAITING) {
             throw new \Exception('仅「待验收」状态的工单可以验收评分');
         }
@@ -1068,13 +1217,54 @@ class PerformanceService
     }
 
     /**
-     * 权限校验：工人只能操作自己的工单；管理员（无绩效档案）不受限
+     * 管理员/老板修改已验收工单的评分（验收完成后发现打分/判定有误时可修正）
+     * 约束：
+     *  - 仅老板/超管可操作（HR 等只读账号被拒）；
+     *  - 工单必须已验收完成（completed 且已有评分）；
+     *  - 不改变工单状态与绩效快照口径，仅修正评分三要素，操作留痕于 updated_at。
+     */
+    public function updateReviewWorkOrder($id, $userId, $isQualified, $reviewScore, $comment = '')
+    {
+        $order = PerfWorkOrder::find($id);
+        if (!$order) {
+            throw new \Exception('工单不存在');
+        }
+        $this->assertBoss($userId);
+        if ($order->status !== PerfWorkOrder::STATUS_COMPLETED || $order->review_score === null) {
+            throw new \Exception('仅已验收完成的工单可以修改评分');
+        }
+        $reviewScore = (int)$reviewScore;
+        if ($reviewScore < 1 || $reviewScore > 5) {
+            throw new \Exception('验收评分必须为 1-5 分');
+        }
+        if (!in_array((int)$isQualified, [0, 1], true)) {
+            throw new \Exception('判定结果不合法');
+        }
+
+        $order->is_qualified   = (int)$isQualified;
+        $order->review_score   = $reviewScore;
+        $order->review_comment = $comment !== '' ? $comment : $order->review_comment;
+        $order->save();
+
+        return $this->getWorkOrderDetail($id);
+    }
+
+    /**
+     * 权限校验：工人只能操作自己的工单；
+     * 老板（无绩效档案）保留通揽能力；HR/普通员工等无档案账号禁止操作工单。
      */
     private function assertOwnership($order, $userId)
     {
         $myEngineerId = $this->resolveEngineerId($userId);
-        if ($myEngineerId !== null && (int)$order->engineer_id !== (int)$myEngineerId) {
-            throw new \Exception('只能操作自己的工单');
+        if ($myEngineerId !== null) {
+            if ((int)$order->engineer_id !== (int)$myEngineerId) {
+                throw new \Exception('只能操作自己的工单');
+            }
+            return;
+        }
+        // 无绩效档案：仅老板可通揽，其余账号（HR/员工）禁止
+        if (!$this->isBossUser($userId)) {
+            throw new \Exception('该操作仅限维修人员本人');
         }
     }
 
@@ -1110,11 +1300,18 @@ class PerformanceService
         if (!in_array($order->status, [PerfWorkOrder::STATUS_PENDING, PerfWorkOrder::STATUS_PROCESSING, PerfWorkOrder::STATUS_TO_REPAIR])) {
             throw new \Exception('该工单已交付/完成，不可修改');
         }
-        $allow = ['fault_desc', 'est_days', 'priority', 'remark'];
+        $allow = ['fault_desc', 'est_hours', 'priority', 'remark', 'images'];
         $data = [];
         foreach ($allow as $k) {
             if (array_key_exists($k, $input)) {
-                $data[$k] = $k === 'est_days' ? (strlen($input[$k]) ? (float)$input[$k] : null) : $input[$k];
+                if ($k === 'est_hours') {
+                    $data[$k] = strlen($input[$k]) ? (float)$input[$k] : null;
+                } elseif ($k === 'images') {
+                    // 图片支持维修中随时补充/删改：空数组表示清空，均归一化后入库
+                    $data[$k] = $this->normalizeImages($input[$k]);
+                } else {
+                    $data[$k] = $input[$k];
+                }
             }
         }
         if (!empty($data)) {
@@ -1141,55 +1338,55 @@ class PerformanceService
     }
 
     /**
-     * 维修工期合理性评估
-     * 依据：本人历史同类完成均值 / 全库同类设备平均用时，给出规划天数建议。
+     * 维修工期合理性评估（小时口径）
+     * 依据：本人历史同类完成均值 / 全库同类设备平均用时，给出规划工时建议。
      * @param int   $userId
-     * @param array $input [type, fault_desc, est_days, priority]
-     * @return array {est_days, reference_days, worker_avg, worker_count, type_avg, type_count, suggestion, level, message}
+     * @param array $input [type, fault_desc, est_hours, priority]
+     * @return array {est_hours, reference_hours, worker_avg, worker_count, type_avg, type_count, basis, suggestion, level, message}
      */
     public function estimateRepair($userId, array $input)
     {
-        $estDays = isset($input['est_days']) ? (float)$input['est_days'] : 0;
+        $estHours = isset($input['est_hours']) ? (float)$input['est_hours'] : 0;
         $type    = trim($input['type'] ?? '');
         $fault   = trim($input['fault_desc'] ?? '');
         $engineerId = $this->resolveEngineerId($userId);
 
-        // 1) 本人历史同类（已完成）均值
+        // 1) 本人历史同类（已完成）均值（小时）
         $workerAvg = 0; $workerCnt = 0;
         if ($engineerId) {
             $wQ = PerfWorkOrder::alias('o')
                 ->leftJoin('perf_devices d', 'o.device_id = d.id')
                 ->where('o.engineer_id', $engineerId)
                 ->whereIn('o.status', self::CLOSED_STATUSES)
-                ->whereNotNull('o.actual_days');
+                ->whereNotNull('o.actual_hours');
             if ($type) {
                 $wQ->where('d.type', $type);
             }
-            $wRows = $wQ->field('o.actual_days')->select()->toArray();
+            $wRows = $wQ->field('o.actual_hours')->select()->toArray();
             if ($wRows) {
                 $workerCnt = count($wRows);
-                $workerAvg = round(array_sum(array_column($wRows, 'actual_days')) / $workerCnt, 1);
+                $workerAvg = round(array_sum(array_column($wRows, 'actual_hours')) / $workerCnt, 1);
             }
         }
 
-        // 2) 全库同类设备平均用时（样本更充足）
+        // 2) 全库同类设备平均用时（样本更充足，小时）
         $typeAvg = 0; $typeCnt = 0;
         $tQ = PerfWorkOrder::alias('o')
             ->leftJoin('perf_devices d', 'o.device_id = d.id')
             ->whereIn('o.status', self::CLOSED_STATUSES)
-            ->whereNotNull('o.actual_days');
+            ->whereNotNull('o.actual_hours');
         if ($type) {
             $tQ->where('d.type', $type);
         } elseif ($fault) {
             $tQ->where('o.fault_desc', 'like', "%{$fault}%");
         }
-        $tRows = $tQ->field('o.actual_days')->select()->toArray();
+        $tRows = $tQ->field('o.actual_hours')->select()->toArray();
         if ($tRows) {
             $typeCnt = count($tRows);
-            $typeAvg = round(array_sum(array_column($tRows, 'actual_days')) / $typeCnt, 1);
+            $typeAvg = round(array_sum(array_column($tRows, 'actual_hours')) / $typeCnt, 1);
         }
 
-        // 3) 参考基准：优先本人历史，其次同类均值，再其次默认 3 天
+        // 3) 参考基准：优先本人历史，其次同类均值，再其次默认 8 小时（数据不足）
         $reference = 0; $basis = '默认参考';
         if ($workerCnt >= 2) {
             $reference = $workerAvg; $basis = '本人历史均值';
@@ -1199,52 +1396,69 @@ class PerformanceService
         } elseif ($typeCnt >= 3) {
             $reference = $typeAvg; $basis = '同类设备均值';
         } else {
-            $reference = 3.0; $basis = '默认参考(数据不足)';
+            $reference = 8.0; $basis = '默认参考(数据不足)';
         }
 
         // 4) 建议等级
         $suggestion = '合理'; $level = 'success';
-        if ($estDays <= 0) {
-            $suggestion = '请填写规划天数'; $level = 'info';
-        } elseif ($reference > 0 && $estDays < $reference * 0.6) {
+        if ($estHours <= 0) {
+            $suggestion = '请填写预计工时'; $level = 'info';
+        } elseif ($reference > 0 && $estHours < $reference * 0.6) {
             $suggestion = '偏紧(风险)'; $level = 'danger';
-        } elseif ($reference > 0 && $estDays > $reference * 1.6) {
+        } elseif ($reference > 0 && $estHours > $reference * 1.6) {
             $suggestion = '偏松(可压缩)'; $level = 'warning';
         }
 
-        $message = $this->buildEstimateMessage($estDays, $reference, $workerAvg, $workerCnt, $typeAvg, $typeCnt, $suggestion, $basis);
+        $message = $this->buildEstimateMessage($estHours, $reference, $workerAvg, $workerCnt, $typeAvg, $typeCnt, $suggestion, $basis);
 
         return [
-            'est_days'       => $estDays,
-            'reference_days' => $reference,
-            'worker_avg'     => $workerAvg,
-            'worker_count'   => $workerCnt,
-            'type_avg'       => $typeAvg,
-            'type_count'     => $typeCnt,
-            'basis'          => $basis,
-            'suggestion'     => $suggestion,
-            'level'          => $level,
-            'message'        => $message,
+            'est_hours'       => $estHours,
+            'reference_hours' => $reference,
+            'worker_avg'      => $workerAvg,
+            'worker_count'    => $workerCnt,
+            'type_avg'        => $typeAvg,
+            'type_count'      => $typeCnt,
+            'basis'           => $basis,
+            'suggestion'      => $suggestion,
+            'level'           => $level,
+            'message'         => $message,
         ];
     }
 
-    private function buildEstimateMessage($estDays, $reference, $workerAvg, $workerCnt, $typeAvg, $typeCnt, $suggestion, $basis)
+    /**
+     * 时长的人类可读格式：<24 小时 => "X小时"；>=24 小时 => "X.X天"
+     */
+    private function fmtHours($hours)
+    {
+        $h = (float)$hours;
+        if ($h <= 0) {
+            return '0小时';
+        }
+        if ($h < 24) {
+            $v = round($h, 1);
+            return (floor($v) == $v ? (int)$v : $v) . '小时';
+        }
+        $d = round($h / 24, 1);
+        return (floor($d) == $d ? (int)$d : $d) . '天';
+    }
+
+    private function buildEstimateMessage($estHours, $reference, $workerAvg, $workerCnt, $typeAvg, $typeCnt, $suggestion, $basis)
     {
         $parts = [];
-        if ($estDays > 0) {
-            $parts[] = "你计划的工期为 {$estDays} 天";
+        if ($estHours > 0) {
+            $parts[] = "你计划的工时为 " . $this->fmtHours($estHours);
         }
         if ($workerCnt > 0) {
-            $parts[] = "你本人同类维修平均用时 {$workerAvg} 天（{$workerCnt} 单样本）";
+            $parts[] = "你本人同类维修平均用时 " . $this->fmtHours($workerAvg) . "（{$workerCnt} 单样本）";
         }
         if ($typeCnt > 0) {
-            $parts[] = "全库同类设备平均用时 {$typeAvg} 天（{$typeCnt} 单样本）";
+            $parts[] = "全库同类设备平均用时 " . $this->fmtHours($typeAvg) . "（{$typeCnt} 单样本）";
         }
-        $parts[] = "综合参考基准 {$reference} 天（{$basis}）";
+        $parts[] = "综合参考基准 " . $this->fmtHours($reference) . "（{$basis}）";
         $tail = match ($suggestion) {
             '偏紧(风险)'  => '，计划偏短，按期完成风险较高，建议适当放宽或提前备料。',
             '偏松(可压缩)' => '，计划偏长，存在压缩空间，可尝试优化工序提升效率。',
-            '请填写规划天数' => '，请先填写预计完成天数后再评估。',
+            '请填写预计工时' => '，请先填写预计工时后再评估。',
             default      => '，工期规划较为合理。',
         };
         return implode('；', $parts) . $tail;

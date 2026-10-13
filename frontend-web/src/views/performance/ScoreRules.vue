@@ -9,8 +9,11 @@
             <el-tag :type="weightSum === 100 ? 'success' : 'danger'" effect="plain">
               权重合计：{{ weightSum }}%（建议 100%）
             </el-tag>
-            <el-button type="primary" :loading="saving" @click="handleSave"><el-icon><Check /></el-icon>保存权重</el-button>
-            <el-button @click="handleReset"><el-icon><RefreshLeft /></el-icon>恢复默认</el-button>
+            <template v-if="canManage">
+              <el-button type="primary" :loading="saving" @click="handleSave"><el-icon><Check /></el-icon>保存权重</el-button>
+              <el-button @click="handleReset"><el-icon><RefreshLeft /></el-icon>恢复默认</el-button>
+            </template>
+            <el-tag v-else type="info" effect="plain">只读（仅老板可配置）</el-tag>
           </div>
         </div>
       </template>
@@ -33,7 +36,7 @@
             <el-input-number v-model="perfConfig.min_orders" :min="1" :max="50" :step="1" controls-position="right" style="width: 130px;" />
             <span class="cfg-unit">单 · 闭环工单低于该值不评级</span>
           </el-form-item>
-          <el-form-item>
+          <el-form-item v-if="canManage">
             <el-button type="primary" :loading="cfgSaving" @click="handleSaveConfig"><el-icon><Check /></el-icon>保存达标线</el-button>
           </el-form-item>
         </el-form>
@@ -84,8 +87,10 @@
         <div class="head">
           <span class="card-title">历史绩效快照（可追溯）</span>
           <div class="head-actions">
-            <el-input v-model="newPeriod" placeholder="周期标签，如 2026-Q3" style="width: 180px;" />
-            <el-button type="success" :loading="genLoading" @click="handleGenerate"><el-icon><Camera /></el-icon>生成快照</el-button>
+            <template v-if="canManage">
+              <el-input v-model="newPeriod" placeholder="周期标签，如 2026-Q3" style="width: 180px;" />
+              <el-button type="success" :loading="genLoading" @click="handleGenerate"><el-icon><Camera /></el-icon>生成快照</el-button>
+            </template>
             <el-select v-model="snapPeriod" placeholder="选择周期" clearable style="width: 180px;" @change="fetchSnapshots">
               <el-option v-for="p in periods" :key="p" :label="p" :value="p" />
             </el-select>
@@ -107,8 +112,8 @@
         <el-table-column prop="on_time_rate" label="按时完成率" width="110" align="center">
           <template #default="{ row }">{{ row.on_time_rate }}%</template>
         </el-table-column>
-        <el-table-column prop="avg_duration" label="平均时长" width="100" align="center">
-          <template #default="{ row }">{{ row.avg_duration }}天</template>
+        <el-table-column prop="avg_duration" label="平均时长" width="120" align="center">
+          <template #default="{ row }">{{ fmtDuration(row.avg_duration) }}</template>
         </el-table-column>
         <el-table-column prop="rework_rate" label="返修率" width="90" align="center">
           <template #default="{ row }">{{ row.rework_rate }}%</template>
@@ -127,6 +132,14 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getScoreRules, updateScoreRules, resetScoreRules, getSnapshots, generateSnapshot, getPerfConfig, savePerfConfig } from '@/api/performance'
+import { fmtDuration } from '@/utils/duration'
+import { usePermStore } from '@/stores/permission'
+import { useAuthStore } from '@/stores/auth'
+
+// 规则/配置/快照管理仅老板/超管（HR 等只读账号只可查看）
+const permStore = usePermStore()
+const authStore = useAuthStore()
+const canManage = computed(() => permStore.isBoss || authStore.isAdmin)
 
 const saving = ref(false)
 const rules = ref([])
@@ -156,11 +169,13 @@ const handleSaveConfig = async () => {
 }
 
 const ruleDesc = (key) => ({
-  on_time_rate: '在统计周期内，实际完成天数不超过预计天数的工单占比，衡量交付准时性。',
-  avg_duration: '闭环工单的平均实际维修天数，越短越好，反映维修效率。',
-  completed_count: '统计周期内完成（含已超时但已闭环）的工单数量，衡量工作量。',
-  rework_rate: '返修次数与完成工单数的比值，越低越好，反映一次做好的能力。',
-  first_fix_rate: '零返修工单占比，越高越好，与返修率互补。'
+  avg_review: '验收人评分（1-5 分）的平均值，是最贴近“做得好不好”的权威质量信号，权重最高。',
+  on_time_rate: '统计周期内实际完成天数不超过预计天数的工单占比，衡量交付准时性。',
+  qualified_rate: '被判定为“符合”的工单占比，衡量交付是否一次合格。',
+  first_fix_rate: '零返修工单占比，越高越好，反映一次做好的稳定性。',
+  completed_count: '统计周期内完成（含已超时但已闭环）的工单数量，衡量工作量（权重适度，避免只拼量）。',
+  rework_rate: '返修次数与完成工单数的比值，越低越好；与一次修复率重复，默认停用。',
+  avg_duration: '闭环工单平均实际维修时长（小时）；不同设备工时不同、横向不可比，时效已由按时完成率覆盖，默认停用。'
 }[key] || '')
 
 const scoreColor = (s) => (s >= 85 ? '#67C23A' : s >= 70 ? '#409EFF' : s >= 60 ? '#E6A23C' : '#F56C6C')

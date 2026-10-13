@@ -32,14 +32,23 @@
         </el-table-column>
         <el-table-column prop="device_name" label="设备" min-width="120" />
         <el-table-column prop="area" label="区域" width="100" />
+        <el-table-column label="图片" width="70" align="center">
+          <template #default="{ row }">
+            <el-image v-if="toImgList(row.images).length" :src="toImgList(row.images)[0]" fit="cover"
+              class="row-thumb" :preview-src-list="toImgList(row.images)" preview-teleported />
+            <span v-else class="muted">—</span>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="statusMeta(row.status).type" size="small">{{ statusMeta(row.status).label }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="预计/实际天数" width="130">
+        <el-table-column label="预计/实际工时" width="150">
           <template #default="{ row }">
-            <span>{{ row.est_days != null ? row.est_days : '—' }} / <b :class="row.actual_days != null && row.actual_days > row.est_days ? 'over' : ''">{{ row.actual_days != null ? row.actual_days : '—' }}</b></span>
+            <span>{{ fmtDuration(row.est_hours) }}</span>
+            <span class="sep"> / </span>
+            <b :class="row.actual_hours != null && row.est_hours != null && row.actual_hours > row.est_hours ? 'over' : ''">{{ fmtDuration(row.actual_hours) }}</b>
           </template>
         </el-table-column>
         <el-table-column label="是否符合" width="100">
@@ -76,9 +85,12 @@
 
     <!-- 新建工单弹窗 -->
     <el-dialog v-model="createVisible" title="新建维修工单" width="580px">
+      <el-alert type="info" :closable="false" class="form-tip" show-icon
+        title="填写规则：设备、本次故障为必填；其余均为选填"
+        description="预计天数建议填写（用于工期评估与超时提醒，不填默认 3 天）；维修图片可附故障现象/维修过程，创建后也能在编辑时补充，最多 9 张。" />
       <el-form :model="cForm" label-width="96px" :rules="cRules" ref="cFormRef">
-        <el-form-item label="选择设备" prop="device_id">
-          <el-select v-model="cForm.device_id" filterable placeholder="选择已有设备" style="width:100%" :disabled="createNewDevice" @change="onPickDevice">
+        <el-form-item label="选择设备" prop="device_id" required>
+          <el-select v-model="cForm.device_id" filterable placeholder="选择已有设备（必填）" style="width:100%" :disabled="createNewDevice" @change="onPickDevice">
             <el-option v-for="d in deviceOptions" :key="d.id" :label="`${d.name}（${d.area || '区域未填'}）`" :value="d.id" />
           </el-select>
         </el-form-item>
@@ -86,46 +98,53 @@
           <el-checkbox v-model="createNewDevice" @change="onToggleNewDevice">或新建设备</el-checkbox>
         </el-form-item>
         <template v-if="createNewDevice">
-          <el-form-item label="设备名称" prop="device_name">
-            <el-input v-model="cForm.device_name" placeholder="如：中央空调主机" />
+          <el-form-item label="设备名称" prop="device_name" required>
+            <el-input v-model="cForm.device_name" placeholder="如：中央空调主机（必填）" />
           </el-form-item>
-          <el-form-item label="设备类型"><el-input v-model="cForm.device_type" placeholder="如：暖通设备" /></el-form-item>
-          <el-form-item label="所属区域"><el-input v-model="cForm.device_area" placeholder="如：A栋机房" /></el-form-item>
-          <el-form-item label="故障描述"><el-input v-model="cForm.device_fault" type="textarea" :rows="2" /></el-form-item>
+          <el-form-item label="设备类型"><el-input v-model="cForm.device_type" placeholder="如：暖通设备（选填）" /></el-form-item>
+          <el-form-item label="所属区域"><el-input v-model="cForm.device_area" placeholder="如：A栋机房（选填）" /></el-form-item>
+          <el-form-item label="故障描述"><el-input v-model="cForm.device_fault" type="textarea" :rows="2" placeholder="设备常见故障（选填）" /></el-form-item>
         </template>
-        <el-form-item label="本次故障" prop="fault_desc">
-          <el-input v-model="cForm.fault_desc" type="textarea" :rows="2" placeholder="本次维修的具体故障描述" />
+        <el-form-item label="本次故障" prop="fault_desc" required>
+          <el-input v-model="cForm.fault_desc" type="textarea" :rows="2" placeholder="本次维修的具体故障描述（必填）" maxlength="255" show-word-limit />
         </el-form-item>
-        <el-form-item label="预计天数" prop="est_days">
-          <el-input-number v-model="cForm.est_days" :min="0.5" :max="60" :step="0.5" :precision="1" /> 天
-          <span class="hint">先规划几天能完成，系统会评估是否合理</span>
+        <el-form-item label="维修图片">
+          <ImageUpload v-model="cForm.images" :max-count="9" />
+          <span class="hint">选填：故障现象/维修过程/前后对比，最多 9 张，创建后可补充</span>
+        </el-form-item>
+        <el-form-item label="预计工时" prop="est_hours">
+          <el-input-number v-model="cForm.est_hours" :min="0.5" :max="720" :step="0.5" :precision="1" /> 小时
+          <span class="optional-tag">选填</span>
+          <span class="hint">按小时规划（如 1、2.5、8，不填默认 8 小时）；系统会评估是否合理</span>
         </el-form-item>
         <el-form-item label="优先级">
           <el-select v-model="cForm.priority" style="width:160px">
-            <el-option label="普通" value="normal" />
+            <el-option label="普通（默认）" value="normal" />
             <el-option label="低" value="low" />
             <el-option label="高" value="high" />
             <el-option label="紧急" value="urgent" />
           </el-select>
+          <span class="optional-tag">选填</span>
         </el-form-item>
         <el-form-item label="工单状态">
           <el-select v-model="cForm.status" style="width:160px">
             <el-option label="待维修" value="to_repair" />
-            <el-option label="维修中" value="processing" />
+            <el-option label="维修中（默认）" value="processing" />
           </el-select>
+          <span class="optional-tag">选填</span>
           <span class="hint">待维修：已建单但暂未开始；维修中：创建即接单并开始</span>
         </el-form-item>
       </el-form>
 
-      <div class="est-box" v-if="createEstimate && cForm.est_days > 0">
+      <div class="est-box" v-if="createEstimate && cForm.est_hours > 0">
         <div class="est-head">
           <span class="est-title">工期合理性评估</span>
           <el-tag :type="lvl(createEstimate.level)" size="small">{{ createEstimate.suggestion }}</el-tag>
         </div>
-        <div class="est-body" v-if="createEstimate.reference_days">
-          参考基准 <b>{{ createEstimate.reference_days }}</b> 天
-          <template v-if="createEstimate.worker_count">（本人同类均值 {{ createEstimate.worker_avg }} 天 / {{ createEstimate.worker_count }} 单）</template>
-          <template v-else-if="createEstimate.type_count">（同类设备均值 {{ createEstimate.type_avg }} 天 / {{ createEstimate.type_count }} 单）</template>
+        <div class="est-body" v-if="createEstimate.reference_hours">
+          参考基准 <b>{{ fmtDuration(createEstimate.reference_hours) }}</b>
+          <template v-if="createEstimate.worker_count">（本人同类均值 {{ fmtDuration(createEstimate.worker_avg) }} / {{ createEstimate.worker_count }} 单）</template>
+          <template v-else-if="createEstimate.type_count">（同类设备均值 {{ fmtDuration(createEstimate.type_avg) }} / {{ createEstimate.type_count }} 单）</template>
           <template v-else>（数据不足，使用默认参考）</template>
         </div>
         <div class="est-msg">{{ createEstimate.message }}</div>
@@ -139,38 +158,47 @@
 
     <!-- 编辑工单弹窗 -->
     <el-dialog v-model="editVisible" title="编辑工单" width="560px">
+      <el-alert type="info" :closable="false" class="form-tip" show-icon
+        title="维修中（待维修/维修中）可随时编辑，图片也可在此补充" />
       <el-form :model="eForm" label-width="96px" ref="eFormRef">
         <el-form-item label="设备">
           <span>{{ eRow?.device_name || '—' }}（{{ eRow?.device_area || '区域未填' }}）</span>
         </el-form-item>
-        <el-form-item label="本次故障" prop="fault_desc">
-          <el-input v-model="eForm.fault_desc" type="textarea" :rows="2" />
+        <el-form-item label="本次故障" prop="fault_desc" required>
+          <el-input v-model="eForm.fault_desc" type="textarea" :rows="2" placeholder="本次维修的具体故障描述（必填）" maxlength="255" show-word-limit />
         </el-form-item>
-        <el-form-item label="预计天数" prop="est_days">
-          <el-input-number v-model="eForm.est_days" :min="0.5" :max="60" :step="0.5" :precision="1" /> 天
+        <el-form-item label="维修图片">
+          <ImageUpload v-model="eForm.images" :max-count="9" />
+          <span class="hint">选填：随时增删，最多 9 张</span>
+        </el-form-item>
+        <el-form-item label="预计工时" prop="est_hours">
+          <el-input-number v-model="eForm.est_hours" :min="0.5" :max="720" :step="0.5" :precision="1" /> 小时
+          <span class="optional-tag">选填</span>
         </el-form-item>
         <el-form-item label="优先级">
           <el-select v-model="eForm.priority" style="width:160px">
-            <el-option label="普通" value="normal" />
+            <el-option label="普通（默认）" value="normal" />
             <el-option label="低" value="low" />
             <el-option label="高" value="high" />
             <el-option label="紧急" value="urgent" />
           </el-select>
+          <span class="optional-tag">选填</span>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="eForm.remark" type="textarea" :rows="2" placeholder="补充说明" />
+          <el-input v-model="eForm.remark" type="textarea" :rows="2" placeholder="补充说明（选填）" />
+          <span class="optional-tag">选填</span>
         </el-form-item>
       </el-form>
 
-      <div class="est-box" v-if="editEstimate && eForm.est_days > 0">
+      <div class="est-box" v-if="editEstimate && eForm.est_hours > 0">
         <div class="est-head">
           <span class="est-title">工期合理性评估</span>
           <el-tag :type="lvl(editEstimate.level)" size="small">{{ editEstimate.suggestion }}</el-tag>
         </div>
-        <div class="est-body" v-if="editEstimate.reference_days">
-          参考基准 <b>{{ editEstimate.reference_days }}</b> 天
-          <template v-if="editEstimate.worker_count">（本人同类均值 {{ editEstimate.worker_avg }} 天 / {{ editEstimate.worker_count }} 单）</template>
-          <template v-else-if="editEstimate.type_count">（同类设备均值 {{ editEstimate.type_avg }} 天 / {{ editEstimate.type_count }} 单）</template>
+        <div class="est-body" v-if="editEstimate.reference_hours">
+          参考基准 <b>{{ fmtDuration(editEstimate.reference_hours) }}</b>
+          <template v-if="editEstimate.worker_count">（本人同类均值 {{ fmtDuration(editEstimate.worker_avg) }} / {{ editEstimate.worker_count }} 单）</template>
+          <template v-else-if="editEstimate.type_count">（同类设备均值 {{ fmtDuration(editEstimate.type_avg) }} / {{ editEstimate.type_count }} 单）</template>
           <template v-else>（数据不足，使用默认参考）</template>
         </div>
         <div class="est-msg">{{ editEstimate.message }}</div>
@@ -212,9 +240,16 @@
           <el-tag :type="statusMeta(detail.status).type" size="small">{{ statusMeta(detail.status).label }}</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="本次故障">{{ detail.fault_desc || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="维修图片" :span="2">
+          <div v-if="toImgList(detail.images).length" class="detail-imgs">
+            <el-image v-for="(u, i) in toImgList(detail.images)" :key="i" :src="u" fit="cover"
+              class="detail-img" :preview-src-list="toImgList(detail.images)" :initial-index="i" preview-teleported />
+          </div>
+          <span v-else class="muted">未上传图片</span>
+        </el-descriptions-item>
         <el-descriptions-item label="优先级">{{ priorityLabel(detail.priority) }}</el-descriptions-item>
-        <el-descriptions-item label="预计天数">{{ detail.est_days != null ? detail.est_days + ' 天' : '—' }}</el-descriptions-item>
-        <el-descriptions-item label="实际天数">{{ detail.actual_days != null ? detail.actual_days + ' 天' : '—' }}</el-descriptions-item>
+        <el-descriptions-item label="预计工时">{{ fmtDuration(detail.est_hours) }}</el-descriptions-item>
+        <el-descriptions-item label="实际工时">{{ fmtDuration(detail.actual_hours) }}</el-descriptions-item>
         <el-descriptions-item label="是否符合">
           <el-tag v-if="detail.is_qualified === 1" type="success" size="small">符合</el-tag>
           <el-tag v-else-if="detail.is_qualified === 0" type="danger" size="small">不符合</el-tag>
@@ -238,12 +273,26 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import ImageUpload from '@/components/ImageUpload.vue'
+import { fmtDuration, DEFAULT_EST_HOURS } from '@/utils/duration'
 import {
   getMyWorkOrders, getPerformanceDevices, createSelfWorkOrder,
   deliverWorkOrder, updateSelfWorkOrder, deleteSelfWorkOrder,
   estimateRepair
 } from '@/api/performance'
 import { useMenuBadgeStore } from '@/stores/menuBadge'
+
+// 维修图片字段兜底解析：后端模型读出为数组，异常时按 JSON 字符串兜底
+const toImgList = (v) => {
+  if (Array.isArray(v)) return v.filter((u) => typeof u === 'string' && u)
+  if (typeof v === 'string' && v) {
+    try {
+      const arr = JSON.parse(v)
+      return Array.isArray(arr) ? arr.filter((u) => typeof u === 'string' && u) : []
+    } catch { return [] }
+  }
+  return []
+}
 
 const orders = ref([])
 const loading = ref(false)
@@ -280,7 +329,7 @@ const createNewDevice = ref(false)
 const cFormRef = ref()
 const cForm = ref({
   device_id: '', device_name: '', device_type: '', device_area: '', device_fault: '',
-  fault_desc: '', est_days: 3, priority: 'normal', status: 'processing'
+  fault_desc: '', images: [], est_hours: DEFAULT_EST_HOURS, priority: 'normal', status: 'processing'
 })
 const cRules = {
   fault_desc: [{ required: true, message: '请填写本次故障', trigger: 'blur' }]
@@ -291,7 +340,7 @@ const createEstimate = ref(null)
 const editVisible = ref(false)
 const eFormRef = ref()
 const eRow = ref(null)
-const eForm = ref({ fault_desc: '', est_days: 3, priority: 'normal', remark: '' })
+const eForm = ref({ fault_desc: '', images: [], est_hours: DEFAULT_EST_HOURS, priority: 'normal', remark: '' })
 const editEstimate = ref(null)
 
 // 交付
@@ -319,14 +368,14 @@ const lvl = (l) => (l === 'success' ? 'success' : l === 'warning' ? 'warning' : 
 // 工期合理性评估（带防抖）
 let estTimer = null
 const fetchEstimate = (target, formObj) => {
-  if (!formObj.est_days || formObj.est_days <= 0) { target.value = null; return }
+  if (!formObj.est_hours || formObj.est_hours <= 0) { target.value = null; return }
   clearTimeout(estTimer)
   estTimer = setTimeout(async () => {
     try {
       const res = await estimateRepair({
         type: currentEstType(formObj),
         fault_desc: formObj.fault_desc,
-        est_days: formObj.est_days
+        est_hours: formObj.est_hours
       })
       target.value = res.data || null
     } catch (e) { target.value = null }
@@ -337,9 +386,9 @@ const currentEstType = (formObj) => {
   const d = deviceOptions.value.find(x => x.id === formObj.device_id)
   return d?.type || ''
 }
-watch(() => [cForm.value.device_id, cForm.value.device_type, cForm.value.fault_desc, cForm.value.est_days, createNewDevice.value],
+watch(() => [cForm.value.device_id, cForm.value.device_type, cForm.value.fault_desc, cForm.value.est_hours, createNewDevice.value],
   () => fetchEstimate(createEstimate, cForm.value))
-watch(() => [eForm.value.fault_desc, eForm.value.est_days],
+watch(() => [eForm.value.fault_desc, eForm.value.est_hours],
   () => fetchEstimate(editEstimate, eForm.value))
 
 const loadOrders = async () => {
@@ -377,7 +426,7 @@ const loadDevices = async () => {
 }
 
 const openCreate = async () => {
-  cForm.value = { device_id: '', device_name: '', device_type: '', device_area: '', device_fault: '', fault_desc: '', est_days: 3, priority: 'normal', status: 'processing' }
+  cForm.value = { device_id: '', device_name: '', device_type: '', device_area: '', device_fault: '', fault_desc: '', images: [], est_hours: DEFAULT_EST_HOURS, priority: 'normal', status: 'processing' }
   createNewDevice.value = false
   createEstimate.value = null
   createVisible.value = true
@@ -403,7 +452,7 @@ const onToggleNewDevice = (val) => {
 const onPickDevice = (id) => {
   const d = deviceOptions.value.find(x => x.id === id)
   if (d) {
-    if (d.est_days != null) cForm.value.est_days = Number(d.est_days)
+    if (d.est_hours != null) cForm.value.est_hours = Number(d.est_hours)
     if (!cForm.value.fault_desc && d.fault_desc) cForm.value.fault_desc = d.fault_desc
   }
 }
@@ -437,7 +486,8 @@ const openEdit = (row) => {
   eRow.value = row
   eForm.value = {
     fault_desc: row.fault_desc || '',
-    est_days: row.est_days != null ? Number(row.est_days) : 3,
+    images: toImgList(row.images),
+    est_hours: row.est_hours != null ? Number(row.est_hours) : DEFAULT_EST_HOURS,
     priority: row.priority || 'normal',
     remark: row.remark || ''
   }
@@ -518,12 +568,21 @@ onMounted(() => {
 .admin-tip { margin-bottom: 16px; }
 .pager { margin-top: 14px; text-align: right; }
 .over { color: #f56c6c; }
+.sep { color: #c0c4cc; font-weight: normal; }
 .muted { color: #aaa; }
 // 从提醒「前往处理」跳来时高亮目标工单行
 :deep(.badge-target-row) > td {
   background-color: #fff7e6 !important;
 }
 .hint { margin-left: 10px; color: #aaa; font-size: 12px; }
+.form-tip { margin-bottom: 14px; }
+.optional-tag {
+  margin-left: 8px; padding: 0 6px; font-size: 11px; color: #909399;
+  background: #f4f4f5; border-radius: 3px; line-height: 18px; display: inline-block;
+}
+.row-thumb { width: 32px; height: 32px; border-radius: 4px; cursor: zoom-in; vertical-align: middle; }
+.detail-imgs { display: flex; flex-wrap: wrap; gap: 8px; }
+.detail-img { width: 96px; height: 96px; border-radius: 6px; border: 1px solid #ebeef5; cursor: zoom-in; }
 .est-box {
   margin-top: 10px; padding: 12px 14px; border: 1px solid #ebeef5; border-radius: 8px; background: #fafafa;
 }

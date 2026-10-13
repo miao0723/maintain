@@ -19,9 +19,9 @@
         <el-table-column prop="name" label="设备名称" min-width="140" />
         <el-table-column prop="type" label="类型" width="120" />
         <el-table-column prop="area" label="所属区域" width="130" />
-        <el-table-column prop="est_days" label="规划天数" width="100">
+        <el-table-column prop="est_hours" label="规划工时" width="110">
           <template #default="{ row }">
-            <span v-if="row.est_days != null">{{ row.est_days }} 天</span>
+            <span v-if="row.est_hours != null">{{ fmtDuration(row.est_hours) }}</span>
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
@@ -60,10 +60,10 @@
         <el-form-item label="所属区域">
           <el-input v-model="form.area" placeholder="如：A栋机房" />
         </el-form-item>
-        <el-form-item label="规划维修天数" prop="est_days">
-          <el-input-number v-model="form.est_days" :min="0" :max="60" :step="0.5" :precision="1" />
-          <span class="unit">天</span>
-          <span class="hint">添加前先预估完成该设备维修所需天数</span>
+        <el-form-item label="规划维修工时" prop="est_hours">
+          <el-input-number v-model="form.est_hours" :min="0" :max="720" :step="0.5" :precision="1" />
+          <span class="unit">小时</span>
+          <span class="hint">预估完成该设备维修所需工时（小时），建单时自动带入</span>
         </el-form-item>
         <el-form-item label="故障描述">
           <el-input v-model="form.fault_desc" type="textarea" :rows="3" placeholder="常见/典型故障描述，便于建单参考与工期评估" />
@@ -71,22 +71,22 @@
       </el-form>
 
       <!-- 合理性评估卡片 -->
-      <div class="est-box" v-if="estimate && form.est_days > 0">
+      <div class="est-box" v-if="estimate && form.est_hours > 0">
         <div class="est-head">
           <span class="est-title">工期合理性评估</span>
           <el-tag :type="estimate.level === 'success' ? 'success' : estimate.level === 'warning' ? 'warning' : estimate.level === 'danger' ? 'danger' : 'info'" size="small">
             {{ estimate.suggestion }}
           </el-tag>
         </div>
-        <div class="est-body" v-if="estimate.reference_days">
-          参考基准 <b>{{ estimate.reference_days }}</b> 天
+        <div class="est-body" v-if="estimate.reference_hours">
+          参考基准 <b>{{ fmtDuration(estimate.reference_hours) }}</b>
           <template v-if="estimate.worker_count">（本人同类均值 {{ estimate.worker_avg }} 天 / {{ estimate.worker_count }} 单）</template>
           <template v-else-if="estimate.type_count">（同类设备均值 {{ estimate.type_avg }} 天 / {{ estimate.type_count }} 单）</template>
           <template v-else>（数据不足，使用默认参考）</template>
         </div>
         <div class="est-msg">{{ estimate.message }}</div>
       </div>
-      <div class="est-box muted" v-else-if="form.est_days > 0 && estimating">评估中…</div>
+      <div class="est-box muted" v-else-if="form.est_hours > 0 && estimating">评估中…</div>
 
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -97,25 +97,32 @@
     <!-- 从设备快速新建维修工单（自动接单 → 维修中） -->
     <el-dialog v-model="orderDialogVisible" title="从设备新建维修工单" width="560px">
       <el-alert type="info" :closable="false" class="mb12"
-        :title="`将为设备「${orderForm.device_name}」创建维修工单，并自动接单进入维修中。`" />
+        :title="`将为设备「${orderForm.device_name}」创建维修工单，并自动接单进入维修中。`"
+        description="仅「本次故障」必填；图片、预计天数、优先级均为选填，创建后可补充。" />
       <el-form :model="orderForm" label-width="92px" ref="orderFormRef">
         <el-form-item label="设备">
           <span>{{ orderForm.device_name }}（{{ orderForm.device_area || '区域未填' }}）</span>
         </el-form-item>
-        <el-form-item label="本次故障" prop="fault_desc">
-          <el-input v-model="orderForm.fault_desc" type="textarea" :rows="2" placeholder="本次维修的具体故障描述（默认带入设备常见故障）" />
+        <el-form-item label="本次故障" prop="fault_desc" required>
+          <el-input v-model="orderForm.fault_desc" type="textarea" :rows="2" placeholder="本次维修的具体故障描述（默认带入设备常见故障）（必填）" maxlength="255" show-word-limit />
         </el-form-item>
-        <el-form-item label="预计天数" prop="est_days">
-          <el-input-number v-model="orderForm.est_days" :min="0.5" :max="60" :step="0.5" :precision="1" /> 天
-          <span class="hint">系统会基于历史同类用时评估是否合理</span>
+        <el-form-item label="维修图片">
+          <ImageUpload v-model="orderForm.images" :max-count="9" />
+          <span class="hint">选填：最多 9 张，创建后可补充</span>
+        </el-form-item>
+        <el-form-item label="预计工时" prop="est_hours">
+          <el-input-number v-model="orderForm.est_hours" :min="0.5" :max="720" :step="0.5" :precision="1" /> 小时
+          <span class="optional-tag">选填</span>
+          <span class="hint">按小时规划，系统会基于历史同类用时评估是否合理</span>
         </el-form-item>
         <el-form-item label="优先级">
           <el-select v-model="orderForm.priority" style="width:160px">
-            <el-option label="普通" value="normal" />
+            <el-option label="普通（默认）" value="normal" />
             <el-option label="低" value="low" />
             <el-option label="高" value="high" />
             <el-option label="紧急" value="urgent" />
           </el-select>
+          <span class="optional-tag">选填</span>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -131,6 +138,8 @@ import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import ImageUpload from '@/components/ImageUpload.vue'
+import { fmtDuration, DEFAULT_EST_HOURS } from '@/utils/duration'
 import {
   getPerformanceDevices, createDevice, updateDevice, deleteDevice,
   getPerformanceContext, estimateRepair, createSelfWorkOrder
@@ -142,7 +151,7 @@ const router = useRouter()
 const orderDialogVisible = ref(false)
 const orderSubmitting = ref(false)
 const orderFormRef = ref()
-const orderForm = ref({ device_id: null, device_name: '', device_area: '', fault_desc: '', est_days: 3, priority: 'normal' })
+const orderForm = ref({ device_id: null, device_name: '', device_area: '', fault_desc: '', images: [], est_hours: DEFAULT_EST_HOURS, priority: 'normal' })
 
 const openCreateOrder = (row) => {
   orderForm.value = {
@@ -150,7 +159,8 @@ const openCreateOrder = (row) => {
     device_name: row.name,
     device_area: row.area,
     fault_desc: row.fault_desc || '',
-    est_days: row.est_days != null ? Number(row.est_days) : 3,
+    images: [],
+    est_hours: row.est_hours != null ? Number(row.est_hours) : DEFAULT_EST_HOURS,
     priority: 'normal'
   }
   orderDialogVisible.value = true
@@ -183,7 +193,7 @@ const formRef = ref()
 const myEngineerId = ref(null)
 
 const form = ref({
-  id: null, name: '', type: '', area: '', fault_desc: '', est_days: 3
+  id: null, name: '', type: '', area: '', fault_desc: '', est_hours: DEFAULT_EST_HOURS
 })
 const rules = {
   name: [{ required: true, message: '请填写设备名称', trigger: 'blur' }]
@@ -194,7 +204,7 @@ const estimate = ref(null)
 const estimating = ref(false)
 let estTimer = null
 const fetchEstimate = () => {
-  if (form.value.est_days <= 0) { estimate.value = null; return }
+  if (form.value.est_hours <= 0) { estimate.value = null; return }
   estimating.value = true
   clearTimeout(estTimer)
   estTimer = setTimeout(async () => {
@@ -202,7 +212,7 @@ const fetchEstimate = () => {
       const res = await estimateRepair({
         type: form.value.type,
         fault_desc: form.value.fault_desc,
-        est_days: form.value.est_days
+        est_hours: form.value.est_hours
       })
       estimate.value = res.data || null
     } catch (e) {
@@ -212,7 +222,7 @@ const fetchEstimate = () => {
     }
   }, 400)
 }
-watch(() => [form.value.type, form.value.fault_desc, form.value.est_days], fetchEstimate)
+watch(() => [form.value.type, form.value.fault_desc, form.value.est_hours], fetchEstimate)
 
 const ownerLabel = (row) => {
   if (row.engineer_id && row.engineer_id === myEngineerId.value) return '我的'
@@ -250,7 +260,7 @@ const loadContext = async () => {
 
 const openAdd = () => {
   isEdit.value = false
-  form.value = { id: null, name: '', type: '', area: '', fault_desc: '', est_days: 3 }
+  form.value = { id: null, name: '', type: '', area: '', fault_desc: '', est_hours: DEFAULT_EST_HOURS }
   estimate.value = null
   dialogVisible.value = true
 }
@@ -259,7 +269,7 @@ const openEdit = (row) => {
   isEdit.value = true
   form.value = {
     id: row.id, name: row.name, type: row.type, area: row.area,
-    fault_desc: row.fault_desc, est_days: row.est_days != null ? Number(row.est_days) : 3
+    fault_desc: row.fault_desc, est_hours: row.est_hours != null ? Number(row.est_hours) : DEFAULT_EST_HOURS
   }
   estimate.value = null
   dialogVisible.value = true
@@ -315,6 +325,10 @@ onMounted(() => {
 .list-card { min-height: 320px; }
 .unit { margin-left: 8px; color: #888; }
 .hint { margin-left: 10px; color: #aaa; font-size: 12px; }
+.optional-tag {
+  margin-left: 8px; padding: 0 6px; font-size: 11px; color: #909399;
+  background: #f4f4f5; border-radius: 3px; line-height: 18px; display: inline-block;
+}
 .est-box {
   margin-top: 10px; padding: 12px 14px; border: 1px solid #ebeef5; border-radius: 8px; background: #fafafa;
 }

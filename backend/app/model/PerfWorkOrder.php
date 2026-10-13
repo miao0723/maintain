@@ -36,8 +36,8 @@ class PerfWorkOrder extends Model
         'accept_time',
         'complete_time',
         'status',
-        'est_days',
-        'actual_days',
+        'est_hours',
+        'actual_hours',
         'delay_reason',
         'repair_count',
         'review_score',
@@ -45,6 +45,7 @@ class PerfWorkOrder extends Model
         'is_qualified',
         'self_score',
         'completion_note',
+        'images',
         'fault_desc',
         'priority',
         'remark',
@@ -59,8 +60,10 @@ class PerfWorkOrder extends Model
         'review_score' => 'integer',
         'self_score'  => 'integer',
         'is_qualified' => 'integer',
-        'est_days'    => 'float',
-        'actual_days' => 'float',
+        // 维修时长统一为「小时」（2 位小数）：<24h 显示小时，>=24h 显示天
+        'est_hours'    => 'float',
+        'actual_hours' => 'float',
+        'images'      => 'array',
     ];
 
     /**

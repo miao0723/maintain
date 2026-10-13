@@ -69,7 +69,7 @@ class RoleController
         try {
             // 验证
             validate([
-                'name' => 'require|unique:role',
+                'name' => 'require|unique:roles,name',
                 'description' => 'max:255',
             ])->check($data);
 
@@ -100,7 +100,7 @@ class RoleController
 
             // 验证
             validate([
-                'name' => 'require|unique:role,name,' . $id,
+                'name' => 'require|unique:roles,name,' . $id,
                 'description' => 'max:255',
             ])->check($data);
 

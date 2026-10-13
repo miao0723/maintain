@@ -42,6 +42,16 @@ export function getProfile() {
 }
 
 /**
+ * 获取当前用户权限载荷（菜单树 + 按钮/接口权限码 + 是否老板）
+ */
+export function getMyPermissions() {
+  return request({
+    url: '/auth/my-permissions',
+    method: 'get'
+  })
+}
+
+/**
  * 修改密码
  */
 export function changePassword(data) {

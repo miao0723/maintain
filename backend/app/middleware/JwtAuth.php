@@ -41,7 +41,7 @@ class JwtAuth
                     }
 
                     // 从数据库获取用户信息
-                    $user = \app\model\User::find($userId);
+                    $user = \app\model\User::with(['role'])->find($userId);
                     if (!$user) {
                         return Result::error('用户不存在', 401);
                     }
@@ -64,7 +64,7 @@ class JwtAuth
             }
 
             // 从数据库获取用户信息
-            $user = User::find($payload['user_id']);
+            $user = User::with(['role'])->find($payload['user_id']);
             if ($user) {
                 $request->user = $user->toArray();
             }

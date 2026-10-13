@@ -8,6 +8,7 @@ import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 
 import App from './App.vue'
 import router from './router'
+import { usePermStore } from './stores/permission'
 import '@/styles/index.scss'
 
 const app = createApp(App)
@@ -16,6 +17,19 @@ const app = createApp(App)
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
+
+// 按钮级权限指令：v-permission="'system.personnel.create'"
+// 无权限时移除该元素（老板/超管恒 true）
+app.directive('permission', {
+  mounted(el, binding) {
+    try {
+      const perm = usePermStore()
+      if (!perm.can(binding.value)) {
+        el.parentNode && el.parentNode.removeChild(el)
+      }
+    } catch (e) { /* pinia 未就绪时默认保留 */ }
+  }
+})
 
 app.use(createPinia())
 app.use(router)

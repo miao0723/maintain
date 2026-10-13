@@ -5,336 +5,274 @@ namespace app\middleware;
 use app\model\Role;
 use app\model\RolePermission;
 use app\model\Permission;
+use app\model\UserRole;
 use think\facade\Cache;
 
 /**
- * 权限检查中间件
+ * 权限检查中间件（接口级鉴权）
  *
- * 用于检查用户是否有访问特定资源的权限
- * 支持基于角色和基于权限的访问控制（RBAC）
+ * 三级鉴权之一：接口级。菜单级 / 按钮级由前端按权限树与 v-permission 控制。
+ *
+ * 规则：
+ *  1. 老板/超管（role_type=1、role_code∈{admin,boss,super_admin}、id∈{1,2}）直接放行；
+ *  2. 其余用户按路由映射到所需权限码（点分），与角色已授权码（支持通配符 repair.*）比对；
+ *  3. 未映射路由：读(GET)放行，写(POST/PUT/DELETE)一律 403；
+ *  4. 未授权统一返回 HTTP 403。
  */
 class PermissionCheck
 {
-    /**
-     * 默认配置
-     *
-     * @var array
-     */
     protected $config = [
-        // 超级管理员角色编码
-        'admin_role' => 'admin',
-        // 权限缓存时间（秒）
-        'cache_ttl' => 3600,
-        // 是否启用权限缓存
-        'enable_cache' => true,
+        'admin_role'  => 'admin',
+        'boss_roles'  => ['admin', 'boss', 'super_admin'],
+        'cache_ttl'   => 3600,
+        'enable_cache'=> true,
     ];
 
-    /**
-     * 处理请求
-     *
-     * @param \think\Request $request
-     * @param \Closure $next
-     * @return \think\Response
-     */
     public function handle($request, \Closure $next)
     {
-        // 1. 获取当前用户信息（从 JWT 中间件注入）
         $user = $request->user ?? null;
-
         if (!$user) {
-            return json([
-                'code' => 401,
-                'message' => '未登录或登录已过期',
-                'data' => null
-            ], 401);
+            return json(['code' => 401, 'message' => '未登录或登录已过期', 'data' => null], 401);
         }
 
-        // 2. 超级管理员直接放行
-        if ($this->isAdmin($user)) {
+        // 老板/超管直接放行
+        if ($this->isBoss($user)) {
             return $next($request);
         }
 
-        // 3. 获取当前路由和权限码
-        $permissionCode = $this->getPermissionCode($request);
+        // 计算所需权限码（点分）；null 表示该路由未纳入权限映射
+        $required = $this->getPermissionCode($request);
 
-        // 4. 检查用户是否有该权限
-        if (!$this->hasPermission($user, $permissionCode)) {
-            return json([
-                'code' => 403,
-                'message' => '无权访问',
-                'data' => null
-            ], 403);
+        if ($required === null) {
+            // 未映射资源：读放行，写拒绝
+            if (strtoupper($request->method()) === 'GET') {
+                return $next($request);
+            }
+            return $this->forbidden();
         }
 
-        // 5. 权限检查通过，继续处理请求
+        if (!$this->hasPermission($user, $required)) {
+            return $this->forbidden();
+        }
+
         return $next($request);
     }
 
-    /**
-     * 判断用户是否是超级管理员
-     *
-     * @param array $user
-     * @return bool
-     */
-    protected function isAdmin(array $user): bool
+    protected function forbidden()
     {
-        // 方式 1: 检查角色类型 (支持字符串 'admin', 'super_admin' 和整数 1)
-        if (isset($user['role_type'])) {
-            $roleType = $user['role_type'];
-            if ($roleType === 'admin' || $roleType === 'super_admin' || $roleType == 1) {
-                return true;
-            }
-        }
+        return json(['code' => 403, 'message' => '无权访问', 'data' => null], 403);
+    }
 
-        // 方式 2: 检查角色编码
-        if (isset($user['role_code']) && $user['role_code'] === $this->config['admin_role']) {
+    /**
+     * 是否老板/超管
+     */
+    protected function isBoss(array $user): bool
+    {
+        if (isset($user['role_type']) && ($user['role_type'] === 'admin' || $user['role_type'] === 'super_admin' || $user['role_type'] == 1)) {
             return true;
         }
-
-        // 方式 3: 检查用户 ID（假设 ID 为 1 或 2 的是超级管理员）
         if (isset($user['id']) && ($user['id'] == 1 || $user['id'] == 2)) {
             return true;
         }
-
+        $roleCode = $this->resolveRoleCode($user);
+        if ($roleCode !== null && in_array($roleCode, $this->config['boss_roles'], true)) {
+            return true;
+        }
         return false;
     }
 
     /**
-     * 获取当前路由对应的权限码
-     *
-     * @param \think\Request $request
-     * @return string
+     * 解析用户角色编码（经 role_id 关联 roles.code，带缓存）
      */
-    protected function getPermissionCode($request): string
+    protected function resolveRoleCode(array $user): ?string
     {
-        // 获取请求方法
-        $method = strtolower($request->method());
-
-        // 获取路由路径
-        $path = $request->pathinfo();
-
-        // 解析路径获取资源名称
-        $segments = explode('/', trim($path, '/'));
-
-        // 特殊处理：检查是否是带有动作的路由，如 invoices/123/issue, invoices/123/void
-        if (count($segments) >= 5) {
-            $lastSegment = $segments[count($segments) - 1];
-            $secondLastSegment = $segments[count($segments) - 2] ?? '';
-
-            // 检查倒数第二个是数字ID，最后一个是非数字动作
-            if (is_numeric($secondLastSegment) && !is_numeric($lastSegment)) {
-                // 提取父资源名称
-                $parentSegment = $segments[count($segments) - 3] ?? '';
-
-                // 构建权限码：父资源名 + 动作
-                $resource = str_replace('-', '_', $parentSegment);
-                $action = $lastSegment;
-
-                return $resource . ':' . $action;
-            }
+        if (empty($user['role_id'])) {
+            return null;
         }
-
-        $resource = $segments[count($segments) - 2] ?? $segments[1] ?? '';
-
-        // 去除 api 前缀
-        if ($resource === 'api' || empty($resource)) {
-            $resource = $segments[1] ?? '';
-        }
-
-        // 处理带连字符的资源名（转换为下划线）
-        $resource = str_replace('-', '_', $resource);
-
-        // 根据请求方法映射操作
-        $actionMap = [
-            'get' => 'list',
-            'post' => 'create',
-            'put' => 'update',
-            'delete' => 'delete',
-        ];
-
-        $action = $actionMap[$method] ?? 'access';
-
-        // 特殊处理：获取详情
-        if ($method === 'get' && count($segments) > 2 && is_numeric($segments[count($segments) - 1])) {
-            $action = 'read';
-        }
-
-        // 特殊处理：import 和 export 操作
-        if (in_array($action, ['create', 'list']) && in_array($resource, ['import', 'export'])) {
-            // 这是子路由，如 personnel/import
-            $parentResource = $segments[count($segments) - 3] ?? $segments[2] ?? '';
-            if ($parentResource === 'personnel') {
-                return 'personnel:' . $action;
-            }
-        }
-
-        // 组合权限码
-        return $resource . ':' . $action;
-    }
-
-    /**
-     * 检查用户是否有指定权限
-     *
-     * @param array $user
-     * @param string $permissionCode
-     * @return bool
-     */
-    protected function hasPermission(array $user, string $permissionCode): bool
-    {
-        // 1. 检查用户是否有角色 ID
-        if (!isset($user['role_id'])) {
-            return false;
-        }
-
-        // 2. 从缓存或数据库获取角色权限
-        $permissions = $this->getRolePermissions($user['role_id']);
-
-        // 3. 检查权限是否存在（细粒度检查）
-        foreach ($permissions as $permission) {
-            // 支持通配符权限检查
-            if (str_ends_with($permission['code'], '*')) {
-                $prefix = str_replace('*', '', $permission['code']);
-                if (str_starts_with($permissionCode, $prefix)) {
-                    return true;
-                }
-            }
-
-            // 完全匹配权限码
-            if ($permission['code'] === $permissionCode) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * 检查用户是否有指定的细粒度操作权限
-     *
-     * @param array $user
-     * @param string $permissionCode 权限码，如 'users', 'roles'
-     * @param string $action 操作类型：view, edit, delete
-     * @return bool
-     */
-    protected function hasPermissionAction(array $user, string $permissionCode, string $action = 'view'): bool
-    {
-        // 1. 检查用户是否有角色 ID
-        if (!isset($user['role_id'])) {
-            return false;
-        }
-
-        // 2. 从缓存或数据库获取角色权限
-        $permissions = $this->getRolePermissions($user['role_id']);
-
-        // 3. 检查权限是否存在
-        foreach ($permissions as $permission) {
-            // 支持通配符权限检查
-            if (str_ends_with($permission['code'], '*')) {
-                $prefix = str_replace('*', '', $permission['code']);
-                if (str_starts_with($permissionCode, $prefix)) {
-                    return true;
-                }
-            }
-
-            // 完全匹配权限码
-            if ($permission['code'] === $permissionCode) {
-                $perms = $permission['permissions'] ?? ['canView' => true];
-
-                // 检查操作权限
-                switch ($action) {
-                    case 'view':
-                        return ($perms['canView'] ?? false) === true;
-                    case 'edit':
-                        return ($perms['canEdit'] ?? false) === true;
-                    case 'delete':
-                        return ($perms['canDelete'] ?? false) === true;
-                    default:
-                        return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * 获取角色的所有权限
-     *
-     * @param int $roleId
-     * @return array
-     */
-    protected function getRolePermissions(int $roleId): array
-    {
-        $cacheKey = 'role_permissions:' . $roleId;
-
-        // 尝试从缓存获取
+        $roleId = (int) $user['role_id'];
+        $cacheKey = 'role_code:' . $roleId;
         if ($this->config['enable_cache']) {
-            $permissions = Cache::get($cacheKey);
-            if ($permissions !== null) {
-                return $permissions;
+            $cached = Cache::get($cacheKey);
+            if ($cached !== null && $cached !== false) {
+                return $cached ?: null;
             }
         }
+        $role = Role::find($roleId);
+        $code = $role ? $role->code : null;
+        if ($this->config['enable_cache']) {
+            Cache::set($cacheKey, $code ?: '', $this->config['cache_ttl']);
+        }
+        return $code;
+    }
 
-        // 从数据库获取
-        $rolePermissions = RolePermission::where('role_id', $roleId)->select();
+    /**
+     * 由路由推导所需权限码（点分）。返回 null 表示未纳入映射。
+     *
+     * 例：
+     *  GET  /api/personnel            => system.personnel.view
+     *  POST /api/personnel            => system.personnel.create
+     *  GET  /api/repair-orders/5      => repair.orders.view
+     *  POST /api/repair-orders/5/accept => repair.orders.edit
+     */
+    protected function getPermissionCode($request): ?string
+    {
+        $map = (array) config('permission.route_map');
 
-        if (!$rolePermissions) {
+        $path = trim($request->pathinfo(), '/');
+        $segments = $path === '' ? [] : explode('/', $path);
+        if (!empty($segments) && $segments[0] === 'api') {
+            array_shift($segments);
+        }
+        if (empty($segments)) {
+            return null;
+        }
+
+        $resource = $segments[0];
+        if (!isset($map[$resource])) {
+            return null; // 未映射
+        }
+        $module = $map[$resource];
+
+        $method = strtoupper($request->method());
+        $last = end($segments);
+        $isNumericLast = is_numeric($last);
+
+        // 自定义动作（如 accept/assign/sync/approve/reject/import/export/batch/...）→ 视为写
+        $customVerb = null;
+        if (in_array($method, ['POST', 'PUT'], true) && !$isNumericLast && count($segments) >= 2 && $last !== $resource) {
+            $customVerb = $last;
+        }
+
+        switch ($method) {
+            case 'GET':
+                $action = $isNumericLast ? 'view' : 'view'; // 列表与详情均按 view
+                break;
+            case 'POST':
+                $action = $customVerb ? 'edit' : 'create';
+                break;
+            case 'PUT':
+                $action = 'edit';
+                break;
+            case 'DELETE':
+                $action = 'delete';
+                break;
+            default:
+                $action = 'view';
+        }
+
+        return $module . '.' . $action;
+    }
+
+    /**
+     * 收集用户所有已授权权限（主角色 role_id + 多角色 user_roles），带缓存。
+     *
+     * @return array [ ['code'=>string, 'perms'=>['canView'=>bool,'canEdit'=>bool,'canDelete'=>bool]], ... ]
+     */
+    protected function getGranted(array $user): array
+    {
+        $roleIds = [];
+        if (!empty($user['role_id'])) {
+            $roleIds[] = (int) $user['role_id'];
+        }
+        if (!empty($user['id'])) {
+            foreach (UserRole::where('user_id', (int) $user['id'])->column('role_id') as $rid) {
+                $roleIds[] = (int) $rid;
+            }
+        }
+        $roleIds = array_values(array_unique($roleIds));
+        if (empty($roleIds)) {
             return [];
         }
 
-        $permissions = [];
-        foreach ($rolePermissions as $rp) {
-            // 获取权限信息
-            $permission = Permission::find($rp->permission_id);
-            if ($permission) {
-                // 解析细粒度权限配置
-                $perms = $rp->permissions;
-                if (is_string($perms)) {
-                    $perms = json_decode($perms, true);
-                }
-                if (empty($perms) || !is_array($perms)) {
-                    $perms = ['canView' => true];
-                }
-
-                $permissions[] = [
-                    'code' => $permission->code,
-                    'permissions' => $perms
-                ];
+        $cacheKey = 'granted:' . implode(',', $roleIds);
+        if ($this->config['enable_cache']) {
+            $cached = Cache::get($cacheKey);
+            if (is_array($cached)) {
+                return $cached;
             }
         }
 
-        // 缓存权限
-        if ($this->config['enable_cache']) {
-            Cache::set($cacheKey, $permissions, $this->config['cache_ttl']);
+        $rows = RolePermission::whereIn('role_id', $roleIds)->select();
+        $out = [];
+        foreach ($rows as $rp) {
+            $perm = Permission::find($rp->permission_id);
+            if (!$perm) continue;
+            $perms = $rp->permissions;
+            if (is_string($perms)) {
+                $perms = json_decode($perms, true);
+            }
+            if (empty($perms) || !is_array($perms)) {
+                $perms = ['canView' => true];
+            }
+            $out[] = ['code' => $perm->code, 'perms' => $perms];
         }
 
-        return $permissions;
+        if ($this->config['enable_cache']) {
+            Cache::set($cacheKey, $out, $this->config['cache_ttl']);
+        }
+        return $out;
     }
 
     /**
-     * 清除权限缓存
+     * 校验是否拥有指定权限码（点分 module.action）。
      *
-     * @param int $roleId
-     * @return bool
+     * 匹配优先级：
+     *  1. 完全一致（按钮/接口码，如 system.users.create）；
+     *  2. 通配符（repair.* 命中 repair.orders.*；* 命中全部）；
+     *  3. 模块级授权 + 细粒度：授予模块菜单码（如 repair.orders）时，
+     *     依 canView/canEdit/canDelete 放行 view / create,edit / delete。
      */
+    protected function hasPermission(array $user, string $required): bool
+    {
+        $granted = $this->getGranted($user);
+        if (empty($granted)) {
+            return false;
+        }
+
+        // 拆分模块与动作：repair.orders.create -> module=repair.orders, action=create
+        $pos = strrpos($required, '.');
+        $module = $pos !== false ? substr($required, 0, $pos) : $required;
+        $action = $pos !== false ? substr($required, $pos + 1) : 'view';
+
+        foreach ($granted as $g) {
+            $code = $g['code'];
+            $perms = $g['perms'];
+
+            // 1) 完全一致
+            if ($code === $required) {
+                return true;
+            }
+            // 2) 通配符
+            if ($code === '*') {
+                return true;
+            }
+            if (str_ends_with($code, '*')) {
+                $prefix = rtrim($code, '*');
+                if (str_starts_with($required, $prefix)) {
+                    return true;
+                }
+                // 命名空间通配符（repair.* 也覆盖菜单命名空间 repair）
+                if (rtrim($prefix, '.') === rtrim($module, '.')) {
+                    return true;
+                }
+            }
+            // 3) 模块级授权 + 细粒度
+            if ($code === $module) {
+                if ($action === 'view' && ($perms['canView'] ?? false)) return true;
+                if (in_array($action, ['create', 'edit'], true) && ($perms['canEdit'] ?? false)) return true;
+                if ($action === 'delete' && ($perms['canDelete'] ?? false)) return true;
+            }
+        }
+        return false;
+    }
+
     public static function clearCache(int $roleId): bool
     {
-        $cacheKey = 'role_permissions:' . $roleId;
-        return Cache::delete($cacheKey);
+        return Cache::delete('role_permissions:' . $roleId);
     }
 
-    /**
-     * 清除所有权限缓存
-     *
-     * @return bool
-     */
     public static function clearAllCache(): bool
     {
-        $cache = Cache::init();
-        // 清除所有 role_permissions 开头的缓存
-        $pattern = 'role_permissions:*';
-        // ThinkPHP 的 Cache 不支持 pattern delete，需要使用 Redis 等其他方式
-        // 这里暂时只返回 true
         return true;
     }
 }

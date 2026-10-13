@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { usePermStore } from '@/stores/permission'
+import { ElMessage } from 'element-plus'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
@@ -149,7 +151,7 @@ const routes = [
     path: 'basic',
     name: 'Basic',
     component: () => import('@/modules/BasicModule.vue'),
-    meta: { title: '基础管理', icon: 'Setting' },
+    meta: { title: '基础管理', icon: 'Setting', perm: 'system' },
     redirect: '/basic/users',
     children: [
     {
@@ -177,6 +179,12 @@ const routes = [
       meta: { title: '人员管理', icon: 'Avatar' }
     },
     {
+      path: 'external-personnel',
+      name: 'ExternalPersonnel',
+      component: () => import('@/views/system/ExternalPersonnel.vue'),
+      meta: { title: '人员同步', icon: 'Refresh' }
+    },
+    {
       path: 'organizations',
       name: 'Organizations',
       component: () => import('@/views/system/Organizations.vue'),
@@ -201,7 +209,7 @@ const routes = [
     path: 'business',
     name: 'Business',
     component: () => import('@/modules/BusinessModule.vue'),
-    meta: { title: '业务管理', icon: 'Briefcase' },
+    meta: { title: '业务管理', icon: 'Briefcase', perm: 'system' },
     redirect: '/business/agreement',
     children: [
     {
@@ -229,7 +237,7 @@ const routes = [
     path: 'marketing',
     name: 'Marketing',
     component: () => import('@/modules/MarketingModule.vue'),
-    meta: { title: '引流模块', icon: 'TrendCharts' },
+    meta: { title: '引流模块', icon: 'TrendCharts', perm: 'marketing' },
     redirect: '/marketing/cases',
     children: [
     {
@@ -287,7 +295,7 @@ const routes = [
     path: 'repair',
     name: 'Repair',
     component: () => import('@/modules/RepairModule.vue'),
-    meta: { title: '维修业务', icon: 'Tools' },
+    meta: { title: '维修业务', icon: 'Tools', perm: 'repair' },
     redirect: '/repair/categories',
     children: [
     {
@@ -460,7 +468,7 @@ const routes = [
     path: 'payment',
     name: 'Payment',
     component: () => import('@/modules/PaymentModule.vue'),
-    meta: { title: '支付模块', icon: 'Wallet' },
+    meta: { title: '支付模块', icon: 'Wallet', perm: 'payment' },
     redirect: '/payment/transfer',
     children: [
     {
@@ -494,7 +502,7 @@ const routes = [
     path: 'inventory',
     name: 'Inventory',
     component: () => import('@/modules/InventoryModule.vue'),
-    meta: { title: '进销存', icon: 'Box' },
+    meta: { title: '进销存', icon: 'Box', perm: 'inventory' },
     redirect: '/inventory/parts',
     children: [
     {
@@ -516,7 +524,7 @@ const routes = [
     path: 'statistics',
     name: 'Statistics',
     component: () => import('@/modules/StatisticsModule.vue'),
-    meta: { title: '查询统计', icon: 'DataAnalysis' },
+    meta: { title: '查询统计', icon: 'DataAnalysis', perm: 'statistics' },
     redirect: '/statistics/income',
     children: [
     {
@@ -550,7 +558,8 @@ const routes = [
     path: 'performance',
     name: 'Performance',
     component: () => import('@/modules/PerformanceModule.vue'),
-    meta: { title: '绩效考核', icon: 'Medal', worker: true },
+    // perm=performance：与「维修作业」(repair) 分离，便于单独授权（如 HR 只读账号仅授予 performance.view）
+    meta: { title: '绩效考核', icon: 'Medal', worker: true, perm: 'performance' },
     redirect: '/performance/overview',
     children: [
     {
@@ -584,7 +593,7 @@ const routes = [
     path: 'repair-tasks',
     name: 'RepairTasks',
     component: () => import('@/modules/RepairTasksModule.vue'),
-    meta: { title: '维修作业', icon: 'Tools', worker: true, hideForAdmin: true },
+    meta: { title: '维修作业', icon: 'Tools', worker: true, hideForAdmin: true, perm: 'repair' },
     redirect: '/repair-tasks/my-tasks',
     children: [
     {
@@ -634,7 +643,7 @@ const routes = [
     path: 'agent',
     name: 'Agent',
     component: () => import('@/modules/AgentModule.vue'),
-    meta: { title: 'Agent', icon: 'ChatDotSquare' },
+    meta: { title: 'Agent', icon: 'ChatDotSquare', perm: 'agent' },
     redirect: '/agent/index',
     children: [
     {
@@ -669,8 +678,8 @@ const router = createRouter({
 
 const isDev = import.meta.env.DEV
 
-// 路由守卫
-router.beforeEach((to, from, next) => {
+// 路由守卫（async：权限载荷缺失时需先等待兜底拉取再判定）
+router.beforeEach(async (to, from, next) => {
   NProgress.start()
 
   const authStore = useAuthStore()
@@ -705,6 +714,23 @@ router.beforeEach((to, from, next) => {
     next(authStore.isLoggedIn
       ? { name: 'MiniAdminDashboard' }
       : { name: 'Login', query: { redirect: to.query.redirect || '/mini-admin/dashboard' } })
+  } else if (authStore.isLoggedIn) {
+    // 菜单级权限的路由级兜底：目标路由（含父级）声明了 meta.perm 时，
+    // 非老板且未获该命名空间授权的账号（如 HR 只读账号直输 URL）禁止进入，避免菜单藏了但路由还能开。
+    const needPerm = to.matched.map(r => r.meta?.perm).find(Boolean)
+    if (needPerm) {
+      const permStore = usePermStore()
+      if (!permStore.profile) {
+        // 载荷缺失（如直接刷新进入）：先静默拉取一次；拉取失败不锁死用户，交由接口级权限兜底
+        await permStore.ensureLoaded()
+      }
+      if (permStore.profile && !permStore.isBoss && !authStore.isAdmin && !permStore.canNamespace(needPerm)) {
+        ElMessage.warning('无权访问该页面')
+        next({ name: 'Dashboard' })
+        return
+      }
+    }
+    next()
   } else {
     next()
   }

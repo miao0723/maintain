@@ -142,6 +142,7 @@ Route::group('api', function () {
         Route::group('auth', function () {
             Route::post('logout', 'AuthController/logout');
             Route::get('profile', 'AuthController/profile');
+            Route::get('my-permissions', 'AuthController/myPermissions');
         });
 
         // 用户管理
@@ -203,6 +204,15 @@ Route::group('api', function () {
             Route::post('/batch', 'PersonnelController/batchSave');
             Route::post('/import', 'PersonnelController/import');
             Route::get('/export', 'PersonnelController/export');
+        })->middleware([\app\middleware\PermissionCheck::class]);
+
+        // 外部系统人员（同步）——仅老板/管理员（PermissionCheck 对 system.personnel 生效）
+        Route::group('external-personnel', function () {
+            Route::get('/', 'ExternalPersonnelController/index');
+            Route::get('/search', 'ExternalPersonnelController/search');
+            Route::get('/sync-logs', 'ExternalPersonnelController/syncLogs');
+            Route::get('/:id', 'ExternalPersonnelController/read');
+            Route::post('/sync', 'ExternalPersonnelController/sync');
         })->middleware([\app\middleware\PermissionCheck::class]);
 
         // 单位管理
@@ -307,6 +317,8 @@ Route::group('api', function () {
 
             // 管理员/老板验收评分（工人不可自验，由 service 层校验）
             Route::post('work-order/:id/review', 'PerformanceController/review');
+            // 管理员/老板修改已验收工单的评分（仅 completed 且已评分）
+            Route::put('work-order/:id/review', 'PerformanceController/updateReview');
         });
 
         // 设备分类管理（必须在设备管理之前定义，避免路由冲突）

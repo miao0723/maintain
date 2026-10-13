@@ -310,12 +310,14 @@ import {
 import { changePassword } from '@/api/auth'
 import { getUnreadCount, getNotifications, markAsRead, markAllAsRead } from '@/api/notification'
 import { useMenuBadgeStore } from '@/stores/menuBadge'
+import { usePermStore } from '@/stores/permission'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 const badgeStore = useMenuBadgeStore()
+const permStore = usePermStore()
 
 const isCollapse = ref(false)
 const unreadCount = ref(0)
@@ -527,6 +529,8 @@ const fetchBadges = async () => {
 }
 
 onMounted(() => {
+  // 确保权限载荷已加载（刷新页面/直进时从后端补齐三角色菜单/按钮权限）
+  permStore.ensureLoaded()
   fetchUnreadCount()
   unreadTimer = setInterval(fetchUnreadCount, 30000)
   fetchBadges()
@@ -559,16 +563,23 @@ const menuRoutes = computed(() => {
     (r.name === 'Dashboard' || r.children?.length > 0)
   ) || []
 
-  // 角色过滤：
-  // - 管理员：显示全部模块，但排除标记为 hideForAdmin 的模块（如「维修作业」，
-  //   管理员只保留绩效考核来查看/评定维修人员工单）
-  // - 工人等非管理员：仅可见标记为 worker 的模块，避免点开管理菜单触发 403
-  // 判定统一走 authStore.isAdmin（与后端 PermissionCheck 一致）
-  const allowedRoutes = mainRoutes.filter(r =>
-    authStore.isAdmin ? !r.meta?.hideForAdmin : r.meta?.worker
-  )
+  // 角色过滤（三级鉴权之菜单级）：
+  // - 老板/超管：显示全部模块，排除 hideForAdmin（如「维修作业」工人端）
+  // - 维修人员：按权限命名空间显示（repair/inventory/statistics 等，来自 repair.* 授权）
+  // - 其他人员：仅无关只读页面（首页、知识库），禁止人事/维修/配置类菜单
+  // 命名空间通过路由 meta.perm 声明；知识库/首页无 perm，作为通用只读对全体登录用户可见
+  const allowedRoutes = mainRoutes.filter((r) => {
+    if (permStore.isBoss || authStore.isAdmin) {
+      return !r.meta?.hideForAdmin
+    }
+    if (r.name === 'Dashboard') return true
+    if (r.name === 'Knowledge') return true // 通用只读
+    const perm = r.meta?.perm
+    if (perm) return permStore.canNamespace(perm)
+    return false
+  })
 
-  return allowedRoutes.map(route => ({
+  return allowedRoutes.map((route) => ({
     ...route,
     fullPath: `/${route.path}`
   }))

@@ -275,7 +275,9 @@ services:
     volumes:
       - ../backend:/var/www/html
       - ../小程序2.0/uploads:/var/www/html/miniprogram-uploads
-      - uploads_data:/var/www/html/public/uploads
+      # 注意：不能再挂 uploads_data 命名卷到 /var/www/html/public/uploads ——
+      # PHP 的 UploadController 写入的是 /var/www/html/public/uploads（即 ../backend 绑定目录），
+      # 命名卷会遮挡绑定目录导致所有上传图片经过网关 404（2026-10-13 修复）。
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/ssl:/etc/nginx/cert
     depends_on:

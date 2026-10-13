@@ -63,7 +63,7 @@ class MenuBadgeService
         $orders = PerfWorkOrder::alias('o')
             ->leftJoin('perf_engineers e', 'o.engineer_id = e.id')
             ->leftJoin('perf_devices d', 'o.device_id = d.id')
-            ->field('o.id, o.order_no, o.fault_desc, o.status, o.est_days, o.report_time, o.complete_time,
+            ->field('o.id, o.order_no, o.fault_desc, o.status, o.est_hours, o.report_time, o.complete_time,
                      e.name as engineer_name, d.name as device_name')
             ->whereIn('o.status', self::OPEN_STATUSES)
             ->when($engineerId, function ($q) use ($engineerId) {
@@ -137,12 +137,12 @@ class MenuBadgeService
     }
 
     /**
-     * 计算工单到期时间戳：报修时间 + 预计工期（天）
-     * 无预计工期（est_days <= 0）时返回 null
+     * 计算工单到期时间戳：报修时间 + 预计工时（小时）
+     * 无预计工时（est_hours <= 0）时返回 null
      */
     private function deadlineTs(array $order)
     {
-        $est = isset($order['est_days']) ? (float)$order['est_days'] : 0;
+        $est = isset($order['est_hours']) ? (float)$order['est_hours'] : 0;
         if ($est <= 0 || empty($order['report_time'])) {
             return null;
         }
@@ -150,7 +150,7 @@ class MenuBadgeService
         if ($reportTs === false) {
             return null;
         }
-        return $reportTs + (int)round($est * 86400);
+        return $reportTs + (int)round($est * 3600);
     }
 
     /**

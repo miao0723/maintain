@@ -1,5 +1,6 @@
 ﻿import { defineStore } from 'pinia'
 import { login, logout, getProfile } from '@/api/auth'
+import { usePermStore } from './permission'
 import { ElMessage } from 'element-plus'
 
 const isDev = import.meta.env.DEV
@@ -89,6 +90,12 @@ export const useAuthStore = defineStore('auth', {
         this.userInfo = user
         this.permissions = data.permissions || res.permissions || []
 
+        // 同步到权限 Store（三角色菜单/按钮/接口鉴权）
+        try {
+          const permStore = usePermStore()
+          permStore.setProfile(data.permissions || res.permissions || null)
+        } catch (e) { /* ignore */ }
+
         if (token) {
           localStorage.setItem('token', token)
         }
@@ -125,6 +132,7 @@ export const useAuthStore = defineStore('auth', {
       this.token = ''
       this.userInfo = null
       this.permissions = []
+      try { usePermStore().reset() } catch (e) { /* ignore */ }
       localStorage.removeItem('token')
       localStorage.removeItem('userInfo')
       localStorage.removeItem('permissions')

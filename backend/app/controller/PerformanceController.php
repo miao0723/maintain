@@ -163,7 +163,7 @@ class PerformanceController extends BaseController
                 $body = Request::post();
                 $rules = $body['rules'] ?? $body ?? [];
             }
-            $data = $this->service->updateScoreRules($rules);
+            $data = $this->service->updateScoreRules($rules, request()->userId);
             return $this->success($data, '保存成功');
         } catch (\Exception $e) {
             return $this->error($e->getMessage(), 400);
@@ -177,7 +177,7 @@ class PerformanceController extends BaseController
     public function resetScoreRules()
     {
         try {
-            $data = $this->service->resetScoreRules();
+            $data = $this->service->resetScoreRules(request()->userId);
             return $this->success($data, '已重置为默认权重');
         } catch (\Exception $e) {
             return $this->error($e->getMessage(), 400);
@@ -193,7 +193,7 @@ class PerformanceController extends BaseController
         try {
             $filters = $this->filters();
             $periodLabel = Request::post('period_label', '');
-            $data = $this->service->generateSnapshot($filters, $periodLabel);
+            $data = $this->service->generateSnapshot($filters, $periodLabel, request()->userId);
             return $this->success($data, '快照已生成');
         } catch (\Exception $e) {
             return $this->error($e->getMessage(), 400);
@@ -238,7 +238,7 @@ class PerformanceController extends BaseController
         try {
             $data = Request::post();
             $data = array_intersect_key($data, array_flip(['pass_score', 'min_orders']));
-            return $this->success($this->service->saveConfig($data), '配置已保存');
+            return $this->success($this->service->saveConfig($data, request()->userId), '配置已保存');
         } catch (\Exception $e) {
             return $this->error($e->getMessage(), 400);
         }
@@ -354,7 +354,7 @@ class PerformanceController extends BaseController
             $input = [
                 'type'        => Request::get('type', ''),
                 'fault_desc'  => Request::get('fault_desc', ''),
-                'est_days'    => Request::get('est_days', 0),
+                'est_hours'   => Request::get('est_hours', 0),
                 'priority'    => Request::get('priority', ''),
             ];
             return $this->success($this->service->estimateRepair(request()->userId, $input));
@@ -405,6 +405,23 @@ class PerformanceController extends BaseController
             $comment = Request::post('review_comment', '');
             $data = $this->service->reviewWorkOrder($id, request()->userId, $isQualified, $reviewScore, $comment);
             return $this->success($data, '验收完成');
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * 管理员/老板修改已验收工单的评分（验收完成后修正打分/判定）
+     * PUT /api/performance/work-order/:id/review
+     */
+    public function updateReview($id)
+    {
+        try {
+            $isQualified = (int)Request::put('is_qualified', 0);
+            $reviewScore = (int)Request::put('review_score', 0);
+            $comment = Request::put('review_comment', '');
+            $data = $this->service->updateReviewWorkOrder($id, request()->userId, $isQualified, $reviewScore, $comment);
+            return $this->success($data, '评分已修改');
         } catch (\Exception $e) {
             return $this->error($e->getMessage(), 400);
         }

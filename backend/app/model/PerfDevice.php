@@ -19,7 +19,7 @@ class PerfDevice extends Model
         'fault_desc',
         'status',
         'engineer_id',
-        'est_days',
+        'est_hours',
     ];
 
     protected $guarded = ['id', 'created_at', 'updated_at'];
@@ -27,7 +27,8 @@ class PerfDevice extends Model
     protected $type = [
         'status' => 'integer',
         'engineer_id' => 'integer',
-        'est_days' => 'float',
+        // 规划维修时长（小时）
+        'est_hours' => 'float',
     ];
 
     /**

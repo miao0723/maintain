@@ -3,29 +3,18 @@
     <!-- 筛选栏 -->
     <el-card shadow="never" class="filter-card">
       <el-form :inline="true" :model="filters" class="filter-form">
-        <el-form-item label="维度">
-          <el-radio-group v-model="filters.dimension" @change="fetchData">
-            <el-radio-button value="engineer">按人员</el-radio-button>
-            <el-radio-button value="team">按班组</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
         <el-form-item label="时间范围">
           <el-date-picker v-model="filters.date_range" type="daterange" range-separator="至"
             start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width: 260px;" />
-        </el-form-item>
-        <el-form-item label="班组" v-if="filters.dimension === 'engineer'">
-          <el-select v-model="filters.team" placeholder="全部" clearable style="width: 140px;">
-            <el-option v-for="t in teams" :key="t" :label="t" :value="t" />
-          </el-select>
         </el-form-item>
         <el-form-item label="排序指标">
           <el-select v-model="filters.sort_by" style="width: 140px;" @change="fetchData">
             <el-option label="综合得分" value="score" />
             <el-option label="按时完成率" value="on_time_rate" />
-            <el-option label="平均维修时长" value="avg_duration" />
             <el-option label="工单完成量" value="completed_count" />
-            <el-option label="返修率" value="rework_rate" />
             <el-option label="一次修复率" value="first_fix_rate" />
+            <el-option label="平均验收评分" value="avg_review" />
+            <el-option label="合格率" value="qualified_rate" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -36,7 +25,7 @@
         <el-form-item>
           <el-button type="primary" @click="fetchData"><el-icon><Search /></el-icon>查询</el-button>
           <el-button @click="handleReset"><el-icon><RefreshLeft /></el-icon>重置</el-button>
-          <el-button type="success" @click="handleSnapshot" :loading="snapLoading"><el-icon><Camera /></el-icon>保存本期快照</el-button>
+          <el-button v-if="canManage" type="success" @click="handleSnapshot" :loading="snapLoading"><el-icon><Camera /></el-icon>保存本期快照</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -45,15 +34,13 @@
     <el-card shadow="never">
       <template #header>
         <div class="table-head">
-          <span class="card-title">{{ filters.dimension === 'engineer' ? '维修人员绩效排行' : '维修班组绩效排行' }}</span>
+          <span class="card-title">维修人员绩效排行</span>
           <span class="table-sub">
             共 {{ ranking.total }} 条 · 按「{{ sortLabel }}」{{ filters.sort_dir === 'desc' ? '从高到低' : '从低到高' }}
-            <template v-if="filters.dimension === 'engineer'">
-              · 达标线 {{ ranking.pass_score || 80 }} 分 · 最低样本 {{ ranking.min_orders || 3 }} 单
-              <el-tag v-if="standardStat.qualified > 0" type="success" size="small" effect="plain">符合 {{ standardStat.qualified }}</el-tag>
-              <el-tag v-if="standardStat.unqualified > 0" type="danger" size="small" effect="plain">不符合 {{ standardStat.unqualified }}</el-tag>
-              <el-tag v-if="standardStat.insufficient > 0" type="info" size="small" effect="plain">样本不足 {{ standardStat.insufficient }}</el-tag>
-            </template>
+            · 达标线 {{ ranking.pass_score || 80 }} 分 · 最低样本 {{ ranking.min_orders || 3 }} 单
+            <el-tag v-if="standardStat.qualified > 0" type="success" size="small" effect="plain">符合 {{ standardStat.qualified }}</el-tag>
+            <el-tag v-if="standardStat.unqualified > 0" type="danger" size="small" effect="plain">不符合 {{ standardStat.unqualified }}</el-tag>
+            <el-tag v-if="standardStat.insufficient > 0" type="info" size="small" effect="plain">样本不足 {{ standardStat.insufficient }}</el-tag>
           </span>
         </div>
       </template>
@@ -64,30 +51,23 @@
             <span v-else>{{ row.rank }}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="filters.dimension === 'engineer' ? '姓名' : '班组'" min-width="120">
-          <template #default="{ row }">{{ filters.dimension === 'engineer' ? row.name : row.team }}</template>
+        <el-table-column label="姓名" min-width="120">
+          <template #default="{ row }">{{ row.name }}</template>
         </el-table-column>
-        <el-table-column prop="team" label="所属班组" width="110" v-if="filters.dimension === 'engineer'" />
-        <el-table-column prop="level" label="等级" width="90" v-if="filters.dimension === 'engineer'">
+        <el-table-column prop="level" label="等级" width="90">
           <template #default="{ row }"><el-tag size="small" effect="plain">{{ row.level || '-' }}</el-tag></template>
         </el-table-column>
-        <el-table-column label="人数" width="80" align="center" v-if="filters.dimension === 'team'">
-          <template #default="{ row }">{{ row.engineer_count }}</template>
-        </el-table-column>
-        <el-table-column label="工单完成量" width="120" align="center" prop="metrics.completed_count" sortable :sort-by="r => r.metrics.completed_count" />
-        <el-table-column label="按时完成率" width="120" align="center">
+        <el-table-column label="工单完成量" width="110" align="center" prop="metrics.completed_count" sortable :sort-by="r => r.metrics.completed_count" />
+        <el-table-column label="按时完成率" width="110" align="center">
           <template #default="{ row }"><span :class="rateClass(row.metrics.on_time_rate)">{{ row.metrics.on_time_rate }}%</span></template>
-        </el-table-column>
-        <el-table-column label="平均维修时长" width="120" align="center">
-          <template #default="{ row }">{{ row.metrics.avg_duration }} 天</template>
-        </el-table-column>
-        <el-table-column label="返修率" width="100" align="center">
-          <template #default="{ row }"><span :class="rateClass(100 - row.metrics.rework_rate, true)">{{ row.metrics.rework_rate }}%</span></template>
         </el-table-column>
         <el-table-column label="一次修复率" width="110" align="center">
           <template #default="{ row }"><span :class="rateClass(row.metrics.first_fix_rate)">{{ row.metrics.first_fix_rate }}%</span></template>
         </el-table-column>
-        <el-table-column label="平均评分" width="90" align="center">
+        <el-table-column label="合格率" width="100" align="center">
+          <template #default="{ row }"><span :class="rateClass(row.metrics.qualified_rate)">{{ row.metrics.qualified_rate }}%</span></template>
+        </el-table-column>
+        <el-table-column label="平均验收评分" width="110" align="center">
           <template #default="{ row }">
             <el-rate :model-value="row.metrics.avg_review" disabled size="small" show-score score-template="{value}" />
           </template>
@@ -116,31 +96,32 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getPerformanceRanking, getPerformanceTeams, generateSnapshot } from '@/api/performance'
+import { getPerformanceRanking, generateSnapshot } from '@/api/performance'
+import { usePermStore } from '@/stores/permission'
+import { useAuthStore } from '@/stores/auth'
+
+// 快照管理仅老板/超管
+const permStore = usePermStore()
+const authStore = useAuthStore()
+const canManage = computed(() => permStore.isBoss || authStore.isAdmin)
 
 const loading = ref(false)
 const snapLoading = ref(false)
-const teams = ref([])
 const ranking = ref({ dimension: 'engineer', total: 0, list: [] })
 const filters = reactive({
-  dimension: 'engineer',
   date_range: [],
-  team: '',
   sort_by: 'score',
   sort_dir: 'desc'
 })
 
 const sortLabel = computed(() => ({
-  score: '综合得分', on_time_rate: '按时完成率', avg_duration: '平均维修时长',
-  completed_count: '工单完成量', rework_rate: '返修率', first_fix_rate: '一次修复率'
+  score: '综合得分', on_time_rate: '按时完成率',
+  completed_count: '工单完成量', first_fix_rate: '一次修复率',
+  avg_review: '平均验收评分', qualified_rate: '合格率'
 }[filters.sort_by] || '综合得分'))
 
 const scoreColor = (s) => (s >= 85 ? '#67C23A' : s >= 70 ? '#409EFF' : s >= 60 ? '#E6A23C' : '#F56C6C')
-const rateClass = (v, inverse = false) => {
-  // inverse: 值越低越好（如返修率）
-  if (inverse) return v <= 10 ? 'rate-good' : v <= 20 ? 'rate-mid' : 'rate-bad'
-  return v >= 90 ? 'rate-good' : v >= 75 ? 'rate-mid' : 'rate-bad'
-}
+const rateClass = (v) => (v >= 90 ? 'rate-good' : v >= 75 ? 'rate-mid' : 'rate-bad')
 const standardStat = computed(() => {
   const list = ranking.value.list || []
   return {
@@ -161,10 +142,9 @@ const fetchData = async () => {
   loading.value = true
   try {
     const res = await getPerformanceRanking({
-      dimension: filters.dimension,
+      dimension: 'engineer',
       start_date: filters.date_range?.[0] || '',
       end_date: filters.date_range?.[1] || '',
-      team: filters.team,
       sort_by: filters.sort_by,
       sort_dir: filters.sort_dir
     })
@@ -176,7 +156,6 @@ const fetchData = async () => {
 
 const handleReset = () => {
   filters.date_range = []
-  filters.team = ''
   filters.sort_by = 'score'
   filters.sort_dir = 'desc'
   fetchData()
@@ -189,7 +168,6 @@ const handleSnapshot = async () => {
     await generateSnapshot({
       start_date: filters.date_range?.[0] || '',
       end_date: filters.date_range?.[1] || '',
-      team: filters.team,
       period_label: periodLabel
     })
     ElMessage.success('已生成本期绩效快照，可在「评分规则」页查看历史')
@@ -198,8 +176,7 @@ const handleSnapshot = async () => {
   }
 }
 
-onMounted(async () => {
-  try { teams.value = await getPerformanceTeams().then(r => r.data || []) } catch (e) {}
+onMounted(() => {
   fetchData()
 })
 </script>
@@ -208,7 +185,7 @@ onMounted(async () => {
 .perf-ranking {
   .filter-card { margin-bottom: 16px; }
   .filter-form { margin-bottom: -10px; }
-  .table-head { display: flex; align-items: baseline; gap: 12px; }
+  .table-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
   .card-title { font-weight: 600; color: #303133; font-size: 15px; }
   .table-sub { color: #909399; font-size: 12px; }
   .score-cell { display: inline-flex; align-items: center; gap: 8px; }

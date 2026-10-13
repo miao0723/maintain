@@ -12,9 +12,31 @@ class User extends Model
 
     protected $hidden = ['password'];
 
+    // 输出时附带扁平的角色名/角色码，供列表与选择器直接展示（ThinkPHP 用 $append 单数）
+    protected $append = ['role_name', 'role_code'];
+
     public function department()
     {
         return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    /**
+     * 角色名（经 role_id 关联）。无角色时返回空串，避免列表“角色”列为空却报错。
+     */
+    public function getRoleNameAttr($value = null)
+    {
+        if (empty($this->getAttr('role_id'))) {
+            return '';
+        }
+        return $this->role ? $this->role->getAttr('name') : '';
+    }
+
+    public function getRoleCodeAttr($value = null)
+    {
+        if (empty($this->getAttr('role_id'))) {
+            return '';
+        }
+        return $this->role ? $this->role->getAttr('code') : '';
     }
 
     /**

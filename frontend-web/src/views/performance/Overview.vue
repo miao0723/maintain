@@ -7,14 +7,9 @@
           <el-date-picker v-model="filters.date_range" type="daterange" range-separator="至"
             start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width: 280px;" />
         </el-form-item>
-        <el-form-item label="班组" v-if="!isWorker">
-          <el-select v-model="filters.team" placeholder="全部班组" clearable style="width: 150px;">
-            <el-option v-for="t in teams" :key="t" :label="t" :value="t" />
-          </el-select>
-        </el-form-item>
         <el-form-item label="维修人员" v-if="!isWorker">
           <el-select v-model="filters.engineer_id" placeholder="全部人员" clearable filterable style="width: 160px;">
-            <el-option v-for="e in engineers" :key="e.id" :label="`${e.name}（${e.team}）`" :value="e.id" />
+            <el-option v-for="e in engineers" :key="e.id" :label="e.name" :value="e.id" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -30,7 +25,7 @@
       show-icon
       :closable="false"
       class="worker-banner"
-      :title="`您正在查看个人绩效（${myContext.engineer?.name || ''} · ${myContext.engineer?.team || ''}）`"
+      :title="`您正在查看个人绩效（${myContext.engineer?.name || ''}）`"
       description="作为维修人员，本页仅展示您本人的绩效数据；管理员可在「工单明细 / 绩效排行」中查看全部人员。"
     />
 
@@ -45,7 +40,7 @@
             <div class="kpi-body">
               <div class="kpi-label">{{ kpi.label }}</div>
               <div class="kpi-value" :style="{ color: kpi.color }">
-                {{ overview.kpis[kpi.key] ?? '—' }}<span class="kpi-unit">{{ kpi.unit }}</span>
+                {{ kpiValue(kpi) }}<span class="kpi-unit">{{ kpi.unit }}</span>
               </div>
             </div>
           </div>
@@ -65,7 +60,7 @@
         </el-col>
       </el-row>
       <el-alert type="info" :closable="false" class="std-tip">
-        判定规则：统计周期内闭环工单 ≥ 最低样本量（{{ overview.standard_summary?.min_orders || 3 }} 单）且综合得分 ≥ 达标线（{{ overview.standard_summary?.pass_score || 80 }} 分）且合格率达标，方为「符合标准」；否则「不符合」。
+        判定规则：统计周期内闭环工单 ≥ 最低样本量（{{ overview.standard_summary?.min_orders || 3 }} 单）且综合得分 ≥ 达标线（{{ overview.standard_summary?.pass_score || 80 }} 分），方为「符合标准」；样本不足暂不评级，单项是否达标见「绩效排行」红绿灯。
       </el-alert>
     </el-card>
 
@@ -76,7 +71,6 @@
       </template>
       <el-table :data="overview.alerts" border stripe>
         <el-table-column prop="name" label="姓名" width="110" />
-        <el-table-column prop="team" label="班组" width="100" />
         <el-table-column prop="score" label="综合得分" width="110" align="center">
           <template #default="{ row }"><span :style="{ color: scoreColor(row.score), fontWeight: 700 }">{{ row.score }}</span></template>
         </el-table-column>
@@ -103,13 +97,7 @@
     </el-row>
 
     <el-row :gutter="16" class="chart-row">
-      <el-col :span="12">
-        <el-card shadow="never" class="chart-card">
-          <template #header><span class="card-title">各班组综合得分</span></template>
-          <div ref="teamRef" style="height: 320px;"></div>
-        </el-card>
-      </el-col>
-      <el-col :span="12">
+      <el-col :span="24">
         <el-card shadow="never" class="chart-card">
           <template #header><span class="card-title">人员绩效 Top 5</span></template>
           <div ref="topRef" style="height: 320px;"></div>
@@ -122,11 +110,11 @@
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import * as echarts from 'echarts'
-import { getPerformanceOverview, getPerformanceTeams, getPerformanceEngineers, getPerformanceContext } from '@/api/performance'
+import { getPerformanceOverview, getPerformanceEngineers, getPerformanceContext } from '@/api/performance'
+import { fmtDuration } from '@/utils/duration'
 
 const loading = ref(false)
-const filters = reactive({ date_range: [], team: '', engineer_id: '' })
-const teams = ref([])
+const filters = reactive({ date_range: [], engineer_id: '' })
 const engineers = ref([])
 const overview = ref({ kpis: {}, status_distribution: [], trend: [], top_engineers: [], team_summary: [] })
 // 工人视角：登录账号关联绩效档案时，自动收敛到本人
@@ -135,7 +123,6 @@ const isWorker = ref(false)
 
 const trendRef = ref(null)
 const statusRef = ref(null)
-const teamRef = ref(null)
 const topRef = ref(null)
 let charts = []
 let destroyed = false
@@ -149,13 +136,20 @@ const kpiCards = ref([
   { key: 'score', label: '综合绩效得分', icon: 'Medal', color: '#409EFF', bg: '#ecf5ff', unit: ' 分' },
   { key: 'total', label: '工单总数', icon: 'Tickets', color: '#303133', bg: '#f4f4f5', unit: ' 单' },
   { key: 'on_time_rate', label: '按时完成率', icon: 'CircleCheck', color: '#67C23A', bg: '#f0f9eb', unit: ' %' },
-  { key: 'avg_duration', label: '平均维修时长', icon: 'Timer', color: '#E6A23C', bg: '#fdf6ec', unit: ' 天' },
+  { key: 'avg_duration', label: '平均维修时长', icon: 'Timer', color: '#E6A23C', bg: '#fdf6ec', unit: '' },
   { key: 'completed_count', label: '工单完成量', icon: 'Finished', color: '#409EFF', bg: '#ecf5ff', unit: ' 单' },
   { key: 'rework_rate', label: '返修率', icon: 'RefreshLeft', color: '#F56C6C', bg: '#fef0f0', unit: ' %' },
   { key: 'first_fix_rate', label: '一次修复率', icon: 'Aim', color: '#67C23A', bg: '#f0f9eb', unit: ' %' },
   { key: 'qualified_rate', label: '合格率', icon: 'CircleCheckFilled', color: '#409EFF', bg: '#ecf5ff', unit: ' %' },
   { key: 'avg_review', label: '平均验收评分', icon: 'Star', color: '#E6A23C', bg: '#fdf6ec', unit: ' 分' }
 ])
+
+// KPI 值渲染：平均维修时长为小时口径，走智能格式（X分钟/X小时/X.X天）
+const kpiValue = (kpi) => {
+  const v = overview.value.kpis[kpi.key]
+  if (kpi.key === 'avg_duration') return fmtDuration(v)
+  return v ?? '—'
+}
 
 const standardCards = computed(() => {
   const ss = overview.value.standard_summary || {}
@@ -173,7 +167,6 @@ const standardCards = computed(() => {
 const buildParams = () => ({
   start_date: filters.date_range?.[0] || '',
   end_date: filters.date_range?.[1] || '',
-  team: isWorker.value ? '' : filters.team,
   engineer_id: isWorker.value && myContext.value.engineer ? myContext.value.engineer.id : filters.engineer_id
 })
 
@@ -192,7 +185,7 @@ const renderCharts = () => {
   // 组件已卸载（如退出登录、快速切换路由）时，DOM ref 已为 null，
   // 此时 echarts.init(null) 会抛 "Cannot read properties of null (reading 'getAttribute')"
   if (destroyed) return
-  if (!trendRef.value || !statusRef.value || !teamRef.value || !topRef.value) return
+  if (!trendRef.value || !statusRef.value || !topRef.value) return
   charts.forEach(c => c?.dispose())
   charts = []
 
@@ -205,12 +198,12 @@ const renderCharts = () => {
     grid: { left: 50, right: 50, top: 40, bottom: 30 },
     xAxis: { type: 'category', data: trend.map(t => t.period) },
     yAxis: [
-      { type: 'value', name: '工单量/时长', position: 'left' },
+      { type: 'value', name: '工单量/时长(小时)', position: 'left' },
       { type: 'value', name: '完成率%', position: 'right', max: 100, min: 0 }
     ],
     series: [
       { name: '工单量', type: 'bar', data: trend.map(t => t.order_count), itemStyle: { color: '#409EFF' }, barWidth: 18 },
-      { name: '平均维修时长', type: 'line', yAxisIndex: 0, data: trend.map(t => t.avg_duration), itemStyle: { color: '#E6A23C' }, smooth: true },
+      { name: '平均维修时长(小时)', type: 'line', yAxisIndex: 0, data: trend.map(t => t.avg_duration), itemStyle: { color: '#E6A23C' }, smooth: true },
       { name: '按时完成率', type: 'line', yAxisIndex: 1, data: trend.map(t => t.on_time_rate), itemStyle: { color: '#67C23A' }, smooth: true }
     ]
   })
@@ -229,33 +222,17 @@ const renderCharts = () => {
   })
   charts.push(statusChart)
 
-  // 班组得分
-  const teamsData = overview.value.team_summary || []
-  const teamChart = echarts.init(teamRef.value)
-  teamChart.setOption({
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    grid: { left: 60, right: 30, top: 20, bottom: 30 },
-    xAxis: { type: 'value', max: 100 },
-    yAxis: { type: 'category', data: teamsData.map(t => t.team).reverse() },
-    series: [{
-      type: 'bar', data: teamsData.map(t => t.score).reverse(),
-      itemStyle: { color: '#409EFF', borderRadius: [0, 4, 4, 0] }, barWidth: 18,
-      label: { show: true, position: 'right', formatter: '{c}' }
-    }]
-  })
-  charts.push(teamChart)
-
   // Top5
   const top = (overview.value.top_engineers || []).slice().reverse()
   const topChart = echarts.init(topRef.value)
   topChart.setOption({
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: p => `${p[0].name}<br/>得分：${p[0].value}<br/>班组：${p[0].data.team || ''}` },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: p => `${p[0].name}<br/>得分：${p[0].value}` },
     grid: { left: 70, right: 40, top: 20, bottom: 30 },
     xAxis: { type: 'value', max: 100 },
     yAxis: { type: 'category', data: top.map(t => t.name) },
     series: [{
       type: 'bar',
-      data: top.map(t => ({ value: t.score, team: t.team })),
+      data: top.map(t => t.score),
       itemStyle: { color: '#67C23A', borderRadius: [0, 4, 4, 0] }, barWidth: 18,
       label: { show: true, position: 'right', formatter: '{c}' }
     }]
@@ -266,7 +243,6 @@ const renderCharts = () => {
 const handleReset = () => {
   filters.date_range = []
   if (!isWorker.value) {
-    filters.team = ''
     filters.engineer_id = ''
   }
   fetchData()
@@ -282,7 +258,6 @@ onMounted(async () => {
       filters.engineer_id = ctx.engineer.id
     }
   } catch (e) {}
-  try { teams.value = await getPerformanceTeams().then(r => r.data || []) } catch (e) {}
   try { engineers.value = await getPerformanceEngineers().then(r => r.data || []) } catch (e) {}
   fetchData()
   window.addEventListener('resize', resize)
