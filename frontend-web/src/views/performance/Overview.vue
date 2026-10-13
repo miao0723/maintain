@@ -108,10 +108,23 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, onBeforeUnmount, watch } from 'vue'
 import * as echarts from 'echarts'
 import { getPerformanceOverview, getPerformanceEngineers, getPerformanceContext } from '@/api/performance'
 import { fmtDuration } from '@/utils/duration'
+import { useThemeStore } from '@/stores/theme'
+
+const themeStore = useThemeStore()
+// 图表配色随主题切换：深色用浅字/暗轴，护眼与浅色用默认深字
+const chartTheme = computed(() => {
+  const dark = themeStore.isDark
+  return {
+    text: dark ? '#c0c4cc' : '#606266',
+    axisLine: dark ? '#4d4d4d' : '#e0e0e0',
+    splitLine: dark ? '#2c2c2c' : '#f0f0f0',
+    legend: dark ? '#c0c4cc' : '#606266'
+  }
+})
 
 const loading = ref(false)
 const filters = reactive({ date_range: [], engineer_id: '' })
@@ -133,15 +146,15 @@ const statusColor = { pending: '#909399', processing: '#E6A23C', waiting: '#409E
 const scoreColor = (s) => (s >= 85 ? '#67C23A' : s >= 70 ? '#409EFF' : s >= 60 ? '#E6A23C' : '#F56C6C')
 
 const kpiCards = ref([
-  { key: 'score', label: '综合绩效得分', icon: 'Medal', color: '#409EFF', bg: '#ecf5ff', unit: ' 分' },
-  { key: 'total', label: '工单总数', icon: 'Tickets', color: '#303133', bg: '#f4f4f5', unit: ' 单' },
-  { key: 'on_time_rate', label: '按时完成率', icon: 'CircleCheck', color: '#67C23A', bg: '#f0f9eb', unit: ' %' },
-  { key: 'avg_duration', label: '平均维修时长', icon: 'Timer', color: '#E6A23C', bg: '#fdf6ec', unit: '' },
-  { key: 'completed_count', label: '工单完成量', icon: 'Finished', color: '#409EFF', bg: '#ecf5ff', unit: ' 单' },
-  { key: 'rework_rate', label: '返修率', icon: 'RefreshLeft', color: '#F56C6C', bg: '#fef0f0', unit: ' %' },
-  { key: 'first_fix_rate', label: '一次修复率', icon: 'Aim', color: '#67C23A', bg: '#f0f9eb', unit: ' %' },
-  { key: 'qualified_rate', label: '合格率', icon: 'CircleCheckFilled', color: '#409EFF', bg: '#ecf5ff', unit: ' %' },
-  { key: 'avg_review', label: '平均验收评分', icon: 'Star', color: '#E6A23C', bg: '#fdf6ec', unit: ' 分' }
+  { key: 'score', label: '综合绩效得分', icon: 'Medal', color: 'var(--c-primary)', bg: 'var(--c-bg-info-soft)', unit: ' 分' },
+  { key: 'total', label: '工单总数', icon: 'Tickets', color: 'var(--c-text-primary)', bg: 'var(--c-bg-muted)', unit: ' 单' },
+  { key: 'on_time_rate', label: '按时完成率', icon: 'CircleCheck', color: 'var(--c-success)', bg: 'var(--c-bg-success-soft)', unit: ' %' },
+  { key: 'avg_duration', label: '平均维修时长', icon: 'Timer', color: 'var(--c-warning)', bg: 'var(--c-bg-warning-soft)', unit: '' },
+  { key: 'completed_count', label: '工单完成量', icon: 'Finished', color: 'var(--c-primary)', bg: 'var(--c-bg-info-soft)', unit: ' 单' },
+  { key: 'rework_rate', label: '返修率', icon: 'RefreshLeft', color: 'var(--c-danger)', bg: 'var(--c-bg-danger-soft)', unit: ' %' },
+  { key: 'first_fix_rate', label: '一次修复率', icon: 'Aim', color: 'var(--c-success)', bg: 'var(--c-bg-success-soft)', unit: ' %' },
+  { key: 'qualified_rate', label: '合格率', icon: 'CircleCheckFilled', color: 'var(--c-primary)', bg: 'var(--c-bg-info-soft)', unit: ' %' },
+  { key: 'avg_review', label: '平均验收评分', icon: 'Star', color: 'var(--c-warning)', bg: 'var(--c-bg-warning-soft)', unit: ' 分' }
 ])
 
 // KPI 值渲染：平均维修时长为小时口径，走智能格式（X分钟/X小时/X.X天）
@@ -156,11 +169,11 @@ const standardCards = computed(() => {
   const total = ss.total || 0
   const rate = total > 0 ? Math.round((ss.qualified || 0) / total * 100) : 0
   return [
-    { label: '达标人数', value: ss.qualified || 0, color: '#67C23A', bg: '#f0f9eb' },
-    { label: '不达标人数', value: ss.unqualified || 0, color: '#F56C6C', bg: '#fef0f0' },
-    { label: '样本不足', value: ss.insufficient || 0, color: '#909399', bg: '#f4f4f5' },
-    { label: '整体达标率', value: rate + '%', color: '#409EFF', bg: '#ecf5ff' },
-    { label: '超期未交付', value: overview.value.overdue_open_total || 0, color: '#E6A23C', bg: '#fdf6ec' }
+    { label: '达标人数', value: ss.qualified || 0, color: 'var(--c-success)', bg: 'var(--c-bg-success-soft)' },
+    { label: '不达标人数', value: ss.unqualified || 0, color: 'var(--c-danger)', bg: 'var(--c-bg-danger-soft)' },
+    { label: '样本不足', value: ss.insufficient || 0, color: 'var(--c-text-secondary)', bg: 'var(--c-bg-muted)' },
+    { label: '整体达标率', value: rate + '%', color: 'var(--c-primary)', bg: 'var(--c-bg-info-soft)' },
+    { label: '超期未交付', value: overview.value.overdue_open_total || 0, color: 'var(--c-warning)', bg: 'var(--c-bg-warning-soft)' }
   ]
 })
 
@@ -191,15 +204,21 @@ const renderCharts = () => {
 
   // 趋势
   const trend = overview.value.trend || []
+  const ct = chartTheme.value
   const trendChart = echarts.init(trendRef.value)
   trendChart.setOption({
     tooltip: { trigger: 'axis' },
-    legend: { data: ['工单量', '按时完成率', '平均维修时长'] },
+    legend: { data: ['工单量', '按时完成率', '平均维修时长'], textStyle: { color: ct.legend } },
     grid: { left: 50, right: 50, top: 40, bottom: 30 },
-    xAxis: { type: 'category', data: trend.map(t => t.period) },
+    xAxis: {
+      type: 'category',
+      data: trend.map(t => t.period),
+      axisLine: { lineStyle: { color: ct.axisLine } },
+      axisLabel: { color: ct.text }
+    },
     yAxis: [
-      { type: 'value', name: '工单量/时长(小时)', position: 'left' },
-      { type: 'value', name: '完成率%', position: 'right', max: 100, min: 0 }
+      { type: 'value', name: '工单量/时长(小时)', position: 'left', nameTextStyle: { color: ct.text }, axisLine: { lineStyle: { color: ct.axisLine } }, axisLabel: { color: ct.text }, splitLine: { lineStyle: { color: ct.splitLine } } },
+      { type: 'value', name: '完成率%', position: 'right', max: 100, min: 0, nameTextStyle: { color: ct.text }, axisLine: { lineStyle: { color: ct.axisLine } }, axisLabel: { color: ct.text }, splitLine: { show: false } }
     ],
     series: [
       { name: '工单量', type: 'bar', data: trend.map(t => t.order_count), itemStyle: { color: '#409EFF' }, barWidth: 18 },
@@ -214,9 +233,10 @@ const renderCharts = () => {
   const statusChart = echarts.init(statusRef.value)
   statusChart.setOption({
     tooltip: { trigger: 'item', formatter: '{b}: {c} 单 ({d}%)' },
-    legend: { bottom: 0 },
+    legend: { bottom: 0, textStyle: { color: ct.legend } },
     series: [{
       type: 'pie', radius: ['42%', '70%'],
+      label: { color: ct.text },
       data: dist.map(d => ({ name: d.label, value: d.count, itemStyle: { color: statusColor[d.status] } }))
     }]
   })
@@ -228,17 +248,20 @@ const renderCharts = () => {
   topChart.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: p => `${p[0].name}<br/>得分：${p[0].value}` },
     grid: { left: 70, right: 40, top: 20, bottom: 30 },
-    xAxis: { type: 'value', max: 100 },
-    yAxis: { type: 'category', data: top.map(t => t.name) },
+    xAxis: { type: 'value', max: 100, axisLine: { lineStyle: { color: ct.axisLine } }, axisLabel: { color: ct.text }, splitLine: { lineStyle: { color: ct.splitLine } } },
+    yAxis: { type: 'category', data: top.map(t => t.name), axisLine: { lineStyle: { color: ct.axisLine } }, axisLabel: { color: ct.text }, splitLine: { lineStyle: { color: ct.splitLine } } },
     series: [{
       type: 'bar',
       data: top.map(t => t.score),
       itemStyle: { color: '#67C23A', borderRadius: [0, 4, 4, 0] }, barWidth: 18,
-      label: { show: true, position: 'right', formatter: '{c}' }
+      label: { show: true, position: 'right', formatter: '{c}', color: ct.text }
     }]
   })
   charts.push(topChart)
 }
+
+// 主题切换（阳光/护眼/夜间）时重绘图表，使坐标轴/图例文字随主题变深或变浅
+watch(() => themeStore.theme, () => { if (!destroyed) nextTick(renderCharts) })
 
 const handleReset = () => {
   filters.date_range = []
@@ -278,21 +301,21 @@ onBeforeUnmount(() => {
   .standard-card { margin-bottom: 16px; }
   .std-block { border-radius: 10px; padding: 16px; text-align: center; }
   .std-num { font-size: 28px; font-weight: 800; line-height: 1.1; }
-  .std-label { font-size: 13px; color: #606266; margin-top: 4px; }
+  .std-label { font-size: 13px; color: var(--c-text-regular); margin-top: 4px; }
   .std-tip { margin-top: 14px; }
   .alert-card { margin-bottom: 16px; }
-  .alert-reason { color: #e6a23c; font-size: 13px; }
+  .alert-reason { color: var(--c-warning); font-size: 13px; }
   .kpi-card {
     margin-bottom: 16px;
     .kpi-inner { display: flex; align-items: center; gap: 14px; }
     .kpi-icon { width: 46px; height: 46px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
     .kpi-body { min-width: 0; }
-    .kpi-label { color: #909399; font-size: 13px; margin-bottom: 4px; }
+    .kpi-label { color: var(--c-text-secondary); font-size: 13px; margin-bottom: 4px; }
     .kpi-value { font-size: 22px; font-weight: 700; line-height: 1; }
     .kpi-unit { font-size: 13px; font-weight: 400; margin-left: 2px; }
   }
   .chart-row { margin-bottom: 16px; }
   .chart-card { margin-bottom: 0; }
-  .card-title { font-weight: 600; color: #303133; }
+  .card-title { font-weight: 600; color: var(--c-text-primary); }
 }
 </style>

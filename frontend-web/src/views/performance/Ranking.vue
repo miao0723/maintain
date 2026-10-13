@@ -186,15 +186,14 @@ onMounted(() => {
   .filter-card { margin-bottom: 16px; }
   .filter-form { margin-bottom: -10px; }
   .table-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-  .card-title { font-weight: 600; color: #303133; font-size: 15px; }
-  .table-sub { color: #909399; font-size: 12px; }
+  .card-title { font-weight: 600; color: var(--c-text-primary); font-size: 15px; }
+  .table-sub { color: var(--c-text-secondary); font-size: 12px; }
   .score-cell { display: inline-flex; align-items: center; gap: 8px; }
   .score-num { font-weight: 700; font-size: 15px; }
-  .rate-good { color: #67C23A; font-weight: 600; }
-  .rate-mid { color: #E6A23C; font-weight: 600; }
-  .rate-bad { color: #F56C6C; font-weight: 600; }
-  :deep(.top-row) { background: #f7fbff; }
-  :deep(.fail-row) { background: #fef0f0; }
-  :deep(.fail-row:hover) > td { background: #fde2e2 !important; }
+  .rate-good { color: var(--c-success); font-weight: 600; }
+  .rate-mid { color: var(--c-warning); font-weight: 600; }
+  .rate-bad { color: var(--c-danger); font-weight: 600; }
+  :deep(.top-row) { background: var(--c-bg-info-soft); }
+  :deep(.fail-row) { background: var(--c-bg-danger-soft); }
 }
 </style>

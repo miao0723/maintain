@@ -548,7 +548,7 @@ watch(() => route.query.order_id, () => {
   .filter-card { margin-bottom: 16px; }
   .worker-banner { margin-bottom: 16px; }
   .filter-form { margin-bottom: -10px; }
-  .card-title { font-weight: 600; color: #303133; }
+  .card-title { font-weight: 600; color: var(--c-text-primary); }
   .table-head { display: flex; align-items: center; gap: 12px; }
   .export-btns { margin-left: auto; display: flex; gap: 8px; }
   .waiting-tag { font-weight: 600; }
@@ -556,17 +556,17 @@ watch(() => route.query.order_id, () => {
   .click-row :deep(.el-table__row) { cursor: pointer; }
   // 从提醒「前往处理」跳来时高亮目标工单行
   :deep(.badge-target-row) > td {
-    background-color: #fff7e6 !important;
+    background-color: var(--c-bg-warning-soft) !important;
   }
-  .arrow { color: #c0c4cc; }
-  .muted { color: #aaa; }
-  .over { color: #F56C6C; font-weight: 600; }
-  .ok { color: #67C23A; font-weight: 600; }
+  .arrow { color: var(--c-border); }
+  .muted { color: var(--c-text-muted); }
+  .over { color: var(--c-danger); font-weight: 600; }
+  .ok { color: var(--c-success); font-weight: 600; }
   .overdue-tag { margin-left: 4px; vertical-align: middle; }
   .row-thumb { width: 32px; height: 32px; border-radius: 4px; cursor: zoom-in; vertical-align: middle; }
   .detail-imgs { display: flex; flex-wrap: wrap; gap: 8px; }
-  .detail-img { width: 96px; height: 96px; border-radius: 6px; border: 1px solid #ebeef5; cursor: zoom-in; }
-  .progress-title { font-weight: 600; color: #303133; margin: 24px 0 12px; }
+  .detail-img { width: 96px; height: 96px; border-radius: 6px; border: 1px solid var(--c-border-light); cursor: zoom-in; }
+  .progress-title { font-weight: 600; color: var(--c-text-primary); margin: 24px 0 12px; }
   .progress-steps { padding: 8px 0 0; }
 }
 </style>

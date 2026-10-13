@@ -1,5 +1,97 @@
 // 暗色模式样式
 @use './dark.scss';
+// 护眼主题：Element Plus 仍走浅色，仅补充卡片/表格/标签等护眼配色
+@use './eye.scss';
+
+// ===================== 主题设计变量（token） =====================
+// 三套主题统一通过 CSS 变量切换，所有业务页面只引用 var(--c-*)，
+// 不再硬编码颜色，从而彻底避免「切到深色后浅色块残留」的冲突。
+// 浅色（阳光）为 :root 默认值；护眼 / 夜间在对应 class 下覆盖。
+:root {
+  --c-bg-body: #ffffff;          // 应用最底层背景（侧边栏背后）
+  --c-bg-page: #f0f2f5;          // 内容区背景
+  --c-bg-card: #ffffff;          // 卡片 / 浮层背景
+  --c-bg-elevated: #ffffff;      // 抬升层（弹层内卡片）
+  --c-bg-muted: #fafafa;         // 弱强调块（如设备估算卡）
+  --c-bg-soft: #f7f8fa;          // 柔和信息块（如公式说明）
+  --c-bg-info-soft: #f7fbff;     // 信息浅蓝底（如排名表头行）
+  --c-bg-success-soft: #f0f9eb;
+  --c-bg-warning-soft: #fff7e6;  // 提醒 / 目标行高亮
+  --c-bg-danger-soft: #fef0f0;   // 不合格行浅红底
+
+  --c-text-primary: #303133;
+  --c-text-regular: #606266;
+  --c-text-secondary: #909399;
+  --c-text-placeholder: #a8abb2;
+  --c-text-muted: #aaaaaa;
+
+  --c-border: #dcdfe6;
+  --c-border-light: #ebeef5;
+  --c-border-lighter: #f2f6fc;
+
+  --c-primary: #409eff;
+  --c-success: #67c23a;
+  --c-warning: #e6a23c;
+  --c-danger: #f56c6c;
+}
+
+// 护眼（暖色低蓝光）
+html.theme-eye {
+  --c-bg-body: #efe7d3;
+  --c-bg-page: #f5eede;
+  --c-bg-card: #fbf6ea;
+  --c-bg-elevated: #fbf6ea;
+  --c-bg-muted: #f3ebd9;
+  --c-bg-soft: #f1e8d2;
+  --c-bg-info-soft: #eef3ea;
+  --c-bg-success-soft: #eaf2e0;
+  --c-bg-warning-soft: #f7ecd2;
+  --c-bg-danger-soft: #f7e6e0;
+
+  --c-text-primary: #4a3f2f;
+  --c-text-regular: #6b5d45;
+  --c-text-secondary: #8a7c63;
+  --c-text-placeholder: #a89a7f;
+  --c-text-muted: #b0a285;
+
+  --c-border: #ddd2b8;
+  --c-border-light: #e8dcc2;
+  --c-border-lighter: #f0e7d2;
+
+  --c-primary: #5b8c6e;
+  --c-success: #6aa84f;
+  --c-warning: #d49a4a;
+  --c-danger: #d9534f;
+}
+
+// 夜间（深色）
+html.theme-dark {
+  --c-bg-body: #0e0e0e;
+  --c-bg-page: #121212;
+  --c-bg-card: #1e1e1e;
+  --c-bg-elevated: #1e1e1e;
+  --c-bg-muted: #2a2a2a;
+  --c-bg-soft: #262626;
+  --c-bg-info-soft: #18283a;
+  --c-bg-success-soft: #1a2417;
+  --c-bg-warning-soft: #2a2113;
+  --c-bg-danger-soft: #2a1c1c;
+
+  --c-text-primary: #e5eaf3;
+  --c-text-regular: #c0c4cc;
+  --c-text-secondary: #909399;
+  --c-text-placeholder: #7b7f87;
+  --c-text-muted: #8a8f99;
+
+  --c-border: #303030;
+  --c-border-light: #2c2c2c;
+  --c-border-lighter: #252525;
+
+  --c-primary: #409eff;
+  --c-success: #67c23a;
+  --c-warning: #e6a23c;
+  --c-danger: #f56c6c;
+}
 
 // 全局样式
 * {
@@ -12,8 +104,8 @@ html, body {
   width: 100%;
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  background: #fff;
-  color: #303133;
+  background: var(--c-bg-body);
+  color: var(--c-text-primary);
   // 阻止内部滚动到底后继续 chaining 到文档（出现空白滚动）
   overscroll-behavior-y: none;
 }
@@ -34,13 +126,13 @@ html, body {
 }
 
 // 暗色模式（dark 类挂在 <html> 上，需用 html.dark 匹配）
-html.dark {
+html.theme-dark {
   // 注意：不能写成嵌套的 `html, body`（会编译成 `html.dark html, body`，
-  // 导致浅色模式下 body 也被染黑），必须显式限定在 html.dark 之下
+  // 导致浅色模式下 body 也被染黑），必须显式限定在 html.theme-dark 之下
   &,
   body {
-    background: #121212;
-    color: #e0e0e0;
+    background: var(--c-bg-body);
+    color: var(--c-text-primary);
   }
 
   ::-webkit-scrollbar-thumb {

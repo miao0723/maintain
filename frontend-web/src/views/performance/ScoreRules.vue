@@ -245,13 +245,13 @@ onMounted(async () => {
   .rule-card { margin-bottom: 16px; }
   .cfg-card { margin-bottom: 16px; }
   .cfg-form { margin-bottom: -10px; }
-  .cfg-unit { color: #909399; font-size: 12px; margin-left: 8px; }
-  .pass-higher { color: #67C23A; font-weight: 600; }
-  .pass-lower { color: #e6a23c; font-weight: 600; }
+  .cfg-unit { color: var(--c-text-secondary); font-size: 12px; margin-left: 8px; }
+  .pass-higher { color: var(--c-success); font-weight: 600; }
+  .pass-lower { color: var(--c-warning); font-weight: 600; }
   .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .card-title { font-weight: 600; color: #303133; font-size: 15px; }
+  .card-title { font-weight: 600; color: var(--c-text-primary); font-size: 15px; }
   .head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .rule-tip { margin-bottom: 14px; }
-  .formula { margin-top: 16px; padding: 12px 14px; background: #f7f8fa; border-radius: 8px; color: #606266; font-size: 13px; line-height: 1.6; }
+  .formula { margin-top: 16px; padding: 12px 14px; background: var(--c-bg-soft); border-radius: 8px; color: var(--c-text-regular); font-size: 13px; line-height: 1.6; }
 }
 </style>

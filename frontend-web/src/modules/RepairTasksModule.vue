@@ -71,8 +71,8 @@ const goCreate = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border: 1px solid #ebeef5;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border-light);
   border-bottom: none;
   border-radius: 8px 8px 0 0;
   padding: 10px 14px 0;
@@ -82,13 +82,13 @@ const goCreate = () => {
   }
   :deep(.el-tabs__header) {
     margin: 0;
-    border-bottom: 1px solid #ebeef5;
+    border-bottom: 1px solid var(--c-border-light);
   }
 }
 
 .module-content {
-  background: #fff;
-  border: 1px solid #ebeef5;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border-light);
   border-top: none;
   border-radius: 0 0 8px 8px;
   padding: 16px;

@@ -1,0 +1,163 @@
+// 护眼主题（暖色低蓝光）下的 Element Plus 组件配色覆盖。
+// 护眼是「浅色变体」，Element Plus 仍走其默认浅色变量，这里只把自定义容器
+// 与少量 EP 表面统一成暖色调，保证视觉协调、不刺眼。
+html.theme-eye {
+  // 卡片
+  .el-card {
+    background-color: var(--c-bg-card);
+    border-color: var(--c-border-light);
+
+    .el-card__header {
+      border-bottom-color: var(--c-border-light);
+      color: var(--c-text-primary);
+    }
+  }
+
+  // 表格
+  .el-table {
+    background-color: var(--c-bg-card);
+    color: var(--c-text-regular);
+
+    th.el-table__cell {
+      background-color: var(--c-bg-soft);
+      color: var(--c-text-regular);
+    }
+
+    tr {
+      background-color: var(--c-bg-card);
+    }
+
+    td.el-table__cell {
+      border-bottom-color: var(--c-border-light);
+    }
+
+    .el-table__empty-text {
+      color: var(--c-text-secondary);
+    }
+  }
+
+  // 对话框 / 抽屉
+  .el-dialog {
+    background-color: var(--c-bg-card);
+
+    .el-dialog__header {
+      border-bottom-color: var(--c-border-light);
+
+      .el-dialog__title {
+        color: var(--c-text-primary);
+      }
+    }
+
+    .el-dialog__body {
+      color: var(--c-text-regular);
+    }
+
+    .el-dialog__footer {
+      border-top-color: var(--c-border-light);
+    }
+  }
+
+  // 表单标签
+  .el-form-item__label {
+    color: var(--c-text-regular);
+  }
+
+  // 输入框 / 选择器
+  .el-input__wrapper {
+    background-color: var(--c-bg-card);
+    box-shadow: 0 0 0 1px var(--c-border) inset;
+  }
+
+  .el-input__inner {
+    color: var(--c-text-primary);
+
+    &::placeholder {
+      color: var(--c-text-placeholder);
+    }
+  }
+
+  .el-select__wrapper {
+    background-color: var(--c-bg-card);
+    box-shadow: 0 0 0 1px var(--c-border) inset;
+  }
+
+  // 按钮
+  .el-button {
+    &--default {
+      background-color: var(--c-bg-card);
+      border-color: var(--c-border);
+      color: var(--c-text-regular);
+
+      &:hover {
+        background-color: var(--c-bg-muted);
+        border-color: var(--c-primary);
+        color: var(--c-primary);
+      }
+    }
+  }
+
+  // 标签
+  .el-tag {
+    background-color: var(--c-bg-muted);
+    border-color: var(--c-border-light);
+    color: var(--c-text-regular);
+  }
+
+  // 下拉菜单
+  .el-dropdown-menu {
+    background-color: var(--c-bg-card);
+    border-color: var(--c-border-light);
+
+    .el-dropdown-menu__item {
+      color: var(--c-text-regular);
+
+      &:hover {
+        background-color: var(--c-bg-muted);
+        color: var(--c-primary);
+      }
+    }
+  }
+
+  // 分页
+  .el-pagination {
+    .el-pager li {
+      background-color: var(--c-bg-card);
+      color: var(--c-text-regular);
+
+      &.is-active {
+        background-color: var(--c-primary);
+        color: #fff;
+      }
+    }
+
+    .btn-prev,
+    .btn-next {
+      background-color: var(--c-bg-card);
+      color: var(--c-text-regular);
+    }
+  }
+
+  // 面包屑
+  .el-breadcrumb {
+    .el-breadcrumb__inner {
+      color: var(--c-text-regular);
+
+      &:hover {
+        color: var(--c-primary);
+      }
+    }
+
+    .el-breadcrumb__item:last-child .el-breadcrumb__inner {
+      color: var(--c-text-secondary);
+    }
+  }
+
+  // 滚动条
+  ::-webkit-scrollbar-thumb {
+    background: var(--c-border);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--c-text-placeholder);
+  }
+}

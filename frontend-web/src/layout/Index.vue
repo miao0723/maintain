@@ -111,21 +111,29 @@
         </div>
 
         <div class="header-right">
-          <!-- 主题切换：日夜滑块开关 -->
-          <el-tooltip :content="themeStore.isDark ? '切换到白天模式' : '切换到夜间模式'" placement="bottom">
-            <button
-              class="theme-switch"
-              :class="{ 'is-dark': themeStore.isDark }"
-              aria-label="切换主题"
-              @click="themeStore.toggleTheme"
-            >
-              <span class="switch-track">
-                <el-icon class="ico ico-moon"><Moon /></el-icon>
-                <el-icon class="ico ico-sun"><Sunny /></el-icon>
-                <span class="switch-knob"></span>
-              </span>
+          <!-- 主题切换：阳光 / 护眼 / 夜间 三选一 -->
+          <el-dropdown trigger="click" @command="onThemeCommand" popper-class="theme-dropdown">
+            <button class="theme-trigger" :aria-label="`当前主题：${themeLabel}`">
+              <el-icon class="trigger-ico"><component :is="themeIcon" /></el-icon>
+              <span class="trigger-label">{{ themeLabel }}</span>
+              <el-icon class="trigger-caret"><ArrowDown /></el-icon>
             </button>
-          </el-tooltip>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-for="t in THEMES"
+                  :key="t.key"
+                  :command="t.key"
+                  :class="{ 'is-active': themeStore.theme === t.key }"
+                >
+                  <el-icon class="theme-opt-ico"><component :is="t.icon" /></el-icon>
+                  <span class="theme-opt-label">{{ t.label }}</span>
+                  <span class="theme-opt-desc">{{ t.desc }}</span>
+                  <el-icon v-if="themeStore.theme === t.key" class="theme-opt-check"><Check /></el-icon>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
 
           <!-- 通知 -->
           <el-popover
@@ -280,7 +288,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useThemeStore } from '@/stores/theme'
+import { useThemeStore, THEMES } from '@/stores/theme'
 import { ElMessageBox, ElMessage, ElNotification } from 'element-plus'
 import {
   Tools,
@@ -304,8 +312,7 @@ import {
   ArrowRight,
   Lock,
   SwitchButton,
-  Sunny,
-  Moon
+  Check
 } from '@element-plus/icons-vue'
 import { changePassword } from '@/api/auth'
 import { getUnreadCount, getNotifications, markAsRead, markAllAsRead } from '@/api/notification'
@@ -317,6 +324,11 @@ const router = useRouter()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 const badgeStore = useMenuBadgeStore()
+
+// 主题切换：阳光 / 护眼 / 夜间
+const themeLabel = computed(() => THEMES.find(t => t.key === themeStore.theme)?.label || '阳光')
+const themeIcon = computed(() => THEMES.find(t => t.key === themeStore.theme)?.icon || 'Sunny')
+const onThemeCommand = (key) => themeStore.setTheme(key)
 const permStore = usePermStore()
 
 const isCollapse = ref(false)
@@ -841,79 +853,44 @@ const handlePasswordSubmit = async () => {
         }
       }
 
-      // 日夜切换滑块：白天暖橙底+白色旋钮，夜间深蓝底+月光旋钮
-      .theme-switch {
-        border: none;
-        background: transparent;
-        padding: 0;
+      // 主题切换触发器：图标 + 文字 + 下拉箭头 的胶囊按钮
+      .theme-trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 32px;
+        padding: 0 10px;
+        border: 1px solid var(--c-border);
+        border-radius: 999px;
+        background: var(--c-bg-card);
+        color: var(--c-text-regular);
         cursor: pointer;
+        font-size: 13px;
         line-height: 1;
+        transition: all 0.2s ease;
+
+        &:hover {
+          border-color: var(--c-primary);
+          color: var(--c-primary);
+        }
 
         &:focus-visible {
-          outline: 2px solid #409eff;
-          outline-offset: 3px;
-          border-radius: 999px;
+          outline: 2px solid var(--c-primary);
+          outline-offset: 2px;
         }
 
-        .switch-track {
-          position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          width: 58px;
-          height: 28px;
-          padding: 0 6px;
-          box-sizing: border-box;
-          border-radius: 999px;
-          background: linear-gradient(135deg, #ffd591, #ff9c3e);
-          box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.18);
-          transition: background 0.35s ease;
+        .trigger-ico {
+          font-size: 16px;
         }
 
-        .ico {
-          position: relative;
-          z-index: 1;
-          font-size: 14px;
-          transition: color 0.3s ease;
+        .trigger-label {
+          font-weight: 600;
+          white-space: nowrap;
         }
 
-        .ico-moon {
-          color: rgba(255, 255, 255, 0.6);
-        }
-
-        .ico-sun {
-          color: #fff;
-        }
-
-        .switch-knob {
-          position: absolute;
-          top: 3px;
-          left: 3px;
-          width: 22px;
-          height: 22px;
-          border-radius: 50%;
-          background: #fff;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
-          transition: transform 0.35s cubic-bezier(0.4, 2, 0.6, 1), background 0.35s ease;
-        }
-
-        &.is-dark {
-          .switch-track {
-            background: linear-gradient(135deg, #3b4b8f, #1c2657);
-          }
-
-          .ico-moon {
-            color: #ffd86b;
-          }
-
-          .ico-sun {
-            color: rgba(255, 255, 255, 0.45);
-          }
-
-          .switch-knob {
-            transform: translateX(30px);
-            background: radial-gradient(circle at 35% 35%, #f5f7ff, #c9d2f5);
-          }
+        .trigger-caret {
+          font-size: 12px;
+          opacity: 0.7;
         }
       }
 
@@ -953,7 +930,7 @@ const handlePasswordSubmit = async () => {
 }
 
 .main-content {
-  background: #f0f2f5;
+  background: var(--c-bg-page);
   padding: 20px;
   overflow-y: auto;
   // 锁定滚动时防止滚动条消失导致的页面抖动
@@ -1374,7 +1351,7 @@ html.dark {
     }
 
     .main-content {
-      background: #121212;
+      background: var(--c-bg-page);
     }
   }
 
@@ -1492,6 +1469,159 @@ html.dark {
     .notice-panel-footer {
       background: #1f1f1f;
       border-top-color: #2c2c2c;
+    }
+  }
+}
+
+// 护眼主题下的框架配色（侧边栏保持深色铬，顶栏/内容区转暖色）
+html.theme-eye {
+  .layout-container {
+    .header {
+      background: var(--c-bg-card);
+      border-bottom-color: var(--c-border-light);
+
+      .el-breadcrumb__inner {
+        color: var(--c-text-regular);
+
+        &:hover {
+          color: var(--c-primary);
+        }
+      }
+
+      .el-breadcrumb__item:last-child .el-breadcrumb__inner {
+        color: var(--c-text-secondary);
+      }
+
+      .user-info {
+        color: var(--c-text-primary);
+
+        &:hover {
+          background: var(--c-bg-muted);
+        }
+      }
+    }
+
+    .main-content {
+      background: var(--c-bg-page);
+    }
+  }
+
+  // 护眼下的通知/徽标弹层（复用暖色 token）
+  .el-popper.notice-popper,
+  .el-popper.menu-badge-popper {
+    background: var(--c-bg-card);
+    border-color: var(--c-border-light);
+
+    .notice-panel-header,
+    .badge-panel-header {
+      background: var(--c-bg-card);
+      border-bottom-color: var(--c-border-light);
+
+      .notice-title,
+      .badge-panel-title {
+        color: var(--c-text-primary);
+      }
+    }
+
+    .notice-tabs {
+      .el-tabs__item {
+        color: var(--c-text-regular);
+
+        &.is-active {
+          color: var(--c-primary);
+        }
+      }
+
+      .el-tabs__nav-wrap::after {
+        background-color: var(--c-border-light);
+      }
+    }
+
+    .notice-item {
+      border-bottom-color: var(--c-border-light);
+
+      &:hover {
+        background: var(--c-bg-muted);
+      }
+
+      .notice-item-title {
+        color: var(--c-text-primary);
+      }
+
+      .notice-item-content {
+        color: var(--c-text-regular);
+      }
+
+      .notice-item-time {
+        color: var(--c-text-secondary);
+      }
+    }
+
+    .badge-item {
+      border-bottom-color: var(--c-border-light);
+
+      &:hover {
+        background: var(--c-bg-muted);
+      }
+
+      .badge-item-title {
+        color: var(--c-text-primary);
+      }
+
+      .badge-item-desc {
+        color: var(--c-text-regular);
+      }
+
+      .badge-item-deadline {
+        color: var(--c-text-secondary);
+      }
+    }
+
+    .notice-panel-footer,
+    .badge-panel-footer {
+      background: var(--c-bg-card);
+      border-top-color: var(--c-border-light);
+    }
+  }
+}
+
+// 主题下拉选项布局（图标 + 名称 + 说明 + 选中勾）
+.theme-dropdown {
+  .el-dropdown-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 224px;
+    padding: 9px 12px;
+
+    &.is-active {
+      background: var(--c-bg-soft);
+      color: var(--c-primary);
+    }
+
+    .theme-opt-ico {
+      font-size: 16px;
+      flex: 0 0 auto;
+    }
+
+    .theme-opt-label {
+      flex: 0 0 auto;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .theme-opt-desc {
+      flex: 1 1 auto;
+      font-size: 12px;
+      color: var(--c-text-secondary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .theme-opt-check {
+      flex: 0 0 auto;
+      font-size: 14px;
     }
   }
 }

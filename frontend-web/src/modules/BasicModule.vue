@@ -72,12 +72,12 @@ const handleTabChange = (tabName) => {
     flex: 1;
     overflow: auto;
     padding: 20px;
-    background: #f0f2f5;
+    background: var(--c-bg-page);
   }
 }
 
 :deep(.el-tabs) {
-  background: #fff;
+  background: var(--c-bg-card);
   padding: 0 20px;
   margin-bottom: 0;
   box-shadow: 0 2px 4px rgba(0,0,0,0.08);
@@ -99,8 +99,8 @@ const handleTabChange = (tabName) => {
   line-height: 50px;
 
   &.is-active {
-    color: #409EFF;
-    border-bottom-color: #409EFF;
+    color: var(--c-primary);
+    border-bottom-color: var(--c-primary);
   }
 }
 </style>
