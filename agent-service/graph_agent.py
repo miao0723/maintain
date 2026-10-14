@@ -541,7 +541,7 @@ def analyze_state(state: AgentState) -> AgentState:
         "user_id": state.get("user_id"),
         "user_profile": state.get("user_profile", {}),
     }
-    analysis = json.loads(analyze_user_message.invoke(json.dumps(payload, ensure_ascii=False)))
+    analysis = json.loads(analyze_user_message.invoke(json.dumps(payload, ensure_ascii=False, default=str)))
     log_debug("analysis", analysis)
     return {"analysis": analysis}
 

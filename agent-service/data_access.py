@@ -138,9 +138,9 @@ def safe_fetch_rows(engine, sql: str, params: Dict[str, Any] | None = None) -> L
 
 def query_user_context(user_id: int) -> Dict[str, Any]:
     repair_user = safe_fetch_rows(
-        REPAIR_ENGINE,
+        CMMS_ENGINE,
         """
-        SELECT id, username, nickname, real_name, phone, email, role, status
+        SELECT id, username, real_name, phone, email, position, status
         FROM users
         WHERE id = :user_id
         LIMIT 1
@@ -389,7 +389,7 @@ def query_inventory(keyword: str = "", low_stock_only: bool = False, limit: int 
 
     where_sql = f"WHERE {' AND '.join(conditions)}" if conditions else ""
     return safe_fetch_rows(
-        REPAIR_ENGINE,
+        CMMS_ENGINE,
         f"""
         SELECT
             sp.id,
@@ -412,7 +412,7 @@ def query_inventory(keyword: str = "", low_stock_only: bool = False, limit: int 
 
 def query_suppliers(keyword: str = "", limit: int = 10) -> List[Dict[str, Any]]:
     return safe_fetch_rows(
-        REPAIR_ENGINE,
+        CMMS_ENGINE,
         """
         SELECT id, name, code, contact_person, contact_phone AS phone, contact_email AS email, status
         FROM suppliers
@@ -426,7 +426,7 @@ def query_suppliers(keyword: str = "", limit: int = 10) -> List[Dict[str, Any]]:
 
 def query_supplier_inventory_ranking(limit: int = 10) -> List[Dict[str, Any]]:
     return safe_fetch_rows(
-        REPAIR_ENGINE,
+        CMMS_ENGINE,
         """
         SELECT
             s.id,
