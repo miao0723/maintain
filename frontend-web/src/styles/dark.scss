@@ -282,4 +282,73 @@
   .video-meta {
     color: #e0e0e0 !important;
   }
+
+  // ===== 知识库 Chat.vue / KnowledgeDetail.vue 暗色兜底 =====
+  // Chat.vue 已将 SCSS 变量($bg-card/$text-*/$border)映射到 --c-*，变量覆盖处已自适应；
+  // 此处兜底仍为字面量 rgba(255..)/#F8FAFC 的容器，以及详情页主容器。
+  .chat-sidebar,
+  .sidebar-header,
+  .chat-header,
+  .input-area,
+  .input-toolbar,
+  .input-wrapper,
+  .message-content,
+  .session-item,
+  .session-search,
+  .message-list,
+  .quick-questions,
+  .scope-panel,
+  .collection-option,
+  .detail-page,
+  .detail-header,
+  .header-info,
+  .file-list-container,
+  .list-header,
+  .file-grid,
+  .file-card,
+  .file-detail,
+  .source-preview,
+  .file-content-display,
+  .archive-preview-wrapper,
+  .unsupported-preview,
+  .extracted-text-wrap,
+  .chunk-item,
+  .chunk-content,
+  .no-chunks,
+  .file-chat,
+  .chat-messages,
+  .chat-input-row,
+  .upload-progress,
+  .progress-item {
+    background: #1e1e1e !important;
+    border-color: #3a3a3a !important;
+    color: #d0d3da;
+  }
+
+  // 会话激活项强调
+  .session-item.active {
+    background: #1a334d !important;
+    border-color: #409eff !important;
+  }
+
+  // Markdown 表格 / 代码块（v-html 注入，需 !important 压过 scoped 规则）
+  .message-text table,
+  .chunk-content table,
+  .extracted-text table {
+    background: #161616 !important;
+    color: #d0d3da !important;
+
+    th, td {
+      background: #161616 !important;
+      border-color: #3a3a3a !important;
+    }
+  }
+
+  .message-text pre,
+  .message-text code,
+  .chunk-content pre,
+  .chunk-content code {
+    background: #161616 !important;
+    color: #d0d3da !important;
+  }
 }

@@ -2,15 +2,23 @@
   <div class="collections-page">
     <!-- 顶部操作栏 -->
     <div class="page-header">
-      <el-input
-        v-model="searchName"
-        placeholder="搜索知识库..."
-        prefix-icon="Search"
-        clearable
-        style="width: 300px"
-        @clear="loadData"
-        @keyup.enter="loadData"
-      />
+      <div class="header-tools">
+        <el-input
+          v-model="searchName"
+          placeholder="搜索知识库..."
+          prefix-icon="Search"
+          clearable
+          style="width: 260px"
+          @clear="loadData"
+          @keyup.enter="loadData"
+        />
+        <el-select v-model="sortBy" placeholder="排序方式" style="width: 140px">
+          <el-option label="最近创建" value="created_desc" />
+          <el-option label="最近更新" value="updated_desc" />
+          <el-option label="文件最多" value="files_desc" />
+          <el-option label="名称升序" value="name_asc" />
+        </el-select>
+      </div>
       <el-button type="primary" icon="Plus" @click="showCreateDialog">创建知识库</el-button>
     </div>
 
@@ -19,14 +27,19 @@
       <el-empty v-if="!loading && collections.length === 0" description="暂无知识库，点击上方按钮创建" />
 
       <el-card
-        v-for="item in collections"
+        v-for="item in sortedCollections"
         :key="item.id"
         class="kb-card"
         shadow="hover"
         @click="handleCardClick($event, item.id)"
       >
         <div class="card-header">
-          <el-icon :size="32" color="#409EFF"><Reading /></el-icon>
+          <div class="card-head-left">
+            <el-icon :size="32" color="var(--c-primary)"><Reading /></el-icon>
+            <el-tag :type="item.status === 1 ? 'success' : 'info'" size="small" effect="plain">
+              {{ item.status === 1 ? '启用中' : '已停用' }}
+            </el-tag>
+          </div>
           <el-dropdown class="card-menu" trigger="click" @command="handleCommand($event, item)">
             <span class="more-btn" @click.stop @mousedown.stop>
               <el-icon><MoreFilled /></el-icon>
@@ -35,7 +48,7 @@
               <el-dropdown-menu>
                 <el-dropdown-item command="edit">编辑</el-dropdown-item>
                 <el-dropdown-item command="chat">AI 对话</el-dropdown-item>
-                <el-dropdown-item command="delete" divided style="color: #F56C6C">删除</el-dropdown-item>
+                <el-dropdown-item command="delete" divided style="color: var(--c-danger)">删除</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -47,7 +60,7 @@
           <span><el-icon><Collection /></el-icon> {{ item.chunk_count }} 个文本块</span>
         </div>
         <div class="card-footer">
-          <span class="card-time">{{ item.created_at }}</span>
+          <span class="card-time">更新于 {{ item.updated_at || item.created_at }}</span>
           <div class="card-actions">
             <el-button size="small" text type="primary" @click.stop="goToDetail(item.id)">查看文件</el-button>
             <el-button size="small" text type="success" @click.stop="goToChat(item.id)">AI 对话</el-button>
@@ -89,7 +102,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Reading, Document, Collection, MoreFilled } from '@element-plus/icons-vue'
@@ -103,6 +116,23 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
 const searchName = ref('')
+const sortBy = ref('created_desc')
+
+// 前端排序：避免每次切换排序都请求接口
+const sortedCollections = computed(() => {
+  const list = [...collections.value]
+  switch (sortBy.value) {
+    case 'updated_desc':
+      return list.sort((a, b) => String(b.updated_at || b.created_at || '').localeCompare(String(a.updated_at || a.created_at || '')))
+    case 'files_desc':
+      return list.sort((a, b) => (Number(b.file_count) || 0) - (Number(a.file_count) || 0))
+    case 'name_asc':
+      return list.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'zh-Hans-CN'))
+    case 'created_desc':
+    default:
+      return list.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
+  }
+})
 
 const dialogVisible = ref(false)
 const editingId = ref(null)
@@ -222,8 +252,8 @@ onMounted(() => {
     height: 180px;
     border-radius: 24px;
     background:
-      radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 48%),
-      linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.72));
+      radial-gradient(circle at top left, color-mix(in srgb, var(--c-primary) 14%, transparent), transparent 48%),
+      linear-gradient(135deg, var(--c-bg-card), var(--c-bg-soft));
     pointer-events: none;
   }
 
@@ -234,13 +264,20 @@ onMounted(() => {
     gap: 16px;
     margin-bottom: 24px;
     padding: 18px 20px;
-    border: 1px solid rgba(148, 163, 184, 0.18);
+    border: 1px solid var(--c-border-light);
     border-radius: 22px;
-    background: rgba(255, 255, 255, 0.88);
+    background: var(--c-bg-card);
     backdrop-filter: blur(16px);
     box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
     position: relative;
     z-index: 1;
+  }
+
+  .header-tools {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
   }
 
   .card-grid {
@@ -255,11 +292,10 @@ onMounted(() => {
   .kb-card {
     position: relative;
     cursor: pointer;
-    border: 1px solid rgba(148, 163, 184, 0.16);
+    border: 1px solid var(--c-border-light);
     border-radius: 22px;
     overflow: hidden;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+    background: var(--c-bg-card);
     box-shadow: 0 18px 38px rgba(15, 23, 42, 0.06);
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 
@@ -268,15 +304,22 @@ onMounted(() => {
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(circle at top right, rgba(96, 165, 250, 0.18), transparent 34%),
-        linear-gradient(180deg, transparent, rgba(248, 250, 252, 0.32));
+        radial-gradient(circle at top right, color-mix(in srgb, var(--c-primary) 12%, transparent), transparent 34%),
+        linear-gradient(180deg, transparent, var(--c-bg-soft));
       pointer-events: none;
+      opacity: 0.55;
     }
 
     &:hover {
       transform: translateY(-6px);
-      border-color: rgba(59, 130, 246, 0.26);
+      border-color: var(--c-primary);
       box-shadow: 0 24px 48px rgba(37, 99, 235, 0.12);
+    }
+
+    .card-head-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .card-header {
@@ -287,12 +330,12 @@ onMounted(() => {
       position: relative;
       z-index: 1;
 
-      :deep(.el-icon:first-child) {
+      .card-head-left :deep(.el-icon) {
         width: 52px;
         height: 52px;
         border-radius: 16px;
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(99, 102, 241, 0.18));
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--c-primary) 14%, transparent), color-mix(in srgb, var(--c-primary) 24%, transparent));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
       }
 
       .more-btn {
@@ -302,7 +345,7 @@ onMounted(() => {
         width: 36px;
         height: 36px;
         cursor: pointer;
-        color: #64748b;
+        color: var(--c-text-secondary);
         border-radius: 12px;
         transition: all 0.2s ease;
 
@@ -311,8 +354,8 @@ onMounted(() => {
         }
 
         &:hover {
-          color: #2563eb;
-          background: rgba(37, 99, 235, 0.08);
+          color: var(--c-primary);
+          background: color-mix(in srgb, var(--c-primary) 10%, transparent);
         }
       }
     }
@@ -323,7 +366,7 @@ onMounted(() => {
       font-size: 17px;
       font-weight: 700;
       margin: 0 0 10px;
-      color: #0f172a;
+      color: var(--c-text-primary);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -334,7 +377,7 @@ onMounted(() => {
       position: relative;
       z-index: 1;
       font-size: 13px;
-      color: #64748b;
+      color: var(--c-text-secondary);
       margin: 0 0 18px;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -352,7 +395,7 @@ onMounted(() => {
       gap: 10px;
       margin-bottom: 16px;
       font-size: 13px;
-      color: #475569;
+      color: var(--c-text-regular);
 
       span {
         display: flex;
@@ -360,8 +403,8 @@ onMounted(() => {
         gap: 6px;
         padding: 8px 10px;
         border-radius: 999px;
-        background: rgba(248, 250, 252, 0.92);
-        border: 1px solid rgba(226, 232, 240, 0.9);
+        background: var(--c-bg-soft);
+        border: 1px solid var(--c-border-light);
       }
     }
 
@@ -373,11 +416,11 @@ onMounted(() => {
       align-items: center;
       gap: 12px;
       padding-top: 14px;
-      border-top: 1px solid rgba(226, 232, 240, 0.9);
+      border-top: 1px solid var(--c-border-light);
 
       .card-time {
         font-size: 12px;
-        color: #94a3b8;
+        color: var(--c-text-muted);
       }
 
       .card-actions {
@@ -403,13 +446,13 @@ onMounted(() => {
 
   :deep(.el-input__wrapper) {
     border-radius: 14px;
-    background: rgba(248, 250, 252, 0.92);
-    box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.95);
+    background: var(--c-bg-soft);
+    box-shadow: inset 0 0 0 1px var(--c-border);
 
     &.is-focus {
       box-shadow:
-        inset 0 0 0 1px rgba(59, 130, 246, 0.95),
-        0 0 0 4px rgba(59, 130, 246, 0.12);
+        inset 0 0 0 1px var(--c-primary),
+        0 0 0 4px color-mix(in srgb, var(--c-primary) 12%, transparent);
     }
   }
 
@@ -426,14 +469,14 @@ onMounted(() => {
     border: none;
   }
   :deep(.card-actions .el-button.is-text.el-button--primary) {
-    color: #2563eb;
+    color: var(--c-primary);
   }
   :deep(.card-actions .el-button.is-text.el-button--success) {
-    color: #047857;
+    color: var(--c-success);
   }
 
   :deep(.el-button--success.is-text) {
-    color: #047857;
+    color: var(--c-success);
   }
 
   :deep(.el-dialog) {

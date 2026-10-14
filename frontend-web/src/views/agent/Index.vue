@@ -1,49 +1,54 @@
 <template>
   <div class="agent-page">
-    <section class="agent-hero">
-      <div class="hero-copy">
-        <div class="hero-badge">System Agent</div>
-        <h1>系统智能体</h1>
-        <p>
-          面向管理员的全局问答入口。智能体会结合维修知识库与业务工具，自动分析问题并查询人员、订单、进度、库存、交易收入与供应商信息。
-        </p>
+    <!-- 顶部信息条 -->
+    <header class="agent-header">
+      <div class="agent-id">
+        <div class="agent-avatar"><el-icon :size="26"><MagicStick /></el-icon></div>
+        <div class="agent-meta">
+          <div class="agent-name">
+            系统智能体
+            <span class="status-pill" :class="{ busy: loading }">
+              <i class="dot"></i>{{ loading ? '思考中' : '在线' }}
+            </span>
+          </div>
+          <p class="agent-desc">结合维修知识库与业务数据，自动查询人员、订单、进度、库存、收入与供应商信息</p>
+        </div>
       </div>
-      <div class="hero-tools">
-        <span v-for="tool in toolTags" :key="tool" class="tool-tag">{{ tool }}</span>
+      <div class="agent-caps">
+        <span v-for="cap in caps" :key="cap.label" class="cap-tag">
+          <el-icon><component :is="cap.icon" /></el-icon>{{ cap.label }}
+        </span>
       </div>
-    </section>
+    </header>
 
     <section class="agent-shell">
-      <aside class="prompt-panel">
-        <div class="panel-title">
-          建议提问
-          <el-button
-            link
-            type="danger"
-            size="small"
-            class="clear-btn"
-            :disabled="messages.length === 0 || loading"
-            @click="clearConversation"
-          >
-            清空会话
+      <aside class="side-panel">
+        <div class="side-head">
+          <span class="side-title"><el-icon><QuestionFilled /></el-icon>建议提问</span>
+          <el-button link type="primary" size="small" :disabled="loading" @click="startNewChat">
+            <el-icon><Plus /></el-icon>新对话
           </el-button>
         </div>
-        <button
-          v-for="prompt in promptSuggestions"
-          :key="prompt"
-          class="prompt-card"
-          @click="applyPrompt(prompt)"
-        >
-          {{ prompt }}
-        </button>
+        <div class="side-scroll">
+          <div v-for="group in promptGroups" :key="group.title" class="prompt-group">
+            <div class="prompt-group-title"><el-icon><component :is="group.icon" /></el-icon>{{ group.title }}</div>
+            <button v-for="prompt in group.items" :key="prompt" class="prompt-card" @click="applyPrompt(prompt)">
+              <span class="prompt-text">{{ prompt }}</span>
+              <el-icon class="prompt-arrow"><Right /></el-icon>
+            </button>
+          </div>
+        </div>
       </aside>
 
       <main class="chat-panel">
         <div ref="messageListRef" class="message-list">
-          <div v-if="messages.length === 0" class="empty-state">
-            <div class="empty-mark">AGENT</div>
-            <h3>从一个业务问题开始</h3>
-            <p>例如：当前低库存配件有哪些？订单 25 的维修进度到哪一步了？谁负责某个订单？</p>
+          <div v-if="messages.length === 0" class="welcome">
+            <div class="welcome-icon"><el-icon :size="38"><MagicStick /></el-icon></div>
+            <h2>你好，我是系统智能体</h2>
+            <p>我可以帮你查询维修订单与进度、库存配件、交易收入、供应商等信息。点击左侧问题快速开始，或直接输入你的问题。</p>
+            <div class="welcome-chips">
+              <button v-for="q in quickChips" :key="q" class="chip" @click="applyPrompt(q)">{{ q }}</button>
+            </div>
           </div>
 
           <div
@@ -51,45 +56,64 @@
             :key="message.id"
             :class="['message-item', message.role]"
           >
-            <div class="message-head">
-              <span class="role-label">{{ message.role === 'user' ? '管理员' : 'Agent' }}</span>
-              <span class="time-label">{{ formatTime(message.createdAt) }}</span>
+            <div class="msg-avatar" :class="message.role">
+              <el-icon><component :is="message.role === 'user' ? User : MagicStick" /></el-icon>
             </div>
-            <div class="message-body">
-              <div class="message-text" v-html="renderMarkdown(message.content)"></div>
-              <div v-if="message.tools?.length" class="tool-trace">
-                <span v-for="tool in message.tools" :key="tool" class="trace-tag">{{ tool }}</span>
+            <div class="msg-col">
+              <div class="message-head">
+                <span class="role-label">{{ message.role === 'user' ? '我' : 'Agent' }}</span>
+                <span class="time-label">{{ formatTime(message.createdAt) }}</span>
+              </div>
+              <div class="message-body">
+                <div class="message-text" v-html="renderMarkdown(message.content)"></div>
+                <div v-if="message.tools?.length" class="tool-trace">
+                  <span v-for="tool in message.tools" :key="tool" class="trace-tag">{{ tool }}</span>
+                </div>
+                <button
+                  v-if="message.role === 'assistant' && message.content"
+                  class="copy-btn"
+                  title="复制回答"
+                  @click="copyMessage(message.content)"
+                >
+                  <el-icon><CopyDocument /></el-icon>复制
+                </button>
               </div>
             </div>
           </div>
 
           <div v-if="loading" class="message-item assistant">
-            <div class="message-head">
-              <span class="role-label">Agent</span>
-            </div>
-            <div class="message-body">
-              <div class="message-text thinking">正在分析问题并调用工具...</div>
+            <div class="msg-avatar assistant"><el-icon><MagicStick /></el-icon></div>
+            <div class="msg-col">
+              <div class="message-head"><span class="role-label">Agent</span></div>
+              <div class="message-body">
+                <div class="message-text thinking">
+                  <span class="tdot"></span><span class="tdot"></span><span class="tdot"></span>
+                  正在分析问题并调用工具…
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <div class="composer">
-          <el-input
-            v-model="inputMessage"
-            type="textarea"
-            resize="none"
-            :autosize="{ minRows: 3, maxRows: 8 }"
-            placeholder="输入业务问题。Agent 会结合 LangGraph、RAG 和系统数据自动作答。"
-            @keydown.enter.exact.prevent="submitMessage"
-          />
-          <div class="composer-actions">
-            <span class="composer-tip">Enter 发送，Shift+Enter 换行</span>
-            <el-button v-if="loading" type="danger" plain @click="stopGeneration">
-              停止生成
-            </el-button>
-            <el-button type="primary" :loading="loading" @click="submitMessage">
-              发送给 Agent
-            </el-button>
+          <div class="composer-box">
+            <el-input
+              v-model="inputMessage"
+              type="textarea"
+              resize="none"
+              :autosize="{ minRows: 1, maxRows: 6 }"
+              placeholder="输入业务问题，Enter 发送，Shift+Enter 换行"
+              @keydown.enter.exact.prevent="submitMessage"
+            />
+            <div class="composer-actions">
+              <span class="composer-tip">Enter 发送 · Shift+Enter 换行</span>
+              <div class="composer-btns">
+                <el-button v-if="loading" size="small" text type="danger" @click="stopGeneration">停止</el-button>
+                <el-button type="primary" size="small" :loading="loading" @click="submitMessage">
+                  <el-icon><Promotion /></el-icon>发送
+                </el-button>
+              </div>
+            </div>
           </div>
         </div>
       </main>
@@ -101,6 +125,7 @@
 import { nextTick, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
+import { Plus, CopyDocument, MagicStick, QuestionFilled, Right, Promotion, User, Tickets, Box, Money, Van, Reading, Position } from '@element-plus/icons-vue'
 import { sendAgentMessage } from '@/api/agent'
 import { getMiniAdminOrders } from '@/api/miniAdmin'
 
@@ -111,37 +136,57 @@ const messageListRef = ref(null)
 const messages = ref([])
 let abortController = null
 
-const toolTags = [
-  'LangGraph',
-  'DeepSeek',
-  'RAG',
-  'repair 数据库',
-  'cmms_db 数据库',
-  '人员查询',
-  '维修订单',
-  '维修进度',
-  '库存分析',
-  '交易收入',
-  '供应商'
+// 顶部能力标签（icon 为组件引用，供 <component :is> 动态渲染）
+const caps = [
+  { label: '维修订单', icon: Tickets },
+  { label: '维修进度', icon: Position },
+  { label: '库存配件', icon: Box },
+  { label: '交易收入', icon: Money },
+  { label: '供应商', icon: Van },
+  { label: '知识库', icon: Reading }
+]
+
+// 欢迎区快捷问题
+const quickChips = [
+  '查看当前维修订单列表',
+  '查看当前低库存配件',
+  '查看当前累计收入和本月入账'
 ]
 
 // 最新订单号（用于示例提问，加载失败时退回占位符）
 const latestOrderId = ref('')
 
-const buildPromptSuggestions = () => {
+const buildPromptGroups = () => {
   const orderRef = latestOrderId.value || '最新一笔'
   return [
-    '查看当前维修订单列表。',
-    `查看订单 ${orderRef} 当前的状态、进度和负责人。`,
-    '查看当前累计收入和本月入账情况。',
-    '查看当前退款中的订单有哪些。',
-    '查看当前低库存配件。',
-    '查看库存金额最高的供应商排行。',
-    '查看系统侧边栏中的维修业务模块包含哪些内容。'
+    {
+      title: '维修订单',
+      icon: Tickets,
+      items: [
+        '查看当前维修订单列表。',
+        `查看订单 ${orderRef} 当前的状态、进度和负责人。`
+      ]
+    },
+    {
+      title: '库存配件',
+      icon: Box,
+      items: [
+        '查看当前低库存配件。',
+        '查看库存金额最高的供应商排行。'
+      ]
+    },
+    {
+      title: '收入交易',
+      icon: Money,
+      items: [
+        '查看当前累计收入和本月入账情况。',
+        '查看当前退款中的订单有哪些。'
+      ]
+    }
   ]
 }
 
-const promptSuggestions = ref(buildPromptSuggestions())
+const promptGroups = ref(buildPromptGroups())
 
 const fetchLatestOrder = async () => {
   try {
@@ -149,7 +194,7 @@ const fetchLatestOrder = async () => {
     const first = res.data?.items?.[0]
     if (first?.order_id) {
       latestOrderId.value = first.order_id
-      promptSuggestions.value = buildPromptSuggestions()
+      promptGroups.value = buildPromptGroups()
     }
   } catch (error) {
     console.warn('[Agent] 获取最新订单失败，提示词使用占位符:', error)
@@ -314,6 +359,38 @@ const clearConversation = () => {
   ElMessage.success('会话已清空')
 }
 
+// 开始新对话：清空当前会话（等同重开一轮）
+const startNewChat = () => {
+  if (abortController) {
+    abortController.abort()
+  }
+  messages.value = []
+  localStorage.removeItem(STORAGE_KEY)
+  ElMessage.success('已开始新对话')
+}
+
+// 复制回答到剪贴板（带 execCommand 降级，兼容非安全上下文）
+const copyMessage = async (content) => {
+  try {
+    await navigator.clipboard.writeText(content)
+    ElMessage.success('已复制到剪贴板')
+  } catch (e) {
+    const ta = document.createElement('textarea')
+    ta.value = content
+    ta.style.position = 'fixed'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.select()
+    try {
+      document.execCommand('copy')
+      ElMessage.success('已复制到剪贴板')
+    } catch {
+      ElMessage.error('复制失败，请手动选择复制')
+    }
+    document.body.removeChild(ta)
+  }
+}
+
 watch(
   messages,
   (value) => {
@@ -335,125 +412,218 @@ onMounted(async () => {
   max-height: calc(100vh - 140px);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   overflow: hidden;
 }
 
-.agent-hero {
+// ===== 顶部信息条 =====
+.agent-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 18px;
-  padding: 18px 22px;
-  border-radius: 20px;
-  background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 30%),
-    linear-gradient(135deg, #0f172a 0%, #12314f 48%, #14532d 100%);
-  color: #f8fafc;
-
-  h1 {
-    margin: 8px 0 8px;
-    font-size: 22px;
-    line-height: 1.15;
-    font-weight: 700;
-  }
-
-  p {
-    margin: 0;
-    max-width: 700px;
-    color: rgba(248, 250, 252, 0.82);
-    line-height: 1.6;
-    font-size: 13px;
-  }
-}
-
-.hero-badge {
-  display: inline-flex;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.hero-tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  justify-content: flex-end;
-  gap: 8px;
-  max-width: 320px;
-}
-
-.tool-tag,
-.trace-tag {
-  display: inline-flex;
   align-items: center;
-  border-radius: 999px;
-  padding: 5px 10px;
-  font-size: 11px;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--c-border-light);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--c-primary) 12%, transparent), transparent 42%),
+    var(--c-bg-card);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+
+  .agent-id {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .agent-avatar {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    color: #fff;
+    background: linear-gradient(135deg, #6366f1, #0ea5e9);
+    box-shadow: 0 10px 22px rgba(79, 70, 229, 0.28);
+  }
+
+  .agent-meta { min-width: 0; }
+
+  .agent-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--c-text-primary);
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-success);
+    background: var(--c-bg-success-soft);
+    border: 1px solid color-mix(in srgb, var(--c-success) 30%, transparent);
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--c-success);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-success) 22%, transparent);
+    }
+
+    &.busy {
+      color: var(--c-warning);
+      background: var(--c-bg-warning-soft);
+      border-color: color-mix(in srgb, var(--c-warning) 30%, transparent);
+
+      .dot {
+        background: var(--c-warning);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-warning) 22%, transparent);
+        animation: pulse 1s infinite;
+      }
+    }
+  }
+
+  .agent-desc {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--c-text-secondary);
+  }
+
+  .agent-caps {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    max-width: 46%;
+  }
+
+  .cap-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--c-text-regular);
+    background: var(--c-bg-soft);
+    border: 1px solid var(--c-border-light);
+
+    .el-icon { color: var(--c-primary); }
+  }
 }
 
-.tool-tag {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
+// ===== 主体两栏 =====
 .agent-shell {
   flex: 1;
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 14px;
   min-height: 0;
   overflow: hidden;
 }
 
-.prompt-panel,
+.side-panel,
 .chat-panel {
   min-height: 0;
   height: 100%;
-  border-radius: 20px;
-  background: #ffffff;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border-light);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
 }
 
-.prompt-panel {
-  padding: 18px;
-  overflow-y: auto;
-}
-
-.panel-title {
+.side-panel {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-  font-size: 15px;
-  font-weight: 700;
-  color: #0f172a;
+  flex-direction: column;
+  overflow: hidden;
 
-  .clear-btn {
-    font-weight: 400;
+  .side-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--c-border-light);
   }
+
+  .side-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--c-text-primary);
+
+    .el-icon { color: var(--c-primary); }
+  }
+
+  .side-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px 16px;
+  }
+}
+
+.prompt-group { margin-bottom: 14px; }
+
+.prompt-group-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-text-muted);
+  margin: 2px 2px 8px;
+
+  .el-icon { color: var(--c-primary); }
 }
 
 .prompt-card {
   width: 100%;
-  margin-bottom: 10px;
-  padding: 13px 14px;
-  border: 1px solid #dbeafe;
-  border-radius: 16px;
-  background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 11px 12px;
+  border: 1px solid var(--c-border-light);
+  border-radius: 14px;
+  background: var(--c-bg-soft);
   text-align: left;
-  line-height: 1.55;
+  line-height: 1.5;
   font-size: 13px;
-  color: #1e293b;
+  color: var(--c-text-regular);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+
+  .prompt-text { flex: 1; }
+
+  .prompt-arrow {
+    color: var(--c-text-placeholder);
+    transition: transform 0.18s ease, color 0.18s ease;
+  }
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 24px rgba(59, 130, 246, 0.12);
+    transform: translateX(3px);
+    border-color: var(--c-primary);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--c-primary) 14%, transparent);
+
+    .prompt-arrow { color: var(--c-primary); transform: translateX(2px); }
   }
 }
 
@@ -466,119 +636,207 @@ onMounted(async () => {
 .message-list {
   flex: 1;
   overflow-y: auto;
-  padding: 18px 20px;
+  padding: 20px 22px;
   background:
-    linear-gradient(180deg, rgba(239, 246, 255, 0.8) 0%, rgba(248, 250, 252, 0.95) 42%, #ffffff 100%);
+    radial-gradient(circle at top right, color-mix(in srgb, var(--c-primary) 6%, transparent), transparent 45%),
+    var(--c-bg-body);
 }
 
-.empty-state {
+// ===== 欢迎区 =====
+.welcome {
   height: 100%;
-  min-height: 420px;
+  min-height: 380px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
   text-align: center;
-  color: #475569;
 
-  h3 {
-    margin: 14px 0 6px;
-    font-size: 21px;
-    color: #0f172a;
+  .welcome-icon {
+    display: grid;
+    place-items: center;
+    width: 76px;
+    height: 76px;
+    border-radius: 24px;
+    color: #fff;
+    background: linear-gradient(135deg, #6366f1, #0ea5e9);
+    box-shadow: 0 16px 36px rgba(79, 70, 229, 0.3);
+    margin-bottom: 18px;
+  }
+
+  h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--c-text-primary);
   }
 
   p {
-    max-width: 500px;
-    margin: 0;
-    line-height: 1.65;
+    max-width: 520px;
+    margin: 0 0 20px;
+    line-height: 1.7;
+    font-size: 13.5px;
+    color: var(--c-text-secondary);
+  }
+
+  .welcome-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .chip {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--c-border-light);
+    background: var(--c-bg-card);
+    color: var(--c-text-regular);
     font-size: 13px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+
+    &:hover {
+      border-color: var(--c-primary);
+      color: var(--c-primary);
+      box-shadow: 0 8px 18px color-mix(in srgb, var(--c-primary) 14%, transparent);
+    }
   }
 }
 
-.empty-mark {
-  display: grid;
-  place-items: center;
-  width: 76px;
-  height: 76px;
-  border-radius: 22px;
-  background: linear-gradient(135deg, #0ea5e9 0%, #22c55e 100%);
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
+// ===== 消息 =====
 .message-item {
-  width: fit-content;
-  max-width: min(72%, 720px);
-  margin-bottom: 18px;
+  display: flex;
+  gap: 12px;
+  max-width: 82%;
+  margin-bottom: 20px;
 
   &.user {
+    flex-direction: row-reverse;
     margin-left: auto;
+  }
 
-    .message-body {
-      background: linear-gradient(135deg, #0f766e 0%, #0ea5e9 100%);
-      color: #ffffff;
-      border-radius: 20px 20px 8px 20px;
+  .msg-avatar {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    color: #fff;
+    background: linear-gradient(135deg, #0f766e, #0ea5e9);
+    box-shadow: 0 6px 14px rgba(13, 148, 136, 0.24);
+
+    &.assistant {
+      background: linear-gradient(135deg, #6366f1, #0ea5e9);
+      box-shadow: 0 6px 14px rgba(79, 70, 229, 0.24);
     }
   }
 
-  &.assistant {
-    .message-body {
-      background: #ffffff;
-      color: #0f172a;
-      border-radius: 20px 20px 20px 8px;
-      border: 1px solid #e2e8f0;
-    }
+  .msg-col { min-width: 0; }
+
+  .message-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+    padding: 0 2px;
+  }
+
+  .role-label { font-size: 12px; font-weight: 700; color: var(--c-text-secondary); }
+  .time-label { font-size: 11px; color: var(--c-text-muted); }
+
+  .message-body {
+    padding: 12px 15px;
+    border-radius: 16px;
+    border: 1px solid var(--c-border-light);
+    background: var(--c-bg-card);
+    color: var(--c-text-primary);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+  }
+
+  &.user .message-body {
+    background: linear-gradient(135deg, #0f766e, #0ea5e9);
+    color: #fff;
+    border-color: transparent;
   }
 }
 
-.message-head {
-  display: flex;
+.copy-btn {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-  padding: 0 6px;
-}
-
-.role-label {
+  gap: 4px;
+  margin-top: 10px;
+  padding: 3px 10px;
   font-size: 12px;
-  font-weight: 700;
-  color: #334155;
-}
+  color: var(--c-text-muted);
+  background: transparent;
+  border: 1px solid var(--c-border-light);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.18s ease;
 
-.time-label {
-  font-size: 12px;
-  color: #94a3b8;
-}
+  &:hover { color: var(--c-primary); border-color: var(--c-primary); }
 
-.message-body {
-  padding: 14px 16px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+  .el-icon { font-size: 13px; }
 }
 
 .message-text {
-  line-height: 1.8;
+  line-height: 1.75;
   word-break: break-word;
   font-size: 14px;
 
-  :deep(p) {
-    margin: 0 0 10px;
+  :deep(p) { margin: 0 0 10px; }
+  :deep(p:last-child) { margin-bottom: 0; }
+  :deep(ul), :deep(ol) { margin: 0; padding-left: 20px; }
+
+  :deep(code) {
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--c-bg-soft);
+    font-size: 0.92em;
   }
 
-  :deep(p:last-child) {
-    margin-bottom: 0;
+  :deep(pre) {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--c-bg-soft);
+    overflow-x: auto;
+
+    :deep(code) { background: transparent; padding: 0; }
   }
 
-  :deep(ul),
-  :deep(ol) {
-    margin: 0;
-    padding-left: 20px;
+  :deep(table) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+
+    th, td { padding: 7px 10px; border: 1px solid var(--c-border-light); text-align: left; }
+    th { background: var(--c-bg-soft); font-weight: 600; }
   }
 }
 
 .thinking {
-  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--c-text-secondary);
+
+  .tdot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--c-primary);
+    animation: blink 1.2s infinite;
+
+    &:nth-child(2) { animation-delay: 0.2s; }
+    &:nth-child(3) { animation-delay: 0.4s; }
+  }
+}
+
+@keyframes blink {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-2px); }
 }
 
 .tool-trace {
@@ -589,80 +847,77 @@ onMounted(async () => {
 }
 
 .trace-tag {
-  background: #eff6ff;
-  color: #1d4ed8;
-}
-
-.composer {
-  border-top: 1px solid #e2e8f0;
-  padding: 16px 18px 18px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-}
-
-.composer :deep(.el-textarea__inner) {
-  border-radius: 18px;
-  border: 1px solid #dbe7f5;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
-  padding: 14px 16px;
-  font-size: 14px;
-  line-height: 1.7;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-.composer :deep(.el-textarea__inner:focus) {
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.14);
-}
-
-.composer-actions {
-  display: flex;
-  justify-content: space-between;
+  display: inline-flex;
   align-items: center;
-  margin-top: 10px;
-}
-
-.composer-tip {
-  color: #94a3b8;
-  font-size: 12px;
-}
-
-.composer-actions :deep(.el-button--primary) {
   border-radius: 999px;
-  padding: 10px 18px;
-  background: linear-gradient(135deg, #0891b2 0%, #2563eb 100%);
-  border: none;
-  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.18);
+  padding: 4px 10px;
+  font-size: 11px;
+  background: var(--c-bg-info-soft);
+  color: var(--c-primary);
+}
+
+// ===== 输入区 =====
+.composer {
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--c-border-light);
+  background: var(--c-bg-card);
+
+  .composer-box {
+    border: 1px solid var(--c-border);
+    border-radius: 16px;
+    background: var(--c-bg-soft);
+    padding: 6px 10px 8px;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+
+    &:focus-within {
+      border-color: var(--c-primary);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-primary) 12%, transparent);
+    }
+  }
+
+  :deep(.el-textarea__inner) {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent;
+    padding: 8px 6px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .composer-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+
+  .composer-tip { color: var(--c-text-muted); font-size: 12px; }
+
+  .composer-btns { display: flex; align-items: center; gap: 8px; }
+
+  :deep(.el-button--primary) {
+    border-radius: 999px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #6366f1, #0ea5e9);
+    border: none;
+    box-shadow: 0 8px 18px rgba(79, 70, 229, 0.22);
+  }
 }
 
 @media (max-width: 960px) {
-  .agent-page {
-    height: auto;
-    max-height: none;
-    overflow: visible;
-  }
+  .agent-page { height: auto; max-height: none; overflow: visible; }
 
-  .agent-shell {
-    grid-template-columns: 1fr;
-    overflow: visible;
-  }
+  .agent-shell { grid-template-columns: 1fr; overflow: visible; }
 
-  .agent-hero {
-    flex-direction: column;
-  }
+  .agent-header { flex-direction: column; align-items: flex-start; }
 
-  .hero-tools {
-    justify-content: flex-start;
-    max-width: none;
-  }
+  .agent-caps { justify-content: flex-start; max-width: none; }
 
-  .message-item {
-    max-width: 100%;
-  }
+  .message-item { max-width: 100%; }
 
-  .prompt-panel,
-  .chat-panel {
-    height: auto;
-  }
+  .side-panel,
+  .chat-panel { height: auto; }
+
+  .side-panel .side-scroll { max-height: 40vh; }
 }
 </style>
