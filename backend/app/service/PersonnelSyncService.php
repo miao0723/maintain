@@ -49,6 +49,9 @@ class PersonnelSyncService
         $success = 0;
         $failed = 0;
         $disabled = 0;
+        $skipped = 0;         // 非维修部 / 无法归类，不同步
+        $createdWorkers = 0;  // 新建维修工账号
+        $linkedWorkers = 0;   // 匹配到已有维修工档案（仅回写 ext_id）
         $errors = [];
 
         try {
@@ -56,11 +59,17 @@ class PersonnelSyncService
             $total = count($rows);
 
             foreach ($rows as $row) {
+                // 仅同步“维修部”人员：其他部门/同事不同步到本系统
+                if (!$this->isRepairDept($row)) {
+                    $skipped++;
+                    continue;
+                }
                 try {
                     $mapped = $this->mapRow($row);
                     if (empty($mapped['ext_id'])) {
                         throw new \RuntimeException('缺少外部ID');
                     }
+                    // 1) 外部人员名册（脱敏存储，仅维修部）
                     $this->upsert($mapped, (int) $log->id);
                     $success++;
                     if ((int) ($mapped['is_active'] ?? 1) === 0) {
@@ -71,6 +80,22 @@ class PersonnelSyncService
                     $errors[] = [
                         'ext_id' => is_array($row) ? ($row['id'] ?? null) : null,
                         'error'  => $e->getMessage(),
+                    ];
+                    continue;
+                }
+                // 2) 同步为维修工账号（perf_engineers + users），已存在则只回写关联不覆盖
+                try {
+                    $wr = $this->syncRepairWorker($row, $mapped);
+                    if ($wr['action'] === 'created') {
+                        $createdWorkers++;
+                    } elseif ($wr['action'] === 'linked') {
+                        $linkedWorkers++;
+                    }
+                } catch (\Throwable $e) {
+                    $failed++;
+                    $errors[] = [
+                        'ext_id' => $mapped['ext_id'] ?? (is_array($row) ? ($row['id'] ?? null) : null),
+                        'error'  => '维修工同步失败：' . $e->getMessage(),
                     ];
                 }
             }
@@ -83,16 +108,19 @@ class PersonnelSyncService
                 'disabled'    => $disabled,
                 'status'      => 'success',
                 'error_detail' => $errors,
-                'message'     => "同步完成：拉取 {$total}，成功 {$success}，失败 {$failed}，置禁用 {$disabled}",
+                'message'     => "同步完成：拉取 {$total}，维修部同步成功 {$success}（新建账号 {$createdWorkers}，关联已有 {$linkedWorkers}），跳过其他部门 {$skipped}，失败 {$failed}，置禁用 {$disabled}",
             ]);
 
             return [
-                'sync_id'  => (int) $log->id,
-                'total'    => $total,
-                'success'  => $success,
-                'failed'   => $failed,
-                'disabled' => $disabled,
-                'errors'   => $errors,
+                'sync_id'         => (int) $log->id,
+                'total'           => $total,
+                'success'         => $success,
+                'skipped'         => $skipped,
+                'created_workers' => $createdWorkers,
+                'linked_workers'  => $linkedWorkers,
+                'failed'          => $failed,
+                'disabled'        => $disabled,
+                'errors'          => $errors,
             ];
         } catch (\Throwable $e) {
             $log->save([
@@ -177,6 +205,120 @@ class PersonnelSyncService
         } else {
             ExternalPersonnel::create($mapped);
         }
+    }
+
+    /**
+     * 判断外部人员是否属于“维修部”（仅此类同步到本系统）。
+     * department 或 position 含配置关键字（默认“维修部”），兜底含“维修”二字，
+     * 兼容“维修一组/维修部”等写法。其他部门/同事不同步。
+     */
+    protected function isRepairDept(array $row): bool
+    {
+        $fm = (array) config('external.personnel.field_map');
+        $keyword = trim((string) (config('external.personnel.department') ?: '维修部'));
+        $get = function (string $key) use ($row, $fm) {
+            $extKey = $fm[$key] ?? $key;
+            return $row[$extKey] ?? null;
+        };
+        foreach ([$get('department'), $get('position')] as $value) {
+            if ($value !== null && $value !== '') {
+                $s = (string) $value;
+                if (mb_stripos($s, $keyword) !== false || mb_stripos($s, '维修') !== false) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 将一名“维修部”外部人员同步为本地维修工账号。
+     *
+     * 行为：
+     *  - 已存在（ext_id 或 姓名匹配到 perf_engineers）：仅回写缺失的 ext_id 关联，
+     *    绝不覆盖人工维护字段（满足“先别改王刚账号”）。
+     *  - 不存在：新建 users 登录账号（role=维修人员=8，初始密码 123456）+ perf_engineers 档案。
+     *
+     * @return array {action: created|linked, engineer_id, user_id?}
+     */
+    protected function syncRepairWorker(array $row, array $mapped): array
+    {
+        $extId = (string) $mapped['ext_id'];
+        $name  = $mapped['employee_name'];
+        if (empty($name)) {
+            throw new \RuntimeException('缺少姓名，跳过维修工创建');
+        }
+
+        $fm = (array) config('external.personnel.field_map');
+        $pick = function (string $key) use ($row, $fm) {
+            $extKey = $fm[$key] ?? $key;
+            return $row[$extKey] ?? null;
+        };
+        $phone  = $this->str($pick('phone'));
+        $dept   = $this->str($pick('department'));
+        $pos    = $this->str($pick('position'));
+        $active = (int) ($mapped['is_active'] ?? 1);
+
+        // 1) 匹配已有维修工档案（ext_id 优先，其次姓名）
+        $eng = Db::table('perf_engineers')->where('ext_id', $extId)->find();
+        if (empty($eng)) {
+            $eng = Db::table('perf_engineers')->where('name', $name)->find();
+        }
+        if (!empty($eng)) {
+            // 仅回写缺失的 ext_id 关联，不覆盖任何人工维护字段
+            if (empty($eng['ext_id'])) {
+                Db::table('perf_engineers')->where('id', $eng['id'])->update(['ext_id' => $extId]);
+            }
+            if (!empty($eng['user_id'])) {
+                $uExt = Db::table('users')->where('id', $eng['user_id'])->value('ext_id');
+                if (empty($uExt)) {
+                    Db::table('users')->where('id', $eng['user_id'])->update(['ext_id' => $extId]);
+                }
+            }
+            return ['action' => 'linked', 'engineer_id' => $eng['id']];
+        }
+
+        // 2) 新建 users 登录账号（username=repair_<ext_id>，初始密码 123456，role=维修人员）
+        $username = 'repair_' . $extId;
+        $userId = Db::table('users')->where('username', $username)->value('id');
+        if (empty($userId)) {
+            $userId = Db::table('users')->insertGetId([
+                'username'   => $username,
+                'password'   => password_hash('123456', PASSWORD_BCRYPT),
+                'real_name'  => $name,
+                'role_type'  => 4,
+                'role_id'    => 8,
+                'status'     => $active,
+                'phone'      => $phone,
+                'position'   => $pos,
+                'ext_id'     => $extId,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+        } else {
+            // 账号已存在但无 ext_id 关联，补回写
+            Db::table('users')->where('id', $userId)->update(['ext_id' => $extId]);
+        }
+
+        // 3) 新建 perf_engineers 维修工档案（工号碰撞演示种子 E1001~E4001 时回退 EXT 前缀）
+        $engNo = 'E' . $extId;
+        if (Db::table('perf_engineers')->where('engineer_no', $engNo)->find()) {
+            $engNo = 'EXT' . $extId;
+        }
+        $engId = Db::table('perf_engineers')->insertGetId([
+            'ext_id'      => $extId,
+            'engineer_no' => $engNo,
+            'name'        => $name,
+            'team'        => $dept ?: '维修部',
+            'level'       => '初级',
+            'phone'       => $phone,
+            'status'      => $active,
+            'user_id'     => $userId,
+            'created_at'  => date('Y-m-d H:i:s'),
+            'updated_at'  => date('Y-m-d H:i:s'),
+        ]);
+
+        return ['action' => 'created', 'engineer_id' => $engId, 'user_id' => $userId];
     }
 
     protected function str($v): ?string

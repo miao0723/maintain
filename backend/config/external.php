@@ -64,6 +64,10 @@ return [
         'inactive_status' => array_filter(array_map('trim', explode(',',
             env('EXTERNAL_PERSONNEL_INACTIVE_STATUS', 'resigned,left,inactive,disabled,离职,停用')
         ))),
+
+        // 仅同步“维修部”人员：外部人员的 department 或 position 字段含该关键字即视为维修人员；
+        // 兜底再匹配“维修”二字，兼容“维修一组/维修部”等写法。其他部门/同事不同步。
+        'department' => env('EXTERNAL_PERSONNEL_DEPARTMENT', '维修部'),
     ],
 
     // 敏感字段加密密钥（AES-256-GCM，base64）。生产环境必须通过环境变量覆盖。
