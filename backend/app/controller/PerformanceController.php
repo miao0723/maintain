@@ -3,6 +3,7 @@
 namespace app\controller;
 
 use app\service\PerformanceService;
+use app\middleware\OperationLog;
 use think\facade\Request;
 
 /**
@@ -372,6 +373,7 @@ class PerformanceController extends BaseController
         try {
             $input = Request::post();
             $data = $this->service->createSelfWorkOrder(request()->userId, $input);
+            $this->pushOrderNotify('维修工单 新增', '新增了', $data, ['fault_desc' => $input['fault_desc'] ?? '']);
             return $this->success($data, '工单已创建');
         } catch (\Exception $e) {
             return $this->error($e->getMessage(), 400);
@@ -387,6 +389,7 @@ class PerformanceController extends BaseController
         try {
             $input = Request::post();
             $data = $this->service->deliverWorkOrder($id, request()->userId, $input);
+            $this->pushOrderNotify('维修工单 交付', '交付了', $data, ['id' => $id, 'suffix' => '，待验收']);
             return $this->success($data, '已交付，待验收');
         } catch (\Exception $e) {
             return $this->error($e->getMessage(), 400);
@@ -404,6 +407,7 @@ class PerformanceController extends BaseController
             $reviewScore = (int)Request::post('review_score', 0);
             $comment = Request::post('review_comment', '');
             $data = $this->service->reviewWorkOrder($id, request()->userId, $isQualified, $reviewScore, $comment);
+            $this->pushOrderNotify('维修工单 验收', '验收了', $data, ['id' => $id, 'suffix' => $reviewScore ? "，评分 {$reviewScore} 分" : '']);
             return $this->success($data, '验收完成');
         } catch (\Exception $e) {
             return $this->error($e->getMessage(), 400);
@@ -421,10 +425,33 @@ class PerformanceController extends BaseController
             $reviewScore = (int)Request::put('review_score', 0);
             $comment = Request::put('review_comment', '');
             $data = $this->service->updateReviewWorkOrder($id, request()->userId, $isQualified, $reviewScore, $comment);
+            $this->pushOrderNotify('维修工单 改评分', '修改了', $data, ['id' => $id, 'suffix' => $reviewScore ? "的评分（{$reviewScore} 分）" : '的评分']);
             return $this->success($data, '评分已修改');
         } catch (\Exception $e) {
             return $this->error($e->getMessage(), 400);
         }
+    }
+
+    /**
+     * 设置维修工单的精确消息通知（由 OperationLog 中间件读取并广播）。
+     * 生成如「王刚 新增了维修工单 WO-20261014-0001（客梯1号·门机故障）」的具体文案。
+     */
+    private function pushOrderNotify($title, $verb, $data, array $extra = [])
+    {
+        $user = request()->user ?? [];
+        $operator = $user['real_name'] ?? $user['username'] ?? '有人';
+        $orderNo = is_array($data) ? ($data['order_no'] ?? '') : '';
+        $device = is_array($data) ? ($data['device_name'] ?? '') : '';
+        $fault = $extra['fault_desc'] ?? (is_array($data) ? ($data['fault_desc'] ?? '') : '');
+        $what = trim(($device !== '' ? $device : '') . ($device !== '' && $fault !== '' ? '·' : '') . (string)$fault, '·');
+        $ref = $orderNo !== '' ? " {$orderNo}" : (!empty($extra['id']) ? "（ID: {$extra['id']}）" : '');
+        OperationLog::setNotify([
+            'type'         => 'order',
+            'title'        => $title,
+            'content'      => $operator . ' ' . $verb . '维修工单' . $ref . ($what !== '' ? "（{$what}）" : '') . ($extra['suffix'] ?? ''),
+            'related_type' => 'performance',
+            'related_id'   => is_array($data) ? ($data['id'] ?? ($extra['id'] ?? null)) : ($extra['id'] ?? null),
+        ]);
     }
 
     /**

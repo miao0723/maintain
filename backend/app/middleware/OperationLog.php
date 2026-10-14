@@ -5,6 +5,7 @@ namespace app\middleware;
 use app\model\SystemLog;
 use app\model\Notification;
 use app\service\NotificationService;
+use app\service\PermissionService;
 use think\facade\Db;
 
 /**
@@ -12,6 +13,15 @@ use think\facade\Db;
  */
 class OperationLog
 {
+    /** @var array|null 本次请求的精确通知（业务代码设置，中间件读取后广播并清空） */
+    private static $pendingNotify = null;
+
+    /** 业务代码调用：设置本次请求的精确消息通知（含单号/设备/评分等），优先级高于通用文案 */
+    public static function setNotify(array $notify): void
+    {
+        self::$pendingNotify = $notify;
+    }
+
     // URL路径 → 模块名称映射
     private static $moduleMap = [
         'auth'        => '系统',
@@ -41,6 +51,10 @@ class OperationLog
         'suppliers'   => '供应商管理',
         'knowledge'   => '知识库',
         'kb'          => '知识库',
+        'performance' => '维修绩效',
+        'work-orders' => '维修工单',
+        'work-order'  => '维修工单',
+        'score-rules' => '评分规则',
         'repair-categories' => '机械分类',
         'repair-machines'   => '机械名称',
         'common-problems'   => '常见问题',
@@ -73,44 +87,57 @@ class OperationLog
     {
         $method = strtoupper($method);
 
-        // 特殊路径
+        // 登录/退出
         if (strpos($path, 'auth/login') !== false) return '登录系统';
         if (strpos($path, 'auth/logout') !== false) return '退出系统';
 
-        // 标准 CRUD
+        // 维修工单领域动作（限定在工单路径内，避免误伤 order-reviews 等）
+        if (strpos($path, 'work-order') !== false) {
+            if (strpos($path, 'deliver') !== false) return '交付';
+            if (strpos($path, 'review') !== false) return '验收';
+            if (strpos($path, 'accept') !== false) return '接单';
+        }
+
+        // 其它按路径关键字的动作（早于通用 CRUD 判定）
+        $keywordActions = [
+            'export-pdf'     => '导出PDF',
+            'batch-delete'   => '批量删除',
+            'reset-password' => '重置密码',
+            'refresh-cache'  => '刷新缓存',
+            'mark-all-read'  => '全部已读',
+            'mark-read'      => '标记已读',
+            'export'         => '导出',
+            'import'         => '导入',
+            'reprocess'      => '重新处理',
+            'upload'         => '上传',
+            'activate'       => '激活',
+            'terminate'      => '终止',
+            'refund'         => '退款',
+            'confirm'        => '确认',
+            'cancel'         => '取消',
+            'issue'          => '开票',
+            'void'           => '作废',
+            'copy'           => '复制',
+            'preview'        => '预览',
+            'clear'          => '清空',
+        ];
+        foreach ($keywordActions as $kw => $verb) {
+            if (strpos($path, $kw) !== false) return $verb;
+        }
+
+        // 通用 CRUD
         if ($method === 'POST' && !$id && strpos($path, 'batch') === false && strpos($path, 'login') === false) {
             return '新增';
         }
         if ($method === 'PUT' || ($method === 'POST' && $id)) return '编辑';
         if ($method === 'DELETE') return '删除';
 
-        // 特殊操作
-        if (strpos($path, 'export') !== false) return '导出';
-        if (strpos($path, 'import') !== false) return '导入';
-        if (strpos($path, 'batch-delete') !== false) return '批量删除';
-        if (strpos($path, 'reset-password') !== false) return '重置密码';
-        if (strpos($path, 'activate') !== false) return '激活';
-        if (strpos($path, 'terminate') !== false) return '终止';
-        if (strpos($path, 'refresh-cache') !== false) return '刷新缓存';
-        if (strpos($path, 'copy') !== false) return '复制';
-        if (strpos($path, 'preview') !== false) return '预览';
-        if (strpos($path, 'export-pdf') !== false) return '导出PDF';
-        if (strpos($path, 'clear') !== false) return '清空';
-        if (strpos($path, 'mark-all-read') !== false) return '全部已读';
-        if (strpos($path, 'mark-read') !== false) return '标记已读';
-
-        // 支付相关
-        if (strpos($path, 'refund') !== false) return '退款';
-        if (strpos($path, 'confirm') !== false) return '确认';
-        if (strpos($path, 'cancel') !== false) return '取消';
-        if (strpos($path, 'issue') !== false) return '开票';
-        if (strpos($path, 'void') !== false) return '作废';
-
         return $method;
     }
 
     public function handle($request, \Closure $next)
     {
+        self::$pendingNotify = null; // 防御：清理可能残留的静态值，保证每请求独立
         // 放行 GET 请求（列表/详情查询不记录日志）
         if (strtoupper($request->method()) === 'GET') {
             return $next($request);
@@ -131,13 +158,12 @@ class OperationLog
             $path = $request->pathinfo();
             $method = $request->method();
 
-            // 获取模块名
+            // 获取模块名（取路径中最具体的匹配段，如 performance/work-orders → 维修工单）
             $module = '系统';
             $pathParts = explode('/', $path);
             foreach ($pathParts as $part) {
                 if (isset(self::$moduleMap[$part])) {
                     $module = self::$moduleMap[$part];
-                    break;
                 }
             }
 
@@ -185,8 +211,10 @@ class OperationLog
                 'result'   => $resultStr,
             ]);
 
-            // 同步生成消息通知（覆盖：订单的添加改变、知识库文件上传、各种信息的修改等）
-            $this->createNotificationForOperation($module, $action, $operator, $path, $id, $userId);
+            // 仅在操作成功时生成消息通知（失败的 4xx 只留审计日志，不广播，减少噪音）
+            if ($statusCode < 300) {
+                $this->createNotificationForOperation($request, $module, $action, $operator, $path, $id, $userId);
+            }
         } catch (\Throwable $e) {
             // 日志记录失败不影响主流程
             \think\facade\Log::warning('操作日志记录失败: ' . $e->getMessage());
@@ -196,10 +224,11 @@ class OperationLog
     }
 
     /**
-     * 根据操作信息生成消息通知，广播给所有后台用户
-     * 覆盖需求：订单的添加改变、知识库文件的上传、以及各类信息的修改
+     * 根据操作信息生成消息通知，广播给所有后台用户。
+     * 优先使用业务代码通过 request()->notify 提供的精确通知（含单号/设备/评分等）；
+     * 否则从请求参数提取对象名称，生成“谁 对 哪个对象 做了什么”的具体文案。
      */
-    private function createNotificationForOperation($module, $action, $operator, $path, $id, $actorUserId)
+    private function createNotificationForOperation($request, $module, $action, $operator, $path, $id, $actorUserId)
     {
         // 通知自身、认证、系统日志等模块不生成通知，避免递归与噪音
         if (strpos($path, 'notifications') !== false
@@ -208,13 +237,12 @@ class OperationLog
             return;
         }
 
-        // 关联类型取路径中第一个匹配 moduleMap 的模块关键字
+        // 关联类型取路径中最具体的匹配段（与模块名一致）
         $relatedType = '';
         $pathParts = explode('/', $path);
         foreach ($pathParts as $part) {
             if (isset(self::$moduleMap[$part])) {
                 $relatedType = $part;
-                break;
             }
         }
 
@@ -222,6 +250,9 @@ class OperationLog
         $typeMap = [
             'repair-orders'      => 'order',
             'workorders'         => 'order',
+            'work-order'         => 'order',
+            'work-orders'        => 'order',
+            'performance'        => 'order',
             'knowledge'          => 'knowledge',
             'kb'                 => 'knowledge',
             'devices'            => 'device',
@@ -234,11 +265,33 @@ class OperationLog
         ];
         $type = $typeMap[$relatedType] ?? 'system';
 
-        $title = "{$module} {$action}";
-        $content = "{$operator} {$action}了{$module}" . ($id !== '' ? "（ID: {$id}）" : '');
+        // 业务精确通知优先（控制器通过 OperationLog::setNotify 设置）
+        $custom = self::$pendingNotify;
+        if (is_array($custom) && !empty($custom['content'])) {
+            $title       = (string)($custom['title'] ?? "{$module} {$action}");
+            $content     = (string)$custom['content'];
+            $type        = (string)($custom['type'] ?? $type);
+            $relatedType = $custom['related_type'] ?? ($relatedType ?: null);
+            $relatedId   = $custom['related_id'] ?? ($id !== '' ? intval($id) : null);
+        } else {
+            // 兜底：提取对象名称，让通知具体到“哪一个”
+            $subject  = $this->extractSubject($request);
+            $title    = "{$module} {$action}";
+            $content  = "{$operator} {$action}了{$module}";
+            if ($subject !== '') {
+                $content .= "「{$subject}」";
+            }
+            if ($id !== '') {
+                $content .= "（ID: {$id}）";
+            }
+            $relatedId = $id !== '' ? intval($id) : null;
+        }
 
         try {
-            $userIds = Db::name('users')->column('id');
+            // 按权限投递：只发给“能看到该模块”的用户（老板/超管始终收到），并排除操作者本人，
+            // 避免“全员可见全部通知”。无对应权限码的未知模块默认仅老板可见。
+            $requiredCode = $this->requiredViewCode($relatedType);
+            $userIds = $this->audienceUserIds($requiredCode, $actorUserId);
             if (empty($userIds)) {
                 return;
             }
@@ -250,12 +303,133 @@ class OperationLog
                 $title,
                 $content,
                 $relatedType ?: null,
-                $id !== '' ? intval($id) : null,
+                $relatedId,
                 Notification::PRIORITY_NORMAL,
                 ['module' => $module, 'action' => $action, 'operator' => $operator]
             );
         } catch (\Throwable $e) {
             \think\facade\Log::warning('操作通知生成失败: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * 从请求参数中提取一个可读的“对象名称”，让兜底通知具体到条目（如故障描述/名称/单号）
+     */
+    private function extractSubject($request): string
+    {
+        $params = [];
+        if (is_object($request) && method_exists($request, 'post')) {
+            $params = $request->post();
+        }
+        if (empty($params)) {
+            return '';
+        }
+        $keys = ['order_no', 'name', 'title', 'subject', 'device_name', 'file_name', 'filename',
+                 'fault_desc', 'real_name', 'engineer_name', 'company_name', 'remark'];
+        foreach ($keys as $k) {
+            if (!empty($params[$k]) && is_scalar($params[$k])) {
+                $s = trim((string)$params[$k]);
+                if ($s !== '' && $s !== '***') {
+                    return mb_substr($s, 0, 40);
+                }
+            }
+        }
+        return '';
+    }
+
+    /**
+     * 通知关联模块 → 查看所需权限码（.view）。用于按权限投递：
+     * 只有“能查看该模块”的用户才收到对应通知；老板/超管始终收到。
+     * 未纳入映射的未知模块返回 null（仅老板可见），避免又变成全员广播。
+     */
+    private function requiredViewCode($relatedType)
+    {
+        if (empty($relatedType)) {
+            return null;
+        }
+        // 未在 route_map 或需明确的模块
+        $override = [
+            'performance' => 'performance.view',
+            'work-orders' => 'performance.view',
+            'work-order'  => 'performance.view',
+            // 知识库无独立权限码，按“维修业务人员”(工人/老板/人事 均持 performance.view) 投递
+            'knowledge'   => 'performance.view',
+            'kb'          => 'performance.view',
+            'parts'       => 'inventory.parts.view',
+        ];
+        if (isset($override[$relatedType])) {
+            return $override[$relatedType];
+        }
+        $routeMap = (array) config('permission.route_map');
+        if (isset($routeMap[$relatedType])) {
+            return $routeMap[$relatedType] . '.view';
+        }
+        return null;
+    }
+
+    /**
+     * 解析通知受众：老板/超管（始终）+ 持有 $requiredCode 权限的用户；排除操作者本人。
+     * 权限判定复用 PermissionService（role_id + user_roles 多角色、通配符/祖先匹配），与接口鉴权一致。
+     */
+    private function audienceUserIds($requiredCode, $excludeUserId = 0)
+    {
+        $users = Db::name('users')->field('id, role_type, role_id')->select()->toArray();
+        if (empty($users)) {
+            return [];
+        }
+
+        // 用户 → 角色 id 集合（主角色 + user_roles 多角色）
+        $userRoleIds = [];
+        foreach ($users as $u) {
+            $rids = [];
+            if (!empty($u['role_id'])) {
+                $rids[] = (int) $u['role_id'];
+            }
+            $userRoleIds[(int) $u['id']] = $rids;
+        }
+        foreach (Db::name('user_roles')->field('user_id, role_id')->select()->toArray() as $ur) {
+            $userRoleIds[(int) $ur['user_id']][] = (int) $ur['role_id'];
+        }
+
+        // 角色 → 授权码
+        $roleCodes = [];
+        $rows = Db::name('role_permissions')->alias('rp')
+            ->join('permissions p', 'p.id = rp.permission_id')
+            ->where('p.status', 1)
+            ->field('rp.role_id, p.code')
+            ->select()->toArray();
+        foreach ($rows as $r) {
+            $roleCodes[(int) $r['role_id']][] = $r['code'];
+        }
+        $roleCodeById = Db::name('roles')->column('code', 'id'); // id => code
+
+        $ids = [];
+        foreach ($users as $u) {
+            $uid = (int) $u['id'];
+            if ($excludeUserId && $uid === (int) $excludeUserId) {
+                continue; // 不通知操作者本人（前端已有操作成功提示）
+            }
+            // 老板/超管始终收到
+            $isBoss = ((int) ($u['role_type'] ?? 0) === 1)
+                || in_array($uid, [1, 2], true)
+                || in_array($roleCodeById[(int) ($u['role_id'] ?? 0)] ?? '', ['admin', 'boss', 'super_admin'], true);
+            if ($isBoss) {
+                $ids[] = $uid;
+                continue;
+            }
+            if ($requiredCode === null) {
+                continue; // 未知/仅老板模块：非老板不投递
+            }
+            $codes = [];
+            foreach (array_unique($userRoleIds[$uid] ?? []) as $rid) {
+                foreach ($roleCodes[$rid] ?? [] as $c) {
+                    $codes[] = $c;
+                }
+            }
+            if (!empty($codes) && PermissionService::match($codes, $requiredCode)) {
+                $ids[] = $uid;
+            }
+        }
+        return array_values(array_unique($ids));
     }
 }
