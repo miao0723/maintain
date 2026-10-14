@@ -910,6 +910,31 @@ class PerformanceService
     }
 
     /**
+     * 断言具有验收评分权限：老板/超管，或已授予 performance.review 权限码的人员。
+     * 用于「验收评分」与「修改已验收工单评分」，区别于 assertBoss
+     * （评分规则/绩效配置/快照等管理操作仍仅老板/超管）。
+     */
+    private function assertReviewer($userId): void
+    {
+        if ($this->isBossUser($userId)) {
+            return;
+        }
+        $user = Db::name('users')
+            ->alias('u')
+            ->leftJoin('roles r', 'u.role_id = r.id')
+            ->field('u.id, u.role_id')
+            ->where('u.id', (int)$userId)
+            ->find();
+        if (!$user) {
+            throw new \Exception('仅管理员/老板或已获验收评分授权的人员可执行该操作');
+        }
+        $codes = PermissionService::grantedCodes((int)$userId, $user['role_id'] ?? null);
+        if (!PermissionService::match($codes, 'performance.review')) {
+            throw new \Exception('仅管理员/老板或已获验收评分授权的人员可执行该操作');
+        }
+    }
+
+    /**
      * 断言维修人员身份（工人自助操作：建单/编辑/交付/删除）
      * 老板保留通揽能力（历史行为），HR/普通员工等无档案账号禁止操作他人工单
      */
@@ -1190,8 +1215,8 @@ class PerformanceService
     }
 
     /**
-     * 管理员/老板验收评分（交付后由管理员判定合格并打分 → 已完成）
-     * 仅老板/超管可操作（HR 等只读账号被拒），工人不能自己验收自己。
+     * 管理员/老板或已获 performance.review 授权的人员验收评分
+     * （交付后判定合格并打分 → 已完成），工人不能自己验收自己。
      * @param int $isQualified 1 符合 / 0 不符合
      * @param int $reviewScore 验收评分 1-5
      */
@@ -1201,8 +1226,8 @@ class PerformanceService
         if (!$order) {
             throw new \Exception('工单不存在');
         }
-        // 仅老板/超管可验收：维修人员禁止自验，HR/普通员工等只读账号同样禁止
-        $this->assertBoss($userId);
+        // 仅老板/超管或已获 performance.review 授权的人员可验收；维修人员禁止自验
+        $this->assertReviewer($userId);
         if ($order->status !== PerfWorkOrder::STATUS_WAITING) {
             throw new \Exception('仅「待验收」状态的工单可以验收评分');
         }
@@ -1217,9 +1242,10 @@ class PerformanceService
     }
 
     /**
-     * 管理员/老板修改已验收工单的评分（验收完成后发现打分/判定有误时可修正）
+     * 管理员/老板或已获 performance.review 授权的人员修改已验收工单的评分
+     * （验收完成后发现打分/判定有误时可修正）
      * 约束：
-     *  - 仅老板/超管可操作（HR 等只读账号被拒）；
+     *  - 仅老板/超管或已获 performance.review 授权的人员可操作；
      *  - 工单必须已验收完成（completed 且已有评分）；
      *  - 不改变工单状态与绩效快照口径，仅修正评分三要素，操作留痕于 updated_at。
      */
@@ -1229,7 +1255,7 @@ class PerformanceService
         if (!$order) {
             throw new \Exception('工单不存在');
         }
-        $this->assertBoss($userId);
+        $this->assertReviewer($userId);
         if ($order->status !== PerfWorkOrder::STATUS_COMPLETED || $order->review_score === null) {
             throw new \Exception('仅已验收完成的工单可以修改评分');
         }

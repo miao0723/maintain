@@ -244,8 +244,8 @@ const route = useRoute()
 const menuBadgeStore = useMenuBadgeStore()
 const permStore = usePermStore()
 const authStore = useAuthStore()
-// 验收/改评分仅老板/超管（HR 等只读账号不可见；工人本人在此页也无操作）
-const canReview = computed(() => permStore.isBoss || authStore.isAdmin)
+// 验收/改评分：老板/超管，或已获 performance.review 授权的人员（如人事付孝丽）
+const canReview = computed(() => permStore.isBoss || authStore.isAdmin || permStore.can('performance.review'))
 
 // 从提醒徽标「前往处理」带 order_id 跳来时，高亮并自动打开该工单详情
 const highlightId = ref(null)
