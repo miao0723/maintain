@@ -1000,6 +1000,14 @@ Route::group('api', function () {
         Route::get('/:id', 'OpenOrderDeviceController/read');
     })->allowCrossDomain();
 
+    // 对外只读同步接口（供外部系统定时拉取小程序订单；固定 Token 鉴权，免 JWT，允许跨域）
+    // GET /api/open/orders/repair   维修类型订单
+    // GET /api/open/orders/recycle  回收类型订单
+    Route::group('open/orders', function () {
+        Route::get('repair', 'OrderSyncController/repair');
+        Route::get('recycle', 'OrderSyncController/recycle');
+    })->middleware([\app\middleware\SyncAuth::class])->allowCrossDomain();
+
     // 小程序后台 - 独立认证 + 权限
     Route::group('mini-admin', function () {
         Route::group('auth', function () {
