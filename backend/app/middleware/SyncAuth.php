@@ -92,10 +92,14 @@ class SyncAuth
      * 获取允许访问的 Token 列表（多源合并，避免部署层差异导致读不到）
      *
      * 来源：
-     *  1) 项目根 .env 文件（ThinkPHP env() 读取，由框架 App 初始化时 load）
-     *  2) 容器环境变量（docker-compose env_file: .env.docker 注入；
-     *     TP 的 env() 仅回退 PHP_ 前缀故读不到，这里直接 getenv 兜底）
-     *  3) PHP_ 前缀约定（TP 原生回退 getenv('PHP_' . name)）
+     *  1) 项目根 .env 顶层键（TP env() 读取）
+     *  2) 项目根 .env 原始文件——忽略 [SECTION] 节头直接解析（关键兜底！）
+     *     TP8 用 parse_ini_file(..., true) 加载 .env，节内的键会被前缀成 SECTION_KEY，
+     *     例如写在 [JWT] 之后的 SYNC_API_KEY 会被解析成 JWT_SYNC_API_KEY，导致
+     *     env('SYNC_API_KEY') 永远取空、接口全 401。直接读原始文件可彻底规避。
+     *  3) TP 节前缀兜底（env_file 被框架加载后键名可能带节前缀 JWT_SYNC_API_KEY）
+     *  4) 容器真实环境变量（docker-compose env_file: .env.docker 注入）
+     *  5) PHP_ 前缀约定（TP 原生回退 getenv('PHP_' . name)）
      *
      * 任一来源配置即可生效，多来源取并集，逗号分隔支持多个 Token。
      */
@@ -103,19 +107,31 @@ class SyncAuth
     {
         $tokens = [];
 
-        // 来源 1：项目根 .env
+        // 来源 1：项目根 .env 顶层键
         $fromEnvFile = env('SYNC_API_KEY', '');
         if (is_string($fromEnvFile) && $fromEnvFile !== '') {
             $tokens = array_merge($tokens, explode(',', $fromEnvFile));
         }
 
-        // 来源 2：容器真实环境变量（.env.docker）
+        // 来源 2：直接读原始 .env 文件（忽略节头/注释），任何位置都能命中
+        $fromRawFile = $this->readRawEnv('SYNC_API_KEY');
+        if ($fromRawFile !== '') {
+            $tokens = array_merge($tokens, explode(',', $fromRawFile));
+        }
+
+        // 来源 3：TP 节前缀兜底（写在 [JWT] 等节内时被框架前缀成 JWT_SYNC_API_KEY）
+        $fromSection = env('JWT_SYNC_API_KEY', '');
+        if (is_string($fromSection) && $fromSection !== '') {
+            $tokens = array_merge($tokens, explode(',', $fromSection));
+        }
+
+        // 来源 4：容器真实环境变量（.env.docker 经 env_file 注入容器内环境）
         $fromServerEnv = getenv('SYNC_API_KEY');
         if (is_string($fromServerEnv) && $fromServerEnv !== '' && $fromServerEnv !== false) {
             $tokens = array_merge($tokens, explode(',', $fromServerEnv));
         }
 
-        // 来源 3：PHP_ 前缀约定
+        // 来源 5：PHP_ 前缀约定
         $fromPhpPrefix = getenv('PHP_SYNC_API_KEY');
         if (is_string($fromPhpPrefix) && $fromPhpPrefix !== '' && $fromPhpPrefix !== false) {
             $tokens = array_merge($tokens, explode(',', $fromPhpPrefix));
@@ -124,5 +140,45 @@ class SyncAuth
         return array_values(array_unique(array_filter(array_map('trim', $tokens), function ($t) {
             return $t !== '';
         })));
+    }
+
+    /**
+     * 直接读取项目根 .env 原始文件，忽略 [SECTION] 节头和注释行，按 key=value 提取。
+     * 用于规避 TP8 的 .env 节解析把键名前缀化的问题。
+     */
+    private function readRawEnv(string $key): string
+    {
+        $file = $this->envFilePath();
+        if (!is_file($file)) {
+            return '';
+        }
+        $lines = @file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if ($lines === false) {
+            return '';
+        }
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || $line[0] === '#' || $line[0] === ';' || $line[0] === '[') {
+                continue;
+            }
+            if (preg_match('/^' . preg_quote($key, '/') . '\s*=\s*(.*)$/', $line, $m)) {
+                return trim($m[1], "\"' \t\r\n");
+            }
+        }
+        return '';
+    }
+
+    /**
+     * 解析 .env 文件路径：优先框架 root_path，回退到本文件相对位置推导。
+     */
+    private function envFilePath(): string
+    {
+        if (function_exists('root_path')) {
+            $p = root_path() . '.env';
+            if (is_file($p)) {
+                return $p;
+            }
+        }
+        return dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . '.env';
     }
 }
