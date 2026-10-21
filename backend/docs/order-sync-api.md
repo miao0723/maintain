@@ -48,6 +48,13 @@ SYNC_API_KEY=openSyncToken_7c3f9a2e5b8410d6f2a9c7e1b3d5f8a0
 > ⚠️ 生产环境请替换为高强度随机串，并通过密钥管理下发，不要明文提交到代码仓库。
 > 留空 `SYNC_API_KEY` 时接口拒绝一切外部访问（fail-closed）。
 
+**Token 存放位置（部署注意）**：`SYNC_API_KEY` 可放在项目根 `.env` 文件的**任意位置**（含已有的 `[DATABASE]` / `[JWT]` 等节内均可），中间件会直接解析原始 `.env` 文件，不依赖 ThinkPHP 的 INI 节解析；也支持容器环境变量（docker-compose `env_file` / `.env.docker`）与 `PHP_` 前缀。多来源取并集，任一配置即可生效。
+
+**鉴权失败排查**：返回 `401 UNAUTHORIZED` 时，响应 `data` 会附带两个布尔字段帮助定位：
+- `configured=false` → 服务端没读到 Token 配置（`SYNC_API_KEY` 未设置或未生效，需检查 `.env` / 容器环境变量并重启 PHP）。
+- `received=false` → 请求未携带任何凭证（检查是否带了 `access_token` 或对应 Header）。
+- `received=true` 且 `configured=true` → Token 不匹配（复制时多了空格 / 换行）。
+
 ---
 
 ## 3. 统一响应格式
@@ -183,6 +190,114 @@ SYNC_API_KEY=openSyncToken_7c3f9a2e5b8410d6f2a9c7e1b3d5f8a0
 
 > `images` 已做路径归一化（统一为 `/uploads/...` 可访问路径）；`device.type_label` 仅对 1–5 有内置中文映射，其它值返回 `null`。
 
+### 5.1 单条订单字段说明表
+
+`list[]` 中每个对象字段如下（维修 / 回收完全一致，仅 `order_type` 取值不同）：
+
+| 字段路径 | 类型 | 说明 |
+|----------|------|------|
+| `id` | int | 订单主键 ID（repair 库 orders 表自增 ID） |
+| `order_no` | string | 订单号（对应 `orders.order_id`） |
+| `order_type` | string | 订单类型：`repair`=维修 / `recycle`=回收 |
+| `order_type_label` | string | 类型中文名：维修 / 回收 |
+| `status` | string | 订单状态英文（枚举见第 1 节） |
+| `status_label` | string | 状态中文名 |
+| `progress` | int | 进度百分比（0–100） |
+| `user.id` | int\|null | 下单用户 ID |
+| `user.name` | string\|null | 用户昵称 / 姓名 |
+| `user.phone` | string\|null | 用户手机号 |
+| `user.email` | string\|null | 用户邮箱 |
+| `device.type` | int\|null | 设备类型枚举值 |
+| `device.type_label` | string\|null | 设备类型中文名（1–5 有内置映射，其余为 `null`） |
+| `device.model` | string | 设备型号 |
+| `device.brand` | string\|null | 品牌 |
+| `device.condition` | string\|null | 成色（如 normal/new/old/poor） |
+| `service_type` | string\|null | 服务方式（如 shop=到店） |
+| `service_type_label` | string\|null | 服务方式中文名 |
+| `priority` | int\|null | 优先级（0 未设置 / 1 低 / 2 中 / 3 高） |
+| `priority_label` | string\|null | 优先级中文名 |
+| `amount.estimated` | float\|null | 预估金额（元） |
+| `amount.actual` | float\|null | 实付金额（未支付 / 未结算为 `null`） |
+| `amount.final` | float\|null | 最终金额（实付优先，无则取预估） |
+| `problem_description` | string | 故障 / 问题描述 |
+| `custom_description` | string | 自定义描述 |
+| `images` | string[] | 图片路径数组（已归一化为 `/uploads/...` 可访问路径，可能为空 `[]`） |
+| `contact.name` | string\|null | 联系人姓名 |
+| `contact.phone` | string\|null | 联系人电话 |
+| `contact.address` | string\|null | 收货 / 联系地址 |
+| `assigned_user_name` | string\|null | 指派处理人姓名 |
+| `created_at` | string | 创建时间 `Y-m-d H:i:s` |
+| `updated_at` | string | 更新时间 `Y-m-d H:i:s` |
+| `completed_at` | string\|null | 完成时间（未完成为 `null`） |
+
+> 金额单位为**元（人民币）**。`amount.final` 是给外部系统的最简字段：有实付取实付，否则取预估。
+
+### 5.2 回收订单真实返回示例
+
+`GET /api/open/orders/recycle?page=1&page_size=1` 的真实响应（已脱敏）：
+
+```json
+{
+  "code": 0,
+  "error_code": "SUCCESS",
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": 162,
+        "order_no": "RECTEST20260914154086",
+        "order_type": "recycle",
+        "order_type_label": "回收",
+        "status": "completed",
+        "status_label": "已完成",
+        "progress": 100,
+        "user": {
+          "id": 3,
+          "name": "王五",
+          "phone": "13800138003",
+          "email": "wangwu@example.com"
+        },
+        "device": {
+          "type": 5,
+          "type_label": "其他",
+          "model": "AirPods Pro 2",
+          "brand": null,
+          "condition": "poor"
+        },
+        "service_type": "shop",
+        "service_type_label": "到店",
+        "priority": 0,
+        "priority_label": "未设置",
+        "amount": {
+          "estimated": 573,
+          "actual": 504,
+          "final": 504
+        },
+        "problem_description": "耳机音频回收：屏幕划痕明显/电池效率低",
+        "custom_description": "",
+        "images": [],
+        "contact": {
+          "name": null,
+          "phone": null,
+          "address": null
+        },
+        "assigned_user_name": null,
+        "created_at": "2026-09-14 15:40:01",
+        "updated_at": "2026-09-17 15:41:49",
+        "completed_at": null
+      }
+    ],
+    "total": 111,
+    "page": 1,
+    "page_size": 1,
+    "has_more": true,
+    "time_field": "updated_at"
+  }
+}
+```
+
+> 回收与维修接口**返回结构完全一致**，差异仅在 `order_type` / `order_type_label`。外部系统可共用同一套解析逻辑，按 `order_type` 分流即可。
+
 ---
 
 ## 6. 对接示例（外部系统定时增量拉取）
@@ -204,15 +319,66 @@ curl -G "https://zych.net.cn/api/open/orders/repair" \
 3. 以 `order_no` 为主键 upsert 到本地表。
 4. 若需回查历史，可改用 `time_field=created_at` + 创建时间区间。
 
+**回收订单拉取（仅换路径）：**
+```bash
+curl -G "https://zych.net.cn/api/open/orders/recycle" \
+  -H "Authorization: Bearer openSyncToken_7c3f9a2e5b8410d6f2a9c7e1b3d5f8a0" \
+  -d "time_field=updated_at" \
+  -d "start_time=2026-09-01 00:00:00" \
+  -d "page=1" -d "page_size=100"
+```
+
+**Python 增量拉取示例（维修 / 回收通用）：**
+```python
+import requests, time
+
+BASE = "https://zych.net.cn/api/open/orders"
+TOKEN = "openSyncToken_7c3f9a2e5b8410d6f2a9c7e1b3d5f8a0"
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+def pull(order_type: str, since: str):
+    """分页拉取某类型订单，返回全部订单列表。since 为上次最大 updated_at。"""
+    all_rows, page = [], 1
+    while True:
+        r = requests.get(f"{BASE}/{order_type}", headers=HEADERS, params={
+            "time_field": "updated_at",
+            "start_time": since,
+            "page": page,
+            "page_size": 100,
+        }, timeout=30)
+        r.raise_for_status()
+        body = r.json()
+        if body["code"] != 0:
+            raise RuntimeError(f"API 错误: {body}")
+        rows = body["data"]["list"]
+        all_rows.extend(rows)
+        if not body["data"]["has_more"]:
+            break
+        page += 1
+        time.sleep(0.2)  # 礼貌限速
+    return all_rows
+
+# 维修 + 回收一起拉
+repair_orders = pull("repair", "2026-09-01 00:00:00")
+recycle_orders = pull("recycle", "2026-09-01 00:00:00")
+print(f"维修 {len(repair_orders)} 条，回收 {len(recycle_orders)} 条")
+```
+
+> 调用频率建议 ≤ 1 次 / 分钟（或按业务实际设置定时任务）；单次 `page_size` 最大 100。
+
 ---
 
 ## 7. 部署与缓存注意
-- 后端 PHP 源码通过卷挂载，**改动即时生效**，无需重建镜像。
+- 后端 PHP 源码通过卷挂载，但 `SyncAuth.php` 等类文件可能被 **OPcache 缓存**，修改接口代码后需在 PHP 容器内 **重启 PHP（FPM）进程** 才能生效：
+  ```bash
+  # 容器内执行（或 docker compose restart php）
+  docker compose restart php
+  ```
 - 若生产环境开启了路由缓存（`route_cache`），修改 `route/app.php` 后需执行：
   ```bash
   php think clear        # 或 php think route:clear
   ```
-- Token 修改后无需清缓存，下次请求即时生效（读 `env('SYNC_API_KEY')`）。
+- **Token（`.env` 中的 `SYNC_API_KEY`）改动无需清缓存**：中间件每次请求都重新读取原始 `.env` 与容器环境变量，下次请求即时生效；改完 `.env` 后建议顺手重启一次 PHP 以防 OPcache 命中旧进程环境。
 
 ---
 
